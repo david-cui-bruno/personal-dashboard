@@ -56,8 +56,14 @@ export function Editor({
     if (!editor || !onUploadImage || !files) return;
     for (const file of Array.from(files)) {
       if (!file.type.startsWith("image/")) continue;
-      const url = await onUploadImage(file);
-      editor.chain().focus().setImage({ src: url }).run();
+      try {
+        const url = await onUploadImage(file);
+        editor.chain().focus().setImage({ src: url }).run();
+      } catch (err) {
+        // Best-effort: a failed upload shouldn't break the editor (#050). The
+        // upload helper throws a friendly message (too large / not an image).
+        console.error("image upload failed", err);
+      }
     }
   }
 
