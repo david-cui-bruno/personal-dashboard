@@ -16,12 +16,13 @@
   horizontal mobile chart, routine spacing + smooth Enter-to-add), and a post-V1 batch:
   **photos verified end-to-end** (+ Today journal now accepts images), **manual data
   export** in Settings (#109), an **Electron desktop app** in `desktop/` (#110) with
-  auto-update (#112), and the Notes-stream spec amended to the shipped behavior (#111).
+  auto-update (#112), the Notes-stream spec amended to the shipped behavior (#111), and a
+  **Capacitor mobile shell scaffolded** in `mobile/` (#113).
 - **Trunk:** `main` (this is what's deployed). Build is green; auth + RLS verified.
   Photos + export are **live in prod** (deployed 2026-06-11); the desktop shell ships
   separately as a `.dmg` (not part of the web deploy).
 - **Read first:** `docs/product.md` (why), then `docs/spec.md` (what), then this file
-  (how to run/deploy). The full "why" log is `docs/decisions.md` (#001–#112).
+  (how to run/deploy). The full "why" log is `docs/decisions.md` (#001–#113).
 
 ## 1. Infra & accounts
 
@@ -40,8 +41,9 @@
 
 Next.js 16 (App Router) + React 19 · Tailwind 4 (`@theme` in `globals.css`) · TypeScript ·
 Supabase (Postgres + Auth + Storage) · TipTap (rich text) · Lucide · Lato · PWA · an
-**Electron** desktop shell (`desktop/`, #110), built to wrap in Capacitor for mobile later.
-Details + rationale: `docs/architecture.md` (and decisions #080–#086, #110).
+**Electron** desktop shell (`desktop/`, #110) · a **Capacitor** mobile shell scaffolded
+(`mobile/`, #113). Details + rationale: `docs/architecture.md` (and decisions #080–#086,
+#110, #113).
 
 ## 3. Repo map
 
@@ -56,7 +58,9 @@ docs/                     the contract — see the table in AGENTS.md
 mockups/index.html        interactive visual reference
 supabase/migrations/      0001_init (schema) · 0002_storage (photos bucket) · 0003_rls
 desktop/                  Electron desktop shell (#110) — self-contained, npm not pnpm;
-                          main.js (hosted-URL window) · README.md (runbook) · build/icon.png
+                          main.js (hosted-URL window) · updater.js (#112) · build/icon.png
+mobile/                   Capacitor mobile shell (#113) — self-contained, npm not pnpm;
+                          capacitor.config.json (hosted-URL) · www/ fallback · README.md
 src/
   proxy.ts                auth gate (Next 16 renamed middleware→proxy); PWA assets excluded
   middleware? -> NONE      (do not re-add; it's proxy.ts now)
@@ -123,6 +127,15 @@ on launch; unsigned ⇒ it *notifies + opens the download* (silent install is on
 away once signed). Publish a build with `GH_TOKEN=… npm run release`. Full detail:
 `desktop/README.md`.
 
+### 4b. Mobile app (Capacitor, #113)
+
+`mobile/` is **scaffolded** — same hosted-URL idea (WebView → live site). Native build
+needs full **Xcode** / **Android Studio** + an **Apple Developer account** (#086), not
+installed here. Once they are: `cd mobile && npm install && npm run add:ios` (or
+`add:android`) → `npm run sync` → `npm run open:ios`. Generated `ios/`/`android/` are
+git-ignored until you're building them. The widget + rich notifications (#082/#090) are
+further native work. Full detail: `mobile/README.md`.
+
 ## 5. Data model & the load-bearing rules
 
 Six tables (`routine_item`, `completion`, `journal`, `note`, `attachment`, `settings`) —
@@ -182,10 +195,11 @@ verified) → RLS → deploy. Anything used by 2+ slices lives in Phase 0.
 
 ## 9. What's next (deferred — `docs/roadmap.md`)
 
-Capacitor native **mobile** shell (home-screen widget + rich notifications, #082/#090;
-desktop is now covered by Electron #110) · code-sign + notarize the desktop `.dmg`
-(needs an Apple account, #086) · "on this day" / browse-by-date · mood · weekly/non-daily
-items · fixed home timezone (#083) · offline mode (#084) · custom domain.
+Capacitor mobile shell **scaffolded** (`mobile/`, #113) — remaining: generate native
+projects (Xcode/Android Studio) + the home-screen widget + rich notifications (#082/#090) ·
+code-sign + notarize the desktop `.dmg` (needs an Apple account, #086) · "on this day" /
+browse-by-date · mood · weekly/non-daily items · fixed home timezone (#083) · offline
+mode (#084) · custom domain.
 
 ## 10. Verifying a change
 

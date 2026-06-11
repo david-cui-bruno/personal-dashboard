@@ -319,3 +319,18 @@ readable** (make Releases public, or publish to a dedicated public repo). **Why:
 wants auto-update; this delivers the auto-*check* + one-click-to-update experience today
 without code-signing, and is one switch away from fully silent once an Apple account
 exists. Builds on #110.
+
+**#113 — Mobile app is a Capacitor hosted-URL shell (realizes #082).**
+A self-contained `mobile/` package (own `package.json` + `node_modules`, `npm` not pnpm,
+outside the Next lint/build surface) wraps the *running web app* in a Capacitor
+iOS/Android WebView via `server.url` — same hosted-URL strategy as the desktop Electron
+shell (#110) and exactly what #082 always planned. Scaffolded now: config (→ production
+URL), deps (`@capacitor/{core,cli,ios,android}`), a fallback `www/`, and the runbook.
+**Not** generated yet: the native `ios/`/`android/` projects (git-ignored for now) — that
+needs full **Xcode** / **Android Studio** + an **Apple Developer account** ($99/yr, #086),
+none installed in the build env. The actual payoff features — a **home-screen widget**
+(WidgetKit/Swift) and **rich notifications** (APNs/FCM) — are further native work and stay
+deferred (#082/#090; V1 has no reminder by design). **Why:** establishes the mobile
+foundation with the same zero-drift approach as desktop, so the remaining work is native
+toolchain + extensions, not architecture. Connection is required anyway (#084), which
+keeps the hosted-URL approach clean. Builds on #082, mirrors #110.

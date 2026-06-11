@@ -35,8 +35,10 @@ See `docs/architecture.md` for deploy details.
 
 ## explicitly deferred (post-V1)
 
-- Native shell via **Capacitor**: home-screen **widget** + rich "big-banner"
-  notifications (#082, #090). *(Desktop is now covered by Electron, #110.)*
+- Native **mobile** shell via **Capacitor** (#113): **scaffolded** in `mobile/`
+  (hosted-URL). Remaining: generate the native iOS/Android projects (Xcode/Android Studio)
+  and build the home-screen **widget** + rich "big-banner" notifications (#082, #090).
+  *(Desktop is covered by Electron, #110.)*
 - Code signing + notarization for the desktop `.dmg` (needs an Apple account, #086, #110);
   unblocks true silent desktop auto-update (#112).
 - Move the Supabase project out of the paid Framewise Health **work** org to a personal
