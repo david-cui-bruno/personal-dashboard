@@ -252,3 +252,11 @@ The pre-paint `ThemeScript` sets `--accent` / `data-theme` on `<html>` from loca
 before React hydrates, which React flagged as a hydration mismatch (the lone dev-overlay
 "issue"). Suppress it on `<html>` — the standard pattern for theme-before-paint scripts.
 **Why:** the mismatch is intended and harmless; suppressing keeps the console clean.
+
+**#108 — All public tables have RLS, locked to the `authenticated` role.**
+Migration `0003_rls.sql` enables RLS on routine_item / completion / journal / note /
+attachment / settings with a single `for all to authenticated using(true)` policy each;
+`anon` gets nothing (storage.objects already had RLS from 0002). **Why:** the anon key
+ships in the client bundle, so without RLS anyone could read/write the DB via Supabase's
+REST API, bypassing the proxy auth gate — unacceptable for a private journal on a public
+deploy. Verified: anon REST returns `[]`; the signed-in app reads + writes normally.
