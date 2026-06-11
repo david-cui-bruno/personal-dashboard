@@ -182,10 +182,10 @@ verified) → RLS → deploy. Anything used by 2+ slices lives in Phase 0.
   renders, no console errors) and the inline **Today journal now accepts images** too
   (previously only the `/notes/[id]` editor did). Repro: Python Playwright — sign in, open a
   note, dispatch a `drop` event carrying an image `File` onto `.notes-editor`.
-- **Backups (#085):** manual **export** now ships (Settings → data, #109 — verified). But
-  Supabase **automatic** backups are still **not** enabled — that's a dashboard toggle only
-  David can flip (enable scheduled / PITR backups in the Supabase dashboard). Still the one
-  open V1 box in `roadmap.md`.
+- **Backups (#085):** ✅ Supabase **daily DB backups confirmed running** (Pro plan,
+  automatic — verified from the dashboard). They **exclude Storage objects**, so the manual
+  **export** now bundles the photo files too (`.zip`, #114) — that's the only off-Supabase
+  copy of the image bytes. So: DB auto-backed-up; photos covered by export.
 - **Cost:** the project lives in a *paid* Supabase org (Framewise Health) → ~$10/mo, and
   it's a work org (data-governance note for a personal journal). See #086.
 - **Optimistic routine add** uses temp ids reconciled on server return; acting on a
@@ -197,9 +197,10 @@ verified) → RLS → deploy. Anything used by 2+ slices lives in Phase 0.
 
 Capacitor mobile shell **scaffolded** (`mobile/`, #113) — remaining: generate native
 projects (Xcode/Android Studio) + the home-screen widget + rich notifications (#082/#090) ·
-code-sign + notarize the desktop `.dmg` (needs an Apple account, #086) · "on this day" /
-browse-by-date · mood · weekly/non-daily items · fixed home timezone (#083) · offline
-mode (#084) · custom domain.
+code-sign + notarize the desktop `.dmg` (needs an Apple account, #086) · **browse-by-date**
+(maybe) · **end-of-day summary as a notification** (rides on Capacitor notifications). The
+post-V1 backlog was triaged (#115): **declined** — mood, "on this day", weekly/non-daily
+items, fixed home-timezone, offline mode, custom domain.
 
 ## 10. Verifying a change
 

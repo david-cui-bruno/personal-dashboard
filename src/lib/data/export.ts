@@ -4,7 +4,10 @@
 // storage path + a public URL so the actual image bytes can be re-fetched.
 //
 // This is a safety net against data *loss*, not lock-in (#085); Supabase's own
-// automatic backups (dashboard) remain the primary mechanism — see docs/handoff.md.
+// automatic backups (dashboard) remain the primary mechanism — and notably do NOT
+// include Storage objects, so this archive is the only off-Supabase copy of the
+// actual image files (#114). See docs/handoff.md.
+import { makeZip, type ZipEntry } from "@/lib/zip";
 import type {
   DB,
   RoutineItem,
@@ -14,6 +17,8 @@ import type {
   Attachment,
   Settings,
 } from "./types";
+
+const BUCKET = "attachments"; // #103
 
 export const EXPORT_VERSION = 1 as const;
 
@@ -68,4 +73,42 @@ export async function exportAll(sb: DB): Promise<ExportBundle> {
     attachments: withUrls,
     settings: settings.data ?? null,
   };
+}
+
+export type ExportArchive = {
+  blob: Blob;
+  ext: "json" | "zip";
+  entries: number; // journals + notes + routine items
+  photos: number; // image files actually bundled
+};
+
+// Builds the downloadable archive. With no photos it's the plain JSON file; with
+// photos it's a .zip of the JSON plus every original image under `images/<path>`
+// (#114) — the image bytes that Supabase's DB backups don't cover (#085).
+export async function buildExportArchive(sb: DB): Promise<ExportArchive> {
+  const bundle = await exportAll(sb);
+  const json = new TextEncoder().encode(JSON.stringify(bundle, null, 2));
+  const entries =
+    bundle.journals.length + bundle.notes.length + bundle.routine_items.length;
+
+  if (bundle.attachments.length === 0) {
+    return {
+      blob: new Blob([json], { type: "application/json" }),
+      ext: "json",
+      entries,
+      photos: 0,
+    };
+  }
+
+  const files: ZipEntry[] = [{ name: "notes-export.json", data: json }];
+  for (const a of bundle.attachments) {
+    const { data, error } = await sb.storage.from(BUCKET).download(a.storage_path);
+    if (error || !data) continue; // skip a missing object; the metadata is still in the JSON
+    files.push({
+      name: `images/${a.storage_path}`,
+      data: new Uint8Array(await data.arrayBuffer()),
+    });
+  }
+
+  return { blob: makeZip(files), ext: "zip", entries, photos: files.length - 1 };
 }

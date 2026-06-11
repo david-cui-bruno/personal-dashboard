@@ -334,3 +334,28 @@ deferred (#082/#090; V1 has no reminder by design). **Why:** establishes the mob
 foundation with the same zero-drift approach as desktop, so the remaining work is native
 toolchain + extensions, not architecture. Connection is required anyway (#084), which
 keeps the hosted-URL approach clean. Builds on #082, mirrors #110.
+
+**#114 — Export bundles the actual photo files (refines #109).**
+The export downloads a **`.zip`** (JSON dump + every original image under
+`images/<storage_path>`) when any attachment exists, and a plain `.json` otherwise.
+Built with a tiny dependency-free store-only zip writer (`src/lib/zip.ts`). **Why:**
+Supabase's automatic DB backups explicitly **exclude Storage objects** (confirmed on the
+dashboard), so without this the image *bytes* had no off-Supabase copy — the JSON only
+held their URLs. Now one tap yields a complete, self-contained backup. Verified
+end-to-end (zip opens, integrity check passes, contains the JSON + the image). Builds on
+#109; #085's note that DB backups omit photos is the motivation.
+
+**#115 — Post-V1 feature scope calls (David, triage of the deferred backlog).**
+David pruned the post-V1 list to protect the app's simplicity (#002, #003):
+- **Browse-by-date** — *maybe*, kept as the one live candidate (jump to any past day).
+- **"On this day"** — dropped.
+- **Mood / mood scale** — **out.** (New non-goal; sits alongside #003.)
+- **Weekly / non-daily routine items** — **out** (clutter); reaffirms #010 + #003.
+- **End-of-day summary** — only of interest as a **notification**, so it rides on the
+  post-Capacitor rich-notifications work (#082/#090), not as an in-app screen.
+- **Timezone** — **device-local confirmed** (#011/#083 stand); a fixed home timezone is dropped.
+- **Offline mode** — **out** (not important); reaffirms #084.
+- **Custom domain** — **out** (don't care); reaffirms #086's "optional."
+**Why:** keep scope tight and the daily experience uncluttered. Recorded here per rule #5;
+the FROZEN `product.md` non-goals already cover most of these and can absorb mood/weekly
+later if desired.
