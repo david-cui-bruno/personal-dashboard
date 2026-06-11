@@ -6,7 +6,7 @@
 // via the data layer and download a Blob.
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { exportAll } from "@/lib/data";
+import { buildExportArchive } from "@/lib/data";
 
 function todayStamp(): string {
   // Local-day stamp for the filename (matches the app's local-midnight model, #011).
@@ -23,21 +23,22 @@ export function DataSection() {
     setBusy(true);
     setMsg(null);
     try {
-      const bundle = await exportAll(createClient());
-      const blob = new Blob([JSON.stringify(bundle, null, 2)], {
-        type: "application/json",
-      });
+      const { blob, ext, entries, photos } = await buildExportArchive(createClient());
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `notes-export-${todayStamp()}.json`;
+      a.download = `notes-export-${todayStamp()}.${ext}`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      const count =
-        bundle.journals.length + bundle.notes.length + bundle.routine_items.length;
-      setMsg({ kind: "ok", text: `exported ${count} entries` });
+      setMsg({
+        kind: "ok",
+        text:
+          photos > 0
+            ? `exported ${entries} entries + ${photos} photos`
+            : `exported ${entries} entries`,
+      });
     } catch {
       setMsg({ kind: "err", text: "export failed — try again" });
     } finally {
@@ -53,7 +54,7 @@ export function DataSection() {
         <div>
           <div className="text-[15.5px] font-bold lowercase">export my data</div>
           <p className="mt-0.5 text-[13px] font-bold lowercase text-ink-3">
-            download every journal, note &amp; routine record as a json file
+            download every journal, note &amp; routine record — with your photos
           </p>
         </div>
         <button
