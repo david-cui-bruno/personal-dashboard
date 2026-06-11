@@ -12,11 +12,14 @@
 - **Live:** https://notes-framewise-health.vercel.app · login `david` / *(password set at
   deploy — rotate in Settings; the value is not stored in the repo).*
 - **Latest state:** V1 built by parallel Conductor agents → integrated → RLS-hardened →
-  deployed; since then: iOS-PWA standalone fix, and UI polish (grays, sticky sidebar,
-  horizontal mobile chart, routine spacing + smooth Enter-to-add).
+  deployed; since then: iOS-PWA standalone fix, UI polish (grays, sticky sidebar,
+  horizontal mobile chart, routine spacing + smooth Enter-to-add), and a post-V1 batch:
+  **photos verified end-to-end** (+ Today journal now accepts images), **manual data
+  export** in Settings (#109), and an **Electron desktop app** in `desktop/` (#110).
 - **Trunk:** `main` (this is what's deployed). Build is green; auth + RLS verified.
+  *(Photos/export/desktop landed on a branch — verified locally, not yet deployed.)*
 - **Read first:** `docs/product.md` (why), then `docs/spec.md` (what), then this file
-  (how to run/deploy). The full "why" log is `docs/decisions.md` (#001–#108).
+  (how to run/deploy). The full "why" log is `docs/decisions.md` (#001–#110).
 
 ## 1. Infra & accounts
 
@@ -34,8 +37,9 @@
 ## 2. Stack
 
 Next.js 16 (App Router) + React 19 · Tailwind 4 (`@theme` in `globals.css`) · TypeScript ·
-Supabase (Postgres + Auth + Storage) · TipTap (rich text) · Lucide · Lato · PWA, built to
-wrap in Capacitor later. Details + rationale: `docs/architecture.md` (and decisions #080–#086).
+Supabase (Postgres + Auth + Storage) · TipTap (rich text) · Lucide · Lato · PWA · an
+**Electron** desktop shell (`desktop/`, #110), built to wrap in Capacitor for mobile later.
+Details + rationale: `docs/architecture.md` (and decisions #080–#086, #110).
 
 ## 3. Repo map
 
@@ -44,18 +48,20 @@ AGENTS.md / CLAUDE.md     the 5 anti-drift rules + doc index (read first)
 docs/                     the contract — see the table in AGENTS.md
   product/spec/data-model FROZEN: goal / behavior / schema
   architecture/design     living: stack+deploy / tokens+screens
-  decisions.md            append-only "why" log (#001–#108)
+  decisions.md            append-only "why" log (#001–#110)
   roadmap.md / phase-1.md  status + the parallel-slice briefs
   handoff.md              this file
 mockups/index.html        interactive visual reference
 supabase/migrations/      0001_init (schema) · 0002_storage (photos bucket) · 0003_rls
+desktop/                  Electron desktop shell (#110) — self-contained, npm not pnpm;
+                          main.js (hosted-URL window) · README.md (runbook) · build/icon.png
 src/
   proxy.ts                auth gate (Next 16 renamed middleware→proxy); PWA assets excluded
   middleware? -> NONE      (do not re-add; it's proxy.ts now)
   lib/supabase/            client.ts (browser) · server.ts · middleware.ts (updateSession)
   lib/data/                THE DATA-ACCESS LAYER (the seam) — routine, consistency, journal,
-                           notes, settings, search, attachments, types. UI calls these; it
-                           never hits Supabase tables directly or changes the schema.
+                           notes, settings, search, attachments, export, types. UI calls
+                           these; it never hits Supabase tables directly or changes the schema.
   lib/database.types.ts    generated types (regen: supabase gen types typescript --local)
   lib/date.ts              local-day helpers (today/eachDay/daysBefore)
   app/                     (app)/ route group = shell + / (today), /notes, /notes/[id],
@@ -90,6 +96,27 @@ Prereqs: Docker Desktop running, Supabase CLI, pnpm, Node.
 (`docs/data-model.md`) — never run conflicting migrations in parallel, and make any
 browser test self-restoring (round-trip toggles, delete rows you create). Browser
 verification uses **Python** Playwright — see the `browser-verification` memory.
+
+### 4a. Desktop app (Electron, #110)
+
+`desktop/` is a **self-contained** package — use **`npm`, not `pnpm`**, and it's outside
+the Next app's lint/build surface. It's a hosted-URL wrapper (same idea as the mobile
+Capacitor plan): the window just points at a running copy of the web app.
+
+```bash
+# terminal 1 (repo root): the web app
+pnpm dev
+# terminal 2:
+cd desktop && npm install   # first time (downloads Electron)
+npm start                   # window → http://localhost:3000
+npm run smoke               # boots, prints "[smoke] loaded … ok", quits
+npm run dist                # → desktop/dist/notes-<ver>.dmg (loads production)
+npm run dist:dir            # → desktop/dist/mac-arm64/notes.app (unpacked, faster)
+```
+
+URL precedence: `APP_URL` env → `localhost:3000` (unpackaged) → Vercel prod (packaged).
+The build is **unsigned** (right-click → Open on first launch); signing/notarization
+needs an Apple account (#086). Full detail: `desktop/README.md`.
 
 ## 5. Data model & the load-bearing rules
 
@@ -134,11 +161,14 @@ verified) → RLS → deploy. Anything used by 2+ slices lives in Phase 0.
   included); the shipped Notes stream currently shows **today + days with content**, not a
   continuous empty-day range. Decide whether to enforce strict #100 (it'd render ~1 row per
   past day) or amend the decision. *(This is the noise tradeoff David weighed.)*
-- **Photos (#050):** the `attachments` Storage bucket + `uploadImage` + editor paste/drop
-  are wired, but image upload was **not** verified end-to-end in a browser — test before
-  relying on it.
-- **Backups (#085):** Supabase automatic backups are **not** enabled yet — turn on in the
-  dashboard. (Only open V1 box in `roadmap.md`.)
+- **Photos (#050):** ✅ **verified** end-to-end (drop → storage `200` → public-URL `<img>`
+  renders, no console errors) and the inline **Today journal now accepts images** too
+  (previously only the `/notes/[id]` editor did). Repro: Python Playwright — sign in, open a
+  note, dispatch a `drop` event carrying an image `File` onto `.notes-editor`.
+- **Backups (#085):** manual **export** now ships (Settings → data, #109 — verified). But
+  Supabase **automatic** backups are still **not** enabled — that's a dashboard toggle only
+  David can flip (enable scheduled / PITR backups in the Supabase dashboard). Still the one
+  open V1 box in `roadmap.md`.
 - **Cost:** the project lives in a *paid* Supabase org (Framewise Health) → ~$10/mo, and
   it's a work org (data-governance note for a personal journal). See #086.
 - **Optimistic routine add** uses temp ids reconciled on server return; acting on a
@@ -148,9 +178,10 @@ verified) → RLS → deploy. Anything used by 2+ slices lives in Phase 0.
 
 ## 9. What's next (deferred — `docs/roadmap.md`)
 
-Capacitor native shell (home-screen widget + rich notifications, #082/#090) · manual data
-export (#085) · "on this day" / browse-by-date · mood · weekly/non-daily items · fixed home
-timezone (#083) · offline mode (#084) · custom domain.
+Capacitor native **mobile** shell (home-screen widget + rich notifications, #082/#090;
+desktop is now covered by Electron #110) · code-sign + notarize the desktop `.dmg`
+(needs an Apple account, #086) · "on this day" / browse-by-date · mood · weekly/non-daily
+items · fixed home timezone (#083) · offline mode (#084) · custom domain.
 
 ## 10. Verifying a change
 

@@ -9,6 +9,9 @@
 - **TipTap** — rich-text editor, content stored as JSON (#033).
 - **Lucide** icons; **Lato** via web font; **PWA** (installable, web app manifest +
   service worker).
+- **Electron** (#110): a thin **desktop** shell that points at the running web app
+  (dev → `localhost:3000`, packaged → the Vercel URL). Lives in `desktop/`. See
+  "desktop shell" below.
 - **Capacitor** later (#082): a thin native iOS/Android shell pointing at the live
   Vercel URL, adding home-screen widgets + rich notifications. Connection is required
   (#084), which makes the hosted-URL approach clean.
@@ -31,6 +34,31 @@ hosted-URL (#082) removes the static-export concern. See #080.
   `src/lib/database.types.ts` (regenerate via `supabase gen types typescript --local`).
 - **Theming**: CSS variables in `src/app/globals.css` + a no-FOUC `ThemeScript`; the
   Settings slice wires the picker + DB persistence (#063).
+
+## desktop shell (Electron, #110)
+
+A **self-contained** `desktop/` package — its own `package.json` + `node_modules`
+(use `npm`, not `pnpm`), plain CommonJS `main.js`, **outside** the Next app's
+pnpm/eslint/build surface (eslint ignores `desktop/**`; git ignores its
+`node_modules`/`dist`). It is a hosted-URL wrapper, the same approach as the planned
+Capacitor mobile shell (#082): an Electron `BrowserWindow` loads the *running web
+app*, so there is no static export and no second codebase — everything in `src/`
+stays the single source of truth.
+
+- **URL precedence** (`desktop/main.js`): `APP_URL` env → `localhost:3000` when
+  unpackaged → production Vercel URL when packaged.
+- External links open in the system browser; same-origin nav stays in-window. Native
+  mac inset title bar + a role-based menu (copy/paste, reload, fullscreen).
+- **Build:** `electron-builder` → `npm run dist` (`.dmg`) / `npm run dist:dir`
+  (unpacked `.app`). Unsigned for now — code signing + notarization needs an Apple
+  Developer account (deferred, #086). Full runbook: `desktop/README.md`.
+
+## data export (#109)
+
+`src/lib/data/export.ts → exportAll(sb)` reads every owned row (all six tables +
+attachment public URLs) into one JSON bundle; **Settings → data → "export my data"**
+(`components/settings/data-section.tsx`) downloads it client-side. The off-Supabase,
+user-triggered complement to Supabase's automatic backups (#085).
 
 ## auth
 
@@ -71,6 +99,11 @@ redirect to `/sign-in`. Verified at runtime (`/` → 307 → `/sign-in`).
 
 - RLS: **done** (#108) — all public tables locked to `authenticated`, anon inert.
 - TipTap editor + PWA: **shipped** in Phase 1.
+- Photos (#050): **verified** end-to-end (drop → upload → render); the inline Today
+  journal now also accepts images, matching the notes editor.
+- Manual data export (#109): **shipped** (Settings → data).
+- Desktop shell (#110): **shipped** — `desktop/` Electron app, smoke-tested + packaged.
 - Capacitor native shell (home-screen widget + rich notifications) remains post-V1 (#082).
-- Supabase automatic backups: turn on in the dashboard (#085).
+- Supabase automatic backups: **still a manual dashboard step** (#085) — enable
+  Point-in-Time / scheduled backups in the Supabase dashboard (needs David's access).
 - Optional: a custom domain.

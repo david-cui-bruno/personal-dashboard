@@ -260,3 +260,37 @@ attachment / settings with a single `for all to authenticated using(true)` polic
 ships in the client bundle, so without RLS anyone could read/write the DB via Supabase's
 REST API, bypassing the proxy auth gate — unacceptable for a private journal on a public
 deploy. Verified: anon REST returns `[]`; the signed-in app reads + writes normally.
+
+---
+
+## 2026-06-11 — photos verified · manual export · desktop shell
+
+Post-V1 follow-ups David asked for. Photos (#050) and #084 are unchanged; the two
+new entries un-defer one nicety and add a platform.
+
+**#109 — Manual data export ships now (un-defers half of #085).**
+Settings → **data → "export my data"** downloads one JSON file with every row the
+account owns (routine_items, completions, journals, notes, attachment metadata +
+public URLs, settings) via `data/export.ts → exportAll`. Supabase's automatic
+backups (dashboard) remain the *primary* mechanism for data-loss protection; this is
+the off-Supabase, user-triggered complement. **Why:** #085 deferred manual export as
+"a later nicety," but it's cheap, it's the part that lives in the repo (vs. a dashboard
+toggle only David can flip), and a one-tap local copy is real insurance. Partially
+supersedes #085's deferral of export; the "enable automatic backups in the dashboard"
+half of #085 still stands as a manual step. Verified end-to-end in a browser (download
+parses; bundle shape correct). The trashed-notes question: the export **includes**
+soft-deleted notes (`deleted_at` set) so nothing recoverable is lost.
+
+**#110 — Desktop app is an Electron hosted-URL shell (extends #082 to desktop).**
+A self-contained `desktop/` package (its own `package.json` + `node_modules`, plain
+CommonJS, outside the pnpm/eslint/Next surface) wraps the *running web app* in an
+Electron `BrowserWindow` — dev loads `localhost:3000`, a packaged build loads the
+Vercel production URL (overridable via `APP_URL`). Same strategy as the planned
+Capacitor mobile shell (#082): no static export, no second codebase — `src/` stays the
+single source of truth. External links open in the system browser; native mac window
+chrome + menu. Built with `electron-builder` (`npm run dist` → `.dmg`, unsigned for
+now — signing/notarization needs an Apple account, deferred per #086). **Why:** David
+wants notes as a real desktop app; connection is required anyway (#084), so the
+hosted-URL wrapper is the least-code, zero-drift option and mirrors the mobile plan.
+Verified: the shell boots and loads the app (smoke test), and `electron-builder`
+produces `notes.app`.

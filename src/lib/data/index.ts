@@ -9,3 +9,4 @@ export * from "./notes";
 export * from "./settings";
 export * from "./search";
 export * from "./attachments";
+export * from "./export";

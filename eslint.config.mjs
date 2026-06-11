@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // The Electron desktop shell is a separate CommonJS package (#110) with its
+    // own toolchain — not part of the Next app's lint surface.
+    "desktop/**",
   ]),
 ]);
 
