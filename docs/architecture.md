@@ -61,5 +61,7 @@ redirect to `/sign-in`. Verified at runtime (`/` → 307 → `/sign-in`).
 
 - RLS posture for the single-user model (currently anon key + the `proxy` auth gate;
   lock down with RLS before any non-local deploy).
-- The shared **TipTap editor** primitive (last Phase 0 item), then PWA manifest +
-  Capacitor wrap (post-V1).
+- The shared **TipTap editor** primitive (last Phase 0 item).
+- **PWA** (shipped, slice 5): static `public/manifest.webmanifest` + on-brand icons +
+  a shell-caching `public/sw.js` (no offline data, #084), wired via metadata/viewport
+  in `src/app/layout.tsx`. Capacitor wrap remains post-V1 (#082).
