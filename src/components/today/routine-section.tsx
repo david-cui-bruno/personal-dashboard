@@ -128,6 +128,15 @@ export function RoutineSection({ day }: { day: string }) {
     setAdding(true);
     setNewLabel("");
   }
+  function addOne(label: string) {
+    const list = items ?? [];
+    const sortOrder = list.length
+      ? Math.max(...list.map((i) => i.sort_order)) + 1
+      : 0;
+    return addItem(sb, label, sortOrder, day)
+      .then((item) => setItems((prev) => [...(prev ?? []), item]))
+      .catch(() => reload());
+  }
   function commitAdd() {
     const cancelled = addCancel.current;
     addCancel.current = false;
@@ -135,13 +144,7 @@ export function RoutineSection({ day }: { day: string }) {
     setAdding(false);
     setNewLabel("");
     if (cancelled || !label) return;
-    const list = items ?? [];
-    const sortOrder = list.length
-      ? Math.max(...list.map((i) => i.sort_order)) + 1
-      : 0;
-    addItem(sb, label, sortOrder, day)
-      .then((item) => setItems((prev) => [...(prev ?? []), item]))
-      .catch(() => reload());
+    void addOne(label);
   }
 
   // --- delete = archive (#016) ------------------------------------------
@@ -191,14 +194,14 @@ export function RoutineSection({ day }: { day: string }) {
   );
 
   return (
-    <section className="mt-[46px]">
+    <section className="mt-7">
       <SectionHeader title="daily routine" action={plus} />
 
       {items !== null && items.length === 0 && !adding && (
         <button
           type="button"
           onClick={startAdd}
-          className="px-0.5 py-[11px] text-[16.5px] font-bold text-ink-3 transition-colors hover:text-ink-2"
+          className="px-0.5 py-1.5 text-[16.5px] font-bold text-ink-3 transition-colors hover:text-ink-2"
         >
           add your first item
         </button>
@@ -212,7 +215,7 @@ export function RoutineSection({ day }: { day: string }) {
             data-row
             onDragOver={(e) => e.preventDefault()}
             onDragEnter={() => onDragEnter(index)}
-            className="group flex items-center gap-[14px] px-0.5 py-[11px]"
+            className="group flex items-center gap-[14px] px-0.5 py-1.5"
           >
             <button
               type="button"
@@ -285,7 +288,7 @@ export function RoutineSection({ day }: { day: string }) {
       })}
 
       {adding && (
-        <div className="flex items-center gap-[14px] px-0.5 py-[11px]">
+        <div className="flex items-center gap-[14px] px-0.5 py-1.5">
           <span className={`${BOX_BASE} ${BOX_EMPTY}`} />
           <input
             ref={addInput}
@@ -296,7 +299,13 @@ export function RoutineSection({ day }: { day: string }) {
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
-                e.currentTarget.blur();
+                const label = newLabel.trim();
+                if (!label) {
+                  e.currentTarget.blur(); // empty Enter closes the add row
+                  return;
+                }
+                setNewLabel(""); // commit this one and keep the row open for the next
+                void addOne(label);
               } else if (e.key === "Escape") {
                 addCancel.current = true;
                 e.currentTarget.blur();
