@@ -33,6 +33,7 @@ A doc marked **`FROZEN`** changes only via a new `docs/decisions.md` entry + Dav
 
 | Doc | Status | What's in it |
 |---|---|---|
+| [docs/handoff.md](docs/handoff.md) | living | **Start here** — orientation, infra, local + deploy runbooks, known issues. |
 | [docs/product.md](docs/product.md) | **FROZEN** | Goal, principles, non-goals. |
 | [docs/spec.md](docs/spec.md) | **FROZEN** | Every feature in detail. The behavioral contract. |
 | [docs/data-model.md](docs/data-model.md) | **FROZEN** | Postgres schema + the data-access layer surface. |
