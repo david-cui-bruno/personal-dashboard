@@ -2,37 +2,33 @@
 
 # roadmap
 
-## phase 0 — foundation (status)
+## status: V1 shipped 🎉 (2026-06-11)
 
-Done & building (green `pnpm build`; auth gate verified at runtime): scaffold (Next 16 /
-React 19 / Tailwind 4) · local Supabase + migration (6 tables) · typed data-access layer ·
-design tokens + Lato + theme · app shell (sidebar + bottom nav) · consistency chart · auth
-(`proxy` gate + sign-in + dev account) · day-tile / section-header primitives · Conductor
-config.
+Live at **https://notes-framewise-health.vercel.app** (Vercel + Supabase cloud). Built
+in two phases by parallel Conductor agents, integrated, RLS-hardened, deployed, and
+verified end-to-end (sign-in → Today renders, anon locked out by RLS, no console errors).
+See `docs/architecture.md` for deploy details.
 
-**Remaining before fan-out:** the shared **TipTap editor** primitive (used by Today's
-journal *and* Notes).
+- **Phase 0 (foundation):** scaffold (Next 16 / React 19 / Tailwind 4) · Supabase schema +
+  data-access layer · design tokens + Lato + theme · app shell · auth (`proxy` gate) ·
+  consistency chart · shared TipTap editor · Conductor config.
+- **Phase 1 (5 parallel slices, all merged):** today · notes · settings · search ⌘K · pwa.
 
-Then **Phase 1 (parallel slices):** Today (routine + journal), Notes (stream + editor),
-Settings (theming + account), search ⌘K, photos, PWA.
+## V1 scope — all shipped
 
-## V1 scope
-
-The smallest thing that's genuinely a pleasure to use daily.
-
-- [ ] **Today** — daily routine: inline add/rename/reorder, check/uncheck, date-keyed
+- [x] **Today** — daily routine: inline add/rename/reorder, check/uncheck, date-keyed
       daily reset, past-day editing.
-- [ ] **Today's journal** — inline, autosaving, rich text.
-- [ ] **Consistency chart** — vertical, % shading, in the sidebar (web) / Today (mobile).
-- [ ] **Notes stream** — every day's journal (incl. empty) + freeform notes, one
-      reverse-chron list; day-number tile for journals.
-- [ ] **Rich-text editor** — TipTap, native shortcuts, **inline photos**.
-- [ ] **Search** — ⌘K palette: instant full-text, filters, jump, create.
-- [ ] **Settings** — accent + light/dark theming, account.
-- [ ] **Auth** — single user, username/password, persistent sessions.
-- [ ] **Soft-delete / trash** for notes.
-- [ ] **PWA** — installable on phone.
-- [ ] **Backups** — Supabase automatic backups enabled.
+- [x] **Today's journal** — inline, autosaving, rich text.
+- [x] **Consistency chart** — vertical, % shading, sidebar (web) / Today (mobile).
+- [x] **Notes stream** — journals (incl. empty days) + freeform notes, day-number tiles.
+- [x] **Rich-text editor** — TipTap, no toolbar, markdown input, **inline photos**.
+- [x] **Search** — ⌘K palette: instant full-text, jump, create.
+- [x] **Settings** — accent + light/dark theming, account.
+- [x] **Auth** — single user, username/password, persistent sessions.
+- [x] **Soft-delete / trash** for notes.
+- [x] **PWA** — installable manifest + icons + shell service worker.
+- [x] **RLS** — all tables locked to `authenticated` (#108).
+- [ ] **Backups** — enable Supabase automatic backups in the dashboard (#085).
 
 ## explicitly deferred (post-V1)
 
@@ -42,5 +38,6 @@ The smallest thing that's genuinely a pleasure to use daily.
 - "On this day" / browse-by-date, mood, weekly/non-daily items, end-of-day summaries.
 - Fixed "home timezone" setting (V1 uses device-local — #083).
 - Offline mode (V1 requires a connection — #084).
+- A custom domain.
 
 `#NNN` references are entries in `docs/decisions.md`.

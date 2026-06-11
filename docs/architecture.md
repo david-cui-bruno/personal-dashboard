@@ -51,17 +51,26 @@ redirect to `/sign-in`. Verified at runtime (`/` → 307 → `/sign-in`).
 - Dev account: `david@notes.local` / `notesdev` (local only). The loop is `supabase
   start` (once) + `pnpm dev`.
 
-## deployment
+## deployment (live — first deploy 2026-06-11)
 
-- Vercel project from the repo; Supabase project for DB/Auth/Storage.
-- Supabase automatic backups enabled (#085).
-- Target ~$0/month (#086).
+- **Prod:** https://notes-framewise-health.vercel.app — Vercel project
+  `framewise-health/notes`. Production env vars set: `NEXT_PUBLIC_SUPABASE_URL`,
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (cloud values).
+- **Supabase cloud:** project `notes`, ref `vrwzxkxdxusbfdilxbrl`, region us-east-1, in the
+  Framewise Health org. All three migrations applied (schema + storage + RLS); single
+  account seeded. App talks to Supabase over HTTPS (not direct Postgres).
+- **Redeploy:** `vercel --prod` (or connect the repo for git-push deploys).
+- **Two operational gotchas** (details in the `deployment` memory): `supabase db push` from
+  an IPv4-only network must use the **session pooler on `aws-1-us-east-1`** (not aws-0); and
+  the team's **Deployment Protection** was disabled for this project so the site (and the
+  PWA) is publicly reachable.
+- Supabase automatic backups: enable in the dashboard (#085). Cost note: the project lives
+  in a paid org, so #086's ~$0 target is superseded by hosting in Framewise Health.
 
 ## open items
 
-- RLS posture for the single-user model (currently anon key + the `proxy` auth gate;
-  lock down with RLS before any non-local deploy).
-- The shared **TipTap editor** primitive (last Phase 0 item).
-- **PWA** (shipped, slice 5): static `public/manifest.webmanifest` + on-brand icons +
-  a shell-caching `public/sw.js` (no offline data, #084), wired via metadata/viewport
-  in `src/app/layout.tsx`. Capacitor wrap remains post-V1 (#082).
+- RLS: **done** (#108) — all public tables locked to `authenticated`, anon inert.
+- TipTap editor + PWA: **shipped** in Phase 1.
+- Capacitor native shell (home-screen widget + rich notifications) remains post-V1 (#082).
+- Supabase automatic backups: turn on in the dashboard (#085).
+- Optional: a custom domain.
