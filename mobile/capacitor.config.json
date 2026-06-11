@@ -1,0 +1,12 @@
+{
+  "appId": "health.framewise.notes",
+  "appName": "notes",
+  "webDir": "www",
+  "server": {
+    "url": "https://notes-framewise-health.vercel.app",
+    "cleartext": false
+  },
+  "ios": {
+    "contentInset": "always"
+  }
+}

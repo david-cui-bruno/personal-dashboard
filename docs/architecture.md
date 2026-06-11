@@ -12,9 +12,10 @@
 - **Electron** (#110): a thin **desktop** shell that points at the running web app
   (dev → `localhost:3000`, packaged → the Vercel URL). Lives in `desktop/`. See
   "desktop shell" below.
-- **Capacitor** later (#082): a thin native iOS/Android shell pointing at the live
-  Vercel URL, adding home-screen widgets + rich notifications. Connection is required
-  (#084), which makes the hosted-URL approach clean.
+- **Capacitor** (#082, #113): a thin native iOS/Android shell pointing at the live
+  Vercel URL. Lives in `mobile/`. **Scaffolded** (hosted-URL config + deps); native
+  projects + home-screen widget + rich notifications remain to build. See "mobile shell"
+  below. Connection is required (#084), which makes the hosted-URL approach clean.
 
 ## why not a Vite SPA
 
@@ -55,6 +56,21 @@ stays the single source of truth.
 - **Auto-update (#112):** `updater.js` checks GitHub Releases on launch via
   `electron-updater`. Unsigned ⇒ "notify + open download" mode (macOS only silent-installs
   signed apps); flip `SILENT_INSTALL` once signed. Full runbook: `desktop/README.md`.
+
+## mobile shell (Capacitor, #082/#113)
+
+A **self-contained** `mobile/` package (own `package.json` + `node_modules`, `npm` not
+pnpm; eslint/git ignore it). Same hosted-URL approach as desktop: a Capacitor iOS/Android
+WebView loads the live web app via `server.url` in `capacitor.config.json` — no second
+codebase.
+
+- **Scaffolded:** config (→ production URL), `@capacitor/{core,cli,ios,android}` deps, a
+  fallback `www/index.html`, runbook in `mobile/README.md`.
+- **To do (gated on toolchains):** `npm run add:ios` / `add:android` generate the native
+  projects — needs full **Xcode** / **Android Studio** + an **Apple Developer account**
+  (#086). Generated `ios/`/`android/` are git-ignored until then.
+- **The payoff (further native work, deferred):** home-screen **widget** (WidgetKit/Swift)
+  and **rich notifications** (APNs/FCM). V1 has no reminder by design (#090).
 
 ## data export (#109)
 
@@ -108,7 +124,8 @@ redirect to `/sign-in`. Verified at runtime (`/` → 307 → `/sign-in`).
 - Desktop shell (#110): **shipped** — `desktop/` Electron app, smoke-tested + packaged,
   with launch-time auto-update (#112, notify-mode until signed).
 - Notes stream (#100): **amended** to ship behavior (#111) — anchors on earliest content.
-- Capacitor native shell (home-screen widget + rich notifications) remains post-V1 (#082).
+- Mobile shell (#113): **scaffolded** (`mobile/`, hosted-URL); native projects +
+  widget/notifications remain (need Xcode/Android Studio + Apple account, #082/#090/#086).
 - Supabase automatic backups: **still a manual dashboard step** (#085) — enable
   Point-in-Time / scheduled backups in the Supabase dashboard (needs David's access).
 - Optional: a custom domain.
