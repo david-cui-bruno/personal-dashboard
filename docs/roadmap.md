@@ -43,7 +43,8 @@ See `docs/architecture.md` for deploy details.
   unblocks true silent desktop auto-update (#112).
 - Move the Supabase project out of the paid Framewise Health **work** org to a personal
   free project (#086) — data-governance + cost cleanup for a personal journal.
-- **Browse-by-date** — *maybe* (jump to any past day). The one live feature candidate (#115).
+- ~~Browse-by-date~~ — **done** as date-aware Notes search (#116), not a calendar: type a
+  date in the search box to jump to that day's journal.
 - **End-of-day summary** — only as a **notification**, so it rides on the Capacitor
   rich-notifications work above (#082/#090/#115).
 

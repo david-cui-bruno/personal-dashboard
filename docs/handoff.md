@@ -22,7 +22,7 @@
   Photos + export are **live in prod** (deployed 2026-06-11); the desktop shell ships
   separately as a `.dmg` (not part of the web deploy).
 - **Read first:** `docs/product.md` (why), then `docs/spec.md` (what), then this file
-  (how to run/deploy). The full "why" log is `docs/decisions.md` (#001–#113).
+  (how to run/deploy). The full "why" log is `docs/decisions.md` (#001–#116).
 
 ## 1. Infra & accounts
 
@@ -52,7 +52,7 @@ AGENTS.md / CLAUDE.md     the 5 anti-drift rules + doc index (read first)
 docs/                     the contract — see the table in AGENTS.md
   product/spec/data-model FROZEN: goal / behavior / schema
   architecture/design     living: stack+deploy / tokens+screens
-  decisions.md            append-only "why" log (#001–#110)
+  decisions.md            append-only "why" log (#001–#116)
   roadmap.md / phase-1.md  status + the parallel-slice briefs
   handoff.md              this file
 mockups/index.html        interactive visual reference
@@ -197,10 +197,11 @@ verified) → RLS → deploy. Anything used by 2+ slices lives in Phase 0.
 
 Capacitor mobile shell **scaffolded** (`mobile/`, #113) — remaining: generate native
 projects (Xcode/Android Studio) + the home-screen widget + rich notifications (#082/#090) ·
-code-sign + notarize the desktop `.dmg` (needs an Apple account, #086) · **browse-by-date**
-(maybe) · **end-of-day summary as a notification** (rides on Capacitor notifications). The
-post-V1 backlog was triaged (#115): **declined** — mood, "on this day", weekly/non-daily
-items, fixed home-timezone, offline mode, custom domain.
+code-sign + notarize the desktop `.dmg` (needs an Apple account, #086) · **end-of-day
+summary as a notification** (rides on Capacitor notifications). The post-V1 backlog was
+triaged (#115): **declined** — mood, "on this day", weekly/non-daily items, fixed
+home-timezone, offline mode, custom domain. **Browse-by-date** shipped as date-aware Notes
+search (#116), not a calendar.
 
 ## 10. Verifying a change
 
