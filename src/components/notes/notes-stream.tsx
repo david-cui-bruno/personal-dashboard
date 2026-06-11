@@ -18,6 +18,7 @@ import {
   type Note,
 } from "@/lib/data";
 import { eachDay, toDayString, today } from "@/lib/date";
+import { parseDate } from "@/components/search/parse-date";
 import { DayTile } from "@/components/ui/day-tile";
 
 type StreamEntry =
@@ -122,13 +123,29 @@ export function NotesStream() {
   }
 
   const q = query.trim().toLowerCase();
-  const shown = q
+  const textShown = q
     ? entries.filter((e) =>
         e.kind === "journal"
           ? snippet(e.journal?.content_text).toLowerCase().includes(q)
           : `${e.note.title} ${e.note.content_text}`.toLowerCase().includes(q),
       )
     : entries;
+
+  // A date query ("june 3", "6/3", "2026-06-03") jumps straight to that day's
+  // journal — even a day that's empty or older than first use (so it isn't in
+  // the stream). It's surfaced at the top; tapping opens /notes/[date]. This is
+  // "browse by date" without a calendar — the search bar does it (#116).
+  const datedDay = query.trim() ? parseDate(query.trim()) : null;
+  const shown: StreamEntry[] = datedDay
+    ? [
+        entries.find((e) => e.kind === "journal" && e.day === datedDay) ?? {
+          kind: "journal",
+          day: datedDay,
+          journal: null,
+        },
+        ...textShown.filter((e) => !(e.kind === "journal" && e.day === datedDay)),
+      ]
+    : textShown;
 
   return (
     <div className="mx-auto max-w-[700px] px-6 py-10 md:px-10 md:py-14">

@@ -113,6 +113,9 @@ Today/Notes only (#064).
 - Freeform notes sort into the stream by `created_at`. New note via `+` at the top-right
   of the Notes header (no FAB on mobile — removed by David).
 - A simple in-list filter/search box is present; the ⌘K palette (§7) is the richer path.
+  The box also accepts a **date** ("june 3", "6/3", "2026-06-03") and surfaces that day's
+  journal at the top, linking to `/notes/[YYYY-MM-DD]` even if the day is empty or older
+  than first use — this is "browse by date" without a calendar (#116).
 
 ### editor (#033)
 - TipTap WYSIWYG, **no formatting toolbar on any platform** (#101) — formatting via

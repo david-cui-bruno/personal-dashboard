@@ -359,3 +359,13 @@ David pruned the post-V1 list to protect the app's simplicity (#002, #003):
 **Why:** keep scope tight and the daily experience uncluttered. Recorded here per rule #5;
 the FROZEN `product.md` non-goals already cover most of these and can absorb mood/weekly
 later if desired.
+
+**#116 — Browse-by-date is just date-aware search — no calendar (resolves #115's "maybe").**
+There is **no** calendar/date-picker UI. Instead, typing a date into the **Notes search
+box** ("june 3", "jun 3", "6/3", "2026-06-03") surfaces that day's journal at the top of
+the list, linking to `/notes/[YYYY-MM-DD]` — even for an empty day or one older than first
+use (so it isn't otherwise in the stream). Reuses the palette's `parseDate` (#040).
+**Why:** David wanted browsing to stay simple and live inside the existing search, not a
+new screen — "if you search june 3 you should just find it." Resolves the browse-by-date
+candidate from #115 (no calendar) and refines search #040; consistent with no full-history
+surface (#102) and the calm/minimal product (#002). Verified end-to-end.
