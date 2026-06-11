@@ -15,6 +15,17 @@ export async function getJournal(sb: DB, day: string): Promise<Journal | null> {
   return data;
 }
 
+// Every written journal, newest first. Days without a row are rendered as empty
+// in the stream (#100) — this is bounded by the number of days actually written.
+export async function listJournals(sb: DB): Promise<Journal[]> {
+  const { data, error } = await sb
+    .from("journal")
+    .select("*")
+    .order("day", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
 export async function saveJournal(
   sb: DB,
   day: string,

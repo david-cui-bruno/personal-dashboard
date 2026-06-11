@@ -201,3 +201,35 @@ text colors/fonts.
 
 **#102 — Consistency chart shows a fixed ~3-month window.**
 No scroll-back through full history; there is no full-history surface in V1 (#023).
+
+---
+
+## 2026-06-11 — notes slice (phase 1)
+
+Settled while building the Notes stream + entry editor + photos (docs/phase-1.md
+slice 2). These refine *implementation* of the FROZEN contract; they do not change
+spec.md or data-model.md.
+
+**#103 — Attachments bucket is a single public Storage bucket `attachments`.**
+Migration `0002_storage.sql` creates one public bucket; objects are keyed
+`{owner_type}/{owner_id}/{uuid}.{ext}`. Reads use the stable public URL embedded in
+the TipTap doc; writes/updates/deletes are restricted to authenticated sessions via
+RLS on `storage.objects`. **Why:** a public URL never expires, so stored content keeps
+resolving (signed URLs would rot); it's a single-user app behind auth (#070) with
+opaque randomized paths, so public read is an acceptable tradeoff and avoids a
+URL-refresh layer. `uploadImage(sb, file, owner)` downscales >2000px images and caps
+at ~10 MB client-side (#050).
+
+**#104 — A `/notes/[id]` segment is a journal day iff it matches `YYYY-MM-DD`,
+else a note id.** One dynamic route serves both entry kinds; the date format vs. a
+uuid disambiguates with no collision. **Why:** journals are addressed by day (no row
+need exist yet) and notes by id; encoding the day in the path keeps both shareable and
+avoids a second route.
+
+**#105 — The stream's "first use" (#100) is anchored on the earliest journal day or
+note, defaulting to today.** Every calendar day from today back to that anchor renders
+as a journal row (empty days show `empty · tap to write`), interleaved with notes by
+`created_at`; within a day the journal leads, then that day's notes newest-first.
+**Why:** journals + notes are the slice's data scope; routine-start is not consulted.
+A `listJournals(sb)` read was added to the data-access layer (the journal surface only
+had per-day `getJournal`) to fetch written days in one query.
