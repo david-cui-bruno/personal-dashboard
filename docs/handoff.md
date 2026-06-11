@@ -15,11 +15,13 @@
   deployed; since then: iOS-PWA standalone fix, UI polish (grays, sticky sidebar,
   horizontal mobile chart, routine spacing + smooth Enter-to-add), and a post-V1 batch:
   **photos verified end-to-end** (+ Today journal now accepts images), **manual data
-  export** in Settings (#109), and an **Electron desktop app** in `desktop/` (#110).
+  export** in Settings (#109), an **Electron desktop app** in `desktop/` (#110) with
+  auto-update (#112), and the Notes-stream spec amended to the shipped behavior (#111).
 - **Trunk:** `main` (this is what's deployed). Build is green; auth + RLS verified.
-  *(Photos/export/desktop landed on a branch — verified locally, not yet deployed.)*
+  Photos + export are **live in prod** (deployed 2026-06-11); the desktop shell ships
+  separately as a `.dmg` (not part of the web deploy).
 - **Read first:** `docs/product.md` (why), then `docs/spec.md` (what), then this file
-  (how to run/deploy). The full "why" log is `docs/decisions.md` (#001–#110).
+  (how to run/deploy). The full "why" log is `docs/decisions.md` (#001–#112).
 
 ## 1. Infra & accounts
 
@@ -116,7 +118,10 @@ npm run dist:dir            # → desktop/dist/mac-arm64/notes.app (unpacked, fa
 
 URL precedence: `APP_URL` env → `localhost:3000` (unpackaged) → Vercel prod (packaged).
 The build is **unsigned** (right-click → Open on first launch); signing/notarization
-needs an Apple account (#086). Full detail: `desktop/README.md`.
+needs an Apple account (#086). **Auto-update (#112):** `updater.js` checks GitHub Releases
+on launch; unsigned ⇒ it *notifies + opens the download* (silent install is one switch
+away once signed). Publish a build with `GH_TOKEN=… npm run release`. Full detail:
+`desktop/README.md`.
 
 ## 5. Data model & the load-bearing rules
 
@@ -157,10 +162,9 @@ verified) → RLS → deploy. Anything used by 2+ slices lives in Phase 0.
 
 ## 8. Known issues / watch-list
 
-- **Notes stream vs #100:** spec #100 says show *every* day back to first use (empty days
-  included); the shipped Notes stream currently shows **today + days with content**, not a
-  continuous empty-day range. Decide whether to enforce strict #100 (it'd render ~1 row per
-  past day) or amend the decision. *(This is the noise tradeoff David weighed.)*
+- **Notes stream vs #100:** ✅ **resolved** — amended to the shipped behavior (#111): the
+  stream runs from today back to the **earliest journal/note** (empty days inside that range
+  show `empty · tap to write`); days before any content don't appear. `spec.md` updated.
 - **Photos (#050):** ✅ **verified** end-to-end (drop → storage `200` → public-URL `<img>`
   renders, no console errors) and the inline **Today journal now accepts images** too
   (previously only the `/notes/[id]` editor did). Repro: Python Playwright — sign in, open a

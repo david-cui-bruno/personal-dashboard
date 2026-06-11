@@ -37,7 +37,10 @@ See `docs/architecture.md` for deploy details.
 
 - Native shell via **Capacitor**: home-screen **widget** + rich "big-banner"
   notifications (#082, #090). *(Desktop is now covered by Electron, #110.)*
-- Code signing + notarization for the desktop `.dmg` (needs an Apple account, #086, #110).
+- Code signing + notarization for the desktop `.dmg` (needs an Apple account, #086, #110);
+  unblocks true silent desktop auto-update (#112).
+- Move the Supabase project out of the paid Framewise Health **work** org to a personal
+  free project (#086) — data-governance + cost cleanup for a personal journal.
 - "On this day" / browse-by-date, mood, weekly/non-daily items, end-of-day summaries.
 - Fixed "home timezone" setting (V1 uses device-local — #083).
 - Offline mode (V1 requires a connection — #084).

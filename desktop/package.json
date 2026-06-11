@@ -9,7 +9,11 @@
     "dev": "APP_URL=http://localhost:3000 electron .",
     "smoke": "SMOKE=1 APP_URL=http://localhost:3000 electron .",
     "dist": "electron-builder --mac",
-    "dist:dir": "electron-builder --mac dir"
+    "dist:dir": "electron-builder --mac dir",
+    "release": "electron-builder --mac --publish always"
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.9"
   },
   "devDependencies": {
     "electron": "^33.0.0",
@@ -23,14 +27,21 @@
       "output": "dist"
     },
     "files": [
-      "main.js"
+      "main.js",
+      "updater.js"
     ],
     "mac": {
       "category": "public.app-category.productivity",
       "target": [
-        "dmg"
+        "dmg",
+        "zip"
       ],
       "icon": "build/icon.png"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "david-cui-bruno",
+      "repo": "personal-dashboard"
     }
   }
 }

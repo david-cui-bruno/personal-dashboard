@@ -8,6 +8,7 @@
 // CommonJS on purpose: this file runs in Electron's Node main process, separate
 // from the Next/React app (which keeps owning everything under src/).
 const { app, BrowserWindow, Menu, shell } = require("electron");
+const { initAutoUpdate } = require("./updater");
 
 const PROD_URL = "https://notes-framewise-health.vercel.app";
 const DEV_URL = "http://localhost:3000";
@@ -109,6 +110,7 @@ function buildMenu() {
 app.whenReady().then(() => {
   buildMenu();
   createWindow();
+  if (!SMOKE) initAutoUpdate(); // check for updates on launch (packaged builds only)
 
   // macOS: re-create the window when the dock icon is clicked and none are open.
   app.on("activate", () => {

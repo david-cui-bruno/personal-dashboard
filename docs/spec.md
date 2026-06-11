@@ -6,10 +6,11 @@
 
 ## resolved decisions
 
-All previously-open items are settled (#100–#102): the Notes stream shows **every day**
-back to first use (#100); the editor has **no toolbar** on any platform — shortcuts +
-markdown-style input, same on mobile (#101); the consistency chart is a **fixed ~3-month**
-window (#102). These are folded into the sections below.
+All previously-open items are settled (#100–#102): the Notes stream shows **every day
+back to the earliest journal/note** (#100 as amended by **#111** — see "stream" below);
+the editor has **no toolbar** on any platform — shortcuts + markdown-style input, same on
+mobile (#101); the consistency chart is a **fixed ~3-month** window (#102). These are
+folded into the sections below.
 
 ---
 
@@ -102,8 +103,10 @@ Today/Notes only (#064).
 ## 6. notes (`/notes`, `/notes/[id]`) + editor + photos
 
 ### stream
-- One reverse-chronological stream combining **every day's journal** (#030, #100 — every
-  day shown, back to first use) and **freeform notes** (#032), newest first.
+- One reverse-chronological stream combining **every day's journal** (#030) and
+  **freeform notes** (#032), newest first. The range is **today back to the earliest day
+  with a journal or note** (#100 as amended by #111); empty days *inside* that range show
+  `empty · tap to write`, but days before any content ever existed are not listed.
 - **Journal item**: filled day-number tile (note option C, #031) + title `journal` +
   snippet.
 - **Freeform note**: its own title + snippet, **no** date tile (#032).
