@@ -233,12 +233,22 @@ as a journal row (empty days show `empty · tap to write`), interleaved with not
 **Why:** journals + notes are the slice's data scope; routine-start is not consulted.
 A `listJournals(sb)` read was added to the data-access layer (the journal surface only
 had per-day `getJournal`) to fetch written days in one query.
-## 2026-06-11 — phase 1 slices
 
-**#103 — Opening a specific day's journal uses `/notes?day=YYYY-MM-DD`.**
-The ⌘K palette (#040) and any "jump to a date" affordance route to today's journal
-via `/` (it lives on the Today screen) and to any other day's journal via
-`/notes?day=YYYY-MM-DD`. Freeform notes open at `/notes/[id]`. **Why:** journals are
-addressed by day (a row may not exist yet), not by id, so they can't share the
-`/notes/[id]` route; the Notes stream (#100, #031) is the natural surface to honor a
-`?day=` deep-link. The Notes slice consumes this param when it builds the stream.
+## 2026-06-11 — integration pass
+
+Reconciling the parallel slices on `main` (functional walkthrough + polish).
+
+**#106 — Canonical journal-day route is `/notes/[YYYY-MM-DD]`.**
+The ⌘K palette (#040) and "jump to a date" open today's journal via `/` (it lives inline
+on Today) and any other day's journal via `/notes/[YYYY-MM-DD]` — the route the notes
+slice actually serves (#104). Freeform notes open at `/notes/[id]`. **Why:** the search
+slice had initially routed past journals to `/notes?day=…`, which the notes page does not
+read, so jumping to a past journal landed on the stream; search was aligned to the working
+`/notes/[date]` route. Supersedes the conflicting routing note a parallel merge had also
+labelled `#103` — the canonical `#103` is the attachments-bucket decision above.
+
+**#107 — `<html>` carries `suppressHydrationWarning`.**
+The pre-paint `ThemeScript` sets `--accent` / `data-theme` on `<html>` from localStorage
+before React hydrates, which React flagged as a hydration mismatch (the lone dev-overlay
+"issue"). Suppress it on `<html>` — the standard pattern for theme-before-paint scripts.
+**Why:** the mismatch is intended and harmless; suppressing keeps the console clean.
