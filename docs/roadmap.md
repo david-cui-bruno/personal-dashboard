@@ -28,13 +28,16 @@ See `docs/architecture.md` for deploy details.
 - [x] **Soft-delete / trash** for notes.
 - [x] **PWA** — installable manifest + icons + shell service worker.
 - [x] **RLS** — all tables locked to `authenticated` (#108).
-- [ ] **Backups** — enable Supabase automatic backups in the dashboard (#085).
+- [x] **Inline photos** — verified end-to-end; Today journal also accepts images (#050).
+- [x] **Manual data export** — Settings → data → "export my data" (#109).
+- [x] **Desktop app** — Electron hosted-URL shell in `desktop/` (#110).
+- [ ] **Backups** — enable Supabase automatic backups in the dashboard (#085, manual step).
 
 ## explicitly deferred (post-V1)
 
 - Native shell via **Capacitor**: home-screen **widget** + rich "big-banner"
-  notifications (#082, #090).
-- Manual data **export** (#085).
+  notifications (#082, #090). *(Desktop is now covered by Electron, #110.)*
+- Code signing + notarization for the desktop `.dmg` (needs an Apple account, #086, #110).
 - "On this day" / browse-by-date, mood, weekly/non-daily items, end-of-day summaries.
 - Fixed "home timezone" setting (V1 uses device-local — #083).
 - Offline mode (V1 requires a connection — #084).
