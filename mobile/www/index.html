@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>notes</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #ffffff;
+        color: #23252b;
+        font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+      }
+      .wrap {
+        display: grid;
+        place-items: center;
+        height: 100%;
+      }
+      p {
+        font-weight: 700;
+        text-transform: lowercase;
+        opacity: 0.6;
+      }
+    </style>
+  </head>
+  <body>
+    <!--
+      Capacitor requires a webDir. In production the app loads the live web app
+      via `server.url` (capacitor.config.json) — this page only shows if the
+      device can't reach the server (offline is out of scope for V1, #084).
+    -->
+    <div class="wrap"><p>loading notes…</p></div>
+  </body>
+</html>

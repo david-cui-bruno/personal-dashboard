@@ -15,6 +15,8 @@ const eslintConfig = defineConfig([
     // The Electron desktop shell is a separate CommonJS package (#110) with its
     // own toolchain — not part of the Next app's lint surface.
     "desktop/**",
+    // The Capacitor mobile shell (#113) is likewise its own package.
+    "mobile/**",
   ]),
 ]);
 
