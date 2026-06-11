@@ -201,3 +201,13 @@ text colors/fonts.
 
 **#102 — Consistency chart shows a fixed ~3-month window.**
 No scroll-back through full history; there is no full-history surface in V1 (#023).
+
+## 2026-06-11 — phase 1 slices
+
+**#103 — Opening a specific day's journal uses `/notes?day=YYYY-MM-DD`.**
+The ⌘K palette (#040) and any "jump to a date" affordance route to today's journal
+via `/` (it lives on the Today screen) and to any other day's journal via
+`/notes?day=YYYY-MM-DD`. Freeform notes open at `/notes/[id]`. **Why:** journals are
+addressed by day (a row may not exist yet), not by id, so they can't share the
+`/notes/[id]` route; the Notes stream (#100, #031) is the natural surface to honor a
+`?day=` deep-link. The Notes slice consumes this param when it builds the stream.
