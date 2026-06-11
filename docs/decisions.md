@@ -369,3 +369,13 @@ use (so it isn't otherwise in the stream). Reuses the palette's `parseDate` (#04
 new screen — "if you search june 3 you should just find it." Resolves the browse-by-date
 candidate from #115 (no calendar) and refines search #040; consistent with no full-history
 surface (#102) and the calm/minimal product (#002). Verified end-to-end.
+
+**#117 — App icon is the folded-page mark ("C2").**
+A white folded-corner page (squarer paper, a large dog-ear, a soft drop shadow) on the
+accent (#3b6ef0) field. One source mark rendered to every surface: a **squircle**
+(transparent corners) for the macOS desktop app (`desktop/build/icon.png`) and the
+favicon; a **full-bleed** accent square (page within the maskable safe zone) for the PWA
+(`public/icon-{192,512}.png`, `icon-maskable-512.png`) and `apple-touch-icon.png`.
+**Why:** David chose the folded-page direction over the "n" monogram and picked the
+squarer/bigger-fold/shadow combo; one mark across desktop + web keeps the brand
+consistent. Regenerable from `.context/generate_icon.py` (swap the geometry + re-run).
