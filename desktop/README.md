@@ -37,14 +37,33 @@ npm start          # opens the window against http://localhost:3000
 ```bash
 cd desktop
 npm install
-npm run dist       # → dist/notes-<version>.dmg  (loads production by default)
-npm run dist:dir   # → dist/mac/notes.app        (unpacked, faster, for testing)
+npm run dist       # → dist/notes-<version>.dmg + .zip  (loads production by default)
+npm run dist:dir   # → dist/mac-arm64/notes.app         (unpacked, faster, for testing)
+npm run release    # build + publish to GitHub Releases (needs GH_TOKEN) — for auto-update
 ```
 
 The build is **unsigned** — first launch needs right-click → Open (or
-`xattr -dr com.apple.quarantine dist/mac/notes.app`). Code signing + notarization
+`xattr -dr com.apple.quarantine dist/mac-arm64/notes.app`). Code signing + notarization
 (an Apple Developer account, #086) is a later step if this is distributed beyond
 David's own machine.
+
+## auto-update (#112)
+
+`updater.js` checks GitHub Releases on launch via `electron-updater` (packaged builds
+only; a no-op in dev). To cut a new version: bump `version` in `package.json`, then
+`GH_TOKEN=<token> npm run release` — that uploads the `.dmg`, `.zip`, and the
+`latest-mac.yml` feed the updater reads.
+
+**Two caveats, both because the app is currently unsigned:**
+
+1. **macOS only silently installs updates for a _signed_ app.** So today the updater runs
+   in **notify mode**: if a newer release exists it pops a dialog and opens the releases
+   page to download manually. Once the app is signed + notarized (#086), set
+   `SILENT_INSTALL = true` in `updater.js` for true background-download + restart-to-apply.
+2. **The release feed must be publicly readable.** If `david-cui-bruno/personal-dashboard`
+   stays private, the updater can't fetch the feed without a shipped token (don't do that).
+   Easiest fix: make the Releases public, or publish to a dedicated public releases repo
+   (set `publish.repo` accordingly).
 
 ## icon
 
