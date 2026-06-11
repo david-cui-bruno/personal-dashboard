@@ -43,9 +43,14 @@ See `docs/architecture.md` for deploy details.
   unblocks true silent desktop auto-update (#112).
 - Move the Supabase project out of the paid Framewise Health **work** org to a personal
   free project (#086) — data-governance + cost cleanup for a personal journal.
-- "On this day" / browse-by-date, mood, weekly/non-daily items, end-of-day summaries.
-- Fixed "home timezone" setting (V1 uses device-local — #083).
-- Offline mode (V1 requires a connection — #084).
-- A custom domain.
+- **Browse-by-date** — *maybe* (jump to any past day). The one live feature candidate (#115).
+- **End-of-day summary** — only as a **notification**, so it rides on the Capacitor
+  rich-notifications work above (#082/#090/#115).
+
+### declined (#115)
+
+Pruned to keep the app simple: **mood**, **"on this day"**, **weekly/non-daily routine
+items**, **fixed home-timezone** (device-local stays — #011/#083), **offline mode**
+(#084), **custom domain**.
 
 `#NNN` references are entries in `docs/decisions.md`.

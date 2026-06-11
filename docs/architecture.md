@@ -72,12 +72,16 @@ codebase.
 - **The payoff (further native work, deferred):** home-screen **widget** (WidgetKit/Swift)
   and **rich notifications** (APNs/FCM). V1 has no reminder by design (#090).
 
-## data export (#109)
+## data export (#109, #114)
 
-`src/lib/data/export.ts → exportAll(sb)` reads every owned row (all six tables +
-attachment public URLs) into one JSON bundle; **Settings → data → "export my data"**
-(`components/settings/data-section.tsx`) downloads it client-side. The off-Supabase,
-user-triggered complement to Supabase's automatic backups (#085).
+`src/lib/data/export.ts`: `exportAll(sb)` reads every owned row (all six tables +
+attachment public URLs) into one JSON bundle; `buildExportArchive(sb)` wraps that into the
+downloadable file — a plain `.json` when there are no photos, else a **`.zip`** (the JSON
+plus every original image under `images/<storage_path>`, fetched via
+`storage.download`) built by the dependency-free `src/lib/zip.ts`. **Settings → data →
+"export my data"** (`components/settings/data-section.tsx`) triggers it client-side. This
+is the off-Supabase complement to Supabase's daily DB backups — and the **only** backup of
+the image bytes, since those backups exclude Storage objects (#085, #114).
 
 ## auth
 
