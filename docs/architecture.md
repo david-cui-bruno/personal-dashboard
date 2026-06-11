@@ -49,9 +49,12 @@ stays the single source of truth.
   unpackaged → production Vercel URL when packaged.
 - External links open in the system browser; same-origin nav stays in-window. Native
   mac inset title bar + a role-based menu (copy/paste, reload, fullscreen).
-- **Build:** `electron-builder` → `npm run dist` (`.dmg`) / `npm run dist:dir`
-  (unpacked `.app`). Unsigned for now — code signing + notarization needs an Apple
-  Developer account (deferred, #086). Full runbook: `desktop/README.md`.
+- **Build:** `electron-builder` → `npm run dist` (`.dmg` + `.zip`) / `npm run dist:dir`
+  (unpacked `.app`) / `npm run release` (publish to GitHub Releases). Unsigned for now —
+  code signing + notarization needs an Apple Developer account (deferred, #086).
+- **Auto-update (#112):** `updater.js` checks GitHub Releases on launch via
+  `electron-updater`. Unsigned ⇒ "notify + open download" mode (macOS only silent-installs
+  signed apps); flip `SILENT_INSTALL` once signed. Full runbook: `desktop/README.md`.
 
 ## data export (#109)
 
@@ -102,7 +105,9 @@ redirect to `/sign-in`. Verified at runtime (`/` → 307 → `/sign-in`).
 - Photos (#050): **verified** end-to-end (drop → upload → render); the inline Today
   journal now also accepts images, matching the notes editor.
 - Manual data export (#109): **shipped** (Settings → data).
-- Desktop shell (#110): **shipped** — `desktop/` Electron app, smoke-tested + packaged.
+- Desktop shell (#110): **shipped** — `desktop/` Electron app, smoke-tested + packaged,
+  with launch-time auto-update (#112, notify-mode until signed).
+- Notes stream (#100): **amended** to ship behavior (#111) — anchors on earliest content.
 - Capacitor native shell (home-screen widget + rich notifications) remains post-V1 (#082).
 - Supabase automatic backups: **still a manual dashboard step** (#085) — enable
   Point-in-Time / scheduled backups in the Supabase dashboard (needs David's access).

@@ -294,3 +294,28 @@ wants notes as a real desktop app; connection is required anyway (#084), so the
 hosted-URL wrapper is the least-code, zero-drift option and mirrors the mobile plan.
 Verified: the shell boots and loads the app (smoke test), and `electron-builder`
 produces `notes.app`.
+
+**#111 — Notes stream anchors on earliest *content*, not absolute first use (amends #100).**
+The stream shows every calendar day from **today back to the earliest day that has a
+journal or note** — empty days *within* that range still render as `empty · tap to write`
+— but days before any content ever existed (e.g. routine-only days) do **not** appear.
+This blesses the shipped behavior and the `#105` "first use = earliest journal/note"
+interpretation, and supersedes the literal "every day back to first use" reading of
+**#100** (option a). **Why:** David signed off on amending the spec to the shipped
+behavior — anchoring on content avoids rendering a long tail of blank rows for days he
+only ticked the routine and never wrote, while still surfacing every empty day once he's
+started journaling. `docs/spec.md` updated to match (FROZEN-change via this entry +
+sign-off). #030 (a journal conceptually exists for every day) is unchanged — it's about
+the model, not which rows the stream paints.
+
+**#112 — Desktop auto-update runs in "notify" mode until the app is signed (refines #110).**
+`desktop/updater.js` checks GitHub Releases on launch via `electron-updater`. Because
+macOS only *silently installs* updates for a code-signed app and this build is unsigned
+(#086), the updater currently **notifies + opens the download page** rather than
+self-applying; `npm run release` publishes the `.dmg`/`.zip`/`latest-mac.yml` feed it
+reads. Flipping `SILENT_INSTALL = true` enables true background-download + restart-to-apply
+the moment the app is signed + notarized. Also requires the release feed be **publicly
+readable** (make Releases public, or publish to a dedicated public repo). **Why:** David
+wants auto-update; this delivers the auto-*check* + one-click-to-update experience today
+without code-signing, and is one switch away from fully silent once an Apple account
+exists. Builds on #110.
