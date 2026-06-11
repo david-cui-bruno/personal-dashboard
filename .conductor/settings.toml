@@ -1,0 +1,13 @@
+"$schema" = "https://conductor.build/schemas/settings.repo.schema.json"
+
+# Copy gitignored env files (Supabase keys live in .env.local) into every workspace.
+file_include_globs = ".env*\n"
+
+[scripts]
+setup = "pnpm install"
+run = "pnpm dev --port $CONDUCTOR_PORT"
+# Safe: each workspace's Next dev server gets its own port; the only shared resource
+# is one Supabase instance (a remote/local API), not a local fixed port. See
+# docs/architecture.md + decisions #082. Schema migrations are coordinated, never run
+# concurrently by parallel feature workspaces.
+run_mode = "concurrent"

@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>notes — ui mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,400&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  :root {
+    --bg: #ffffff; --bg-2: #fafaf8; --ink: #1c1c1e; --ink-2: #6b6b70; --ink-3: #a3a3a9;
+    --line: #efefed; --field: #f5f5f3; --accent: #3b6ef0; --accent-soft: #eef2fe; --heat-0: #edeef0; --radius: 14px;
+  }
+  [data-theme="dark"] {
+    --bg: #1a1a1c; --bg-2: #151517; --ink: #f1f1f4; --ink-2: #a6a6ae; --ink-3: #66666e;
+    --line: #2b2b30; --field: #26262a; --accent-soft: rgba(59,110,240,.18); --heat-0: #2a2a2e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body { font-family: 'Lato', -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--ink); -webkit-font-smoothing: antialiased; overflow: hidden; }
+  svg.lucide { width: 18px; height: 18px; stroke-width: 2; }
+
+  .switch { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 200; display: flex; gap: 3px; padding: 5px; background: rgba(28,28,30,.9); backdrop-filter: blur(12px); border-radius: 999px; box-shadow: 0 8px 30px rgba(0,0,0,.3); }
+  .switch button { font-family: inherit; font-size: 12px; font-weight: 800; color: #cfcfd6; background: transparent; border: 0; padding: 8px 13px; border-radius: 999px; cursor: pointer; white-space: nowrap; }
+  .switch button:hover { color: #fff; }
+  .switch button.active { background: #fff; color: #1c1c1e; }
+
+  .panel { position: fixed; inset: 0; display: none; }
+  body[data-view="charts"] #charts, body[data-view="notes-lab"] #notes-lab { display: block; }
+  body[data-view="web-today"]    #web-today    { display: grid; grid-template-columns: 256px 1fr; }
+  body[data-view="web-notes"]    #web-notes    { display: grid; grid-template-columns: 256px 1fr; }
+  body[data-view="web-settings"] #web-settings { display: grid; grid-template-columns: 256px 1fr; }
+  body[data-view="m-today"] #m-today, body[data-view="m-notes"] #m-notes, body[data-view="signin"] #signin { display: flex; align-items: center; justify-content: center; }
+
+  /* ---------- comparison labs ---------- */
+  .lab { height: 100vh; overflow-y: auto; padding: 54px 24px 120px; background: var(--bg); }
+  .lab-title { text-align: center; font-size: 23px; font-weight: 900; letter-spacing: -.02em; }
+  .lab-sub { text-align: center; color: var(--ink-2); font-weight: 700; font-size: 14px; margin: 8px 0 40px; }
+  .lab-row { display: flex; gap: 28px; justify-content: center; align-items: flex-start; flex-wrap: wrap; }
+  .lab-label { font-size: 13.5px; font-weight: 800; color: var(--ink-2); margin-bottom: 12px; text-align: center; }
+  .lab-sidebar { width: 232px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 16px; padding: 22px 18px; }
+
+  /* vertical chart */
+  .vchart2 { display: inline-block; }
+  .vrow { display: flex; align-items: center; gap: 8px; }
+  .vrow + .vrow { margin-top: 4px; }
+  .vrow.block-start { margin-top: 12px; }
+  .vmonth { width: 26px; text-align: right; font-size: 10px; font-weight: 800; color: var(--ink-3); }
+  .vweek { display: flex; gap: 4px; }
+  .vlab { width: 17px; text-align: center; font-size: 10px; font-weight: 800; color: var(--ink-3); }
+  .vc { width: 17px; height: 17px; border-radius: 4px; background: var(--heat-0); }
+  .vchart2[data-v="c"] .vc { width: 20px; height: 20px; border-radius: 6px; }
+  .vchart2[data-v="c"] .vlab { width: 20px; }
+  .vc.l1 { background: #cfe0fb; } .vc.l2 { background: #9dc0f6; } .vc.l3 { background: #5e93f1; } .vc.l4 { background: var(--accent); }
+  .vc.today { box-shadow: 0 0 0 2px var(--accent); }
+
+  /* note style lab */
+  .lab-card { width: 320px; }
+  .ln-list { background: var(--bg); border: 1px solid var(--line); border-radius: 16px; padding: 10px; }
+  .ln-item { padding: 14px 12px; border-radius: 11px; }
+  .ln-item:hover { background: var(--field); }
+  .jchip { display: inline-block; background: var(--field); color: var(--ink-2); font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 6px; margin-bottom: 7px; }
+  .jtitle { font-size: 15.5px; font-weight: 800; margin-bottom: 3px; }
+  .nt-title { font-size: 15.5px; font-weight: 800; margin-bottom: 3px; }
+  .nt-snip { font-size: 14px; color: var(--ink); font-weight: 400; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .nt-snip.empty { color: var(--ink-3); }
+  .tile-item { display: flex; gap: 13px; align-items: flex-start; }
+  .caltile { width: 44px; height: 48px; border: 1px solid var(--line); border-radius: 9px; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; flex: none; }
+  .caltile.filled { border: 0; background: var(--field); }
+  .caltile.big { width: 54px; height: 54px; }
+  .ct-m { font-size: 10px; font-weight: 800; color: var(--ink-3); }
+  .ct-d { font-size: 19px; font-weight: 900; color: var(--ink); line-height: 1.05; }
+  .caltile.big .ct-d { font-size: 24px; }
+  .tile-body { flex: 1; }
+
+  /* ---------- shared app ---------- */
+  .sidebar { background: var(--bg-2); border-right: 1px solid var(--line); padding: 24px 16px 18px; display: flex; flex-direction: column; height: 100vh; overflow-y: auto; }
+  .logo { font-weight: 900; font-size: 20px; letter-spacing: -.03em; padding: 4px 10px 20px; display: flex; align-items: center; gap: 9px; }
+  .logo .blob { width: 11px; height: 11px; border-radius: 4px; background: var(--accent); }
+  .nav-item { display: flex; align-items: center; gap: 11px; padding: 9px 11px; border-radius: 9px; color: var(--ink-2); font-size: 15px; font-weight: 700; cursor: pointer; margin-bottom: 2px; }
+  .nav-item.active { background: var(--accent-soft); color: var(--accent); }
+  .consistency { margin: 28px 6px 0; }
+
+  .side-foot { margin-top: auto; padding-top: 16px; }
+  .user-chip { display: flex; align-items: center; gap: 10px; padding: 9px 11px; border-radius: 9px; cursor: pointer; }
+  .user-chip:hover { background: var(--field); }
+  .avatar { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #8a6bf0); display: grid; place-items: center; color: #fff; font-weight: 900; font-size: 13px; }
+  .user-chip .nm { font-size: 13.5px; font-weight: 800; }
+
+  .main { height: 100vh; overflow-y: auto; }
+  .main-inner { max-width: 700px; margin: 0 auto; padding: 60px 40px 160px; }
+  .day-title { font-size: 33px; font-weight: 900; letter-spacing: -.03em; }
+  .section { margin-top: 46px; }
+  .sec-h { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .sec-h .t { font-size: 20px; font-weight: 900; letter-spacing: -.02em; }
+  .iconbtn { width: 32px; height: 32px; border-radius: 9px; border: 0; background: transparent; color: var(--ink-3); display: grid; place-items: center; cursor: pointer; }
+  .iconbtn:hover { background: var(--field); color: var(--ink); }
+  .check { display: flex; align-items: center; gap: 14px; padding: 11px 2px; }
+  .box { width: 23px; height: 23px; border-radius: 7px; border: 2px solid #d0d0d4; flex: none; display: grid; place-items: center; color: #fff; font-size: 13px; font-weight: 900; cursor: pointer; }
+  [data-theme="dark"] .box { border-color: #45454c; }
+  .check.done .box { background: var(--accent); border-color: var(--accent); }
+  .check.done .label { color: var(--ink-3); text-decoration: line-through; text-decoration-color: var(--ink-3); }
+  .label { font-size: 16.5px; font-weight: 700; flex: 1; cursor: text; }
+  .grip { color: var(--ink-3); opacity: 0; cursor: grab; display: grid; place-items: center; }
+  .check:hover .grip { opacity: .4; }
+  .journal-ph { font-size: 17px; line-height: 1.75; color: var(--ink-3); margin-top: 12px; }
+
+  .notes-grid { display: grid; grid-template-columns: 350px 1fr; height: 100vh; }
+  .notes-list { border-right: 1px solid var(--line); overflow-y: auto; padding: 22px 14px; }
+  .nl-head { display: flex; align-items: center; justify-content: space-between; padding: 2px 8px 14px; }
+  .nl-head .t { font-size: 22px; font-weight: 900; letter-spacing: -.02em; }
+  .search { width: 100%; border: 1px solid var(--line); background: var(--field); border-radius: 10px; padding: 10px 13px; font: inherit; font-size: 14.5px; margin-bottom: 10px; color: var(--ink); }
+  .note-item { padding: 14px; border-radius: 11px; cursor: pointer; }
+  .note-item:hover { background: var(--field); }
+  .note-item.active { background: var(--accent-soft); }
+  /* real app journals use note option C: filled day-number tile */
+  .note-item .caltile, .m-note .caltile { border: 0; background: var(--field); width: 54px; height: 54px; }
+  .note-item.active .caltile { background: var(--bg); }
+  .note-item .caltile .ct-d, .m-note .caltile .ct-d { order: -1; font-size: 24px; }
+
+  .editor { height: 100vh; overflow-y: auto; }
+  .editor-inner { max-width: 700px; margin: 0 auto; padding: 64px 40px 140px; }
+  .editor-inner h1 { font-size: 30px; font-weight: 900; letter-spacing: -.03em; margin-bottom: 4px; }
+  .editor-inner .edate { color: var(--ink-2); font-size: 14px; font-weight: 800; margin-bottom: 22px; }
+  .editor-inner p { font-size: 17px; line-height: 1.78; color: var(--ink); margin-bottom: 15px; }
+  .editor-inner blockquote { border-left: 3px solid var(--accent); padding-left: 16px; color: var(--ink-2); font-style: italic; font-size: 17px; margin: 6px 0 16px; }
+
+  .set-inner { max-width: 600px; margin: 0 auto; padding: 60px 40px 120px; }
+  .set-inner h1 { font-size: 31px; font-weight: 900; letter-spacing: -.03em; margin-bottom: 36px; }
+  .set-sec { margin-bottom: 34px; }
+  .set-sec h2 { font-size: 13px; font-weight: 800; color: var(--ink-3); margin-bottom: 6px; }
+  .set-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .set-row .k { font-size: 15.5px; font-weight: 700; }
+  .set-row .k small { display: block; color: var(--ink-3); font-weight: 700; font-size: 12.5px; margin-top: 3px; }
+  .swatches { display: flex; gap: 10px; }
+  .sw { width: 26px; height: 26px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
+  .sw.active { border-color: var(--ink); outline: 2px solid var(--bg); }
+  .seg { display: flex; background: var(--field); border-radius: 9px; padding: 3px; }
+  .seg button { font: inherit; font-size: 13px; font-weight: 800; border: 0; background: transparent; color: var(--ink-2); padding: 7px 16px; border-radius: 7px; cursor: pointer; }
+  .seg button.active { background: var(--bg); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+  .set-input { font: inherit; font-size: 14px; font-weight: 700; color: var(--ink); background: var(--field); border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px; min-width: 200px; }
+  .linkbtn { font-size: 14px; font-weight: 800; color: var(--accent); cursor: pointer; background: none; border: 0; font-family: inherit; }
+  .set-note { font-size: 13px; color: var(--ink-2); font-weight: 700; margin-top: 14px; }
+
+  .stage-bg { position: absolute; inset: 0; background: var(--bg-2); }
+  .phone { position: relative; width: 392px; height: 812px; background: #000; border-radius: 50px; padding: 12px; box-shadow: 0 30px 80px rgba(0,0,0,.35); z-index: 1; }
+  .screen { width: 100%; height: 100%; background: var(--bg); border-radius: 38px; overflow: hidden; display: flex; flex-direction: column; position: relative; }
+  .notch { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 124px; height: 30px; background: #000; border-radius: 0 0 18px 18px; z-index: 5; }
+  .statusbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 28px 4px; font-size: 14px; font-weight: 800; }
+  .m-scroll { flex: 1; overflow-y: auto; padding: 10px 22px 26px; }
+  .m-title { font-size: 28px; font-weight: 900; letter-spacing: -.03em; padding: 12px 2px 2px; }
+  .m-sec { margin-top: 34px; }
+  .m-sec .sec-h .t { font-size: 18px; }
+  .m-check { display: flex; align-items: center; gap: 13px; padding: 10px 0; }
+  .m-check .label { font-size: 16px; }
+  .m-tabbar { display: flex; border-top: 1px solid var(--line); background: var(--bg); padding: 9px 0 30px; }
+  .m-tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--ink-3); font-size: 11px; font-weight: 800; }
+  .m-tab.active { color: var(--accent); }
+  .m-tab svg.lucide { width: 22px; height: 22px; }
+  .m-note { padding: 15px 2px; }
+  .m-search { width: 100%; border: 1px solid var(--line); background: var(--field); border-radius: 11px; padding: 12px 14px; font: inherit; font-size: 15px; margin: 10px 0 2px; color: var(--ink); }
+
+  .signin-card { width: 380px; background: var(--bg); border: 1px solid var(--line); border-radius: 20px; padding: 40px 36px; box-shadow: 0 20px 60px rgba(0,0,0,.12); text-align: center; z-index: 1; }
+  .signin-card .blob { width: 44px; height: 44px; border-radius: 13px; background: var(--accent); margin: 0 auto 18px; }
+  .signin-card h1 { font-size: 26px; font-weight: 900; letter-spacing: -.03em; }
+  .signin-card .sub { color: var(--ink-2); font-size: 14px; margin: 6px 0 28px; font-weight: 700; }
+  .si-field { width: 100%; font: inherit; font-size: 15px; color: var(--ink); background: var(--field); border: 1px solid var(--line); border-radius: 11px; padding: 13px 15px; margin-bottom: 12px; text-align: left; }
+  .si-btn { width: 100%; font: inherit; font-size: 15px; font-weight: 800; color: #fff; background: var(--accent); border: 0; border-radius: 11px; padding: 14px; cursor: pointer; margin-top: 6px; }
+  .si-stay { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; color: var(--ink-2); font-weight: 700; margin-top: 18px; }
+  .si-stay .chk { width: 18px; height: 18px; border-radius: 5px; background: var(--accent); display: grid; place-items: center; color: #fff; font-size: 11px; font-weight: 900; }
+</style>
+</head>
+<body data-view="charts">
+
+  <div class="switch">
+    <button data-go="charts" class="active">chart options</button>
+    <button data-go="notes-lab">note options</button>
+    <button data-go="web-today">today</button>
+    <button data-go="web-notes">notes</button>
+    <button data-go="web-settings">settings</button>
+    <button data-go="m-today">mobile today</button>
+    <button data-go="m-notes">mobile notes</button>
+    <button data-go="signin">sign in</button>
+  </div>
+
+  <!-- ============ CHART OPTIONS ============ -->
+  <section class="panel" id="charts">
+    <div class="lab">
+      <div class="lab-title">vertical consistency chart — pick a direction</div>
+      <div class="lab-sub">weekday columns on top · months down the left · shown at real sidebar width · newest week at the bottom</div>
+      <div class="lab-row">
+        <div class="lab-card" style="width:auto;">
+          <div class="lab-label">option a · minimal</div>
+          <div class="lab-sidebar"><div class="vchart2" data-v="a"></div></div>
+        </div>
+        <div class="lab-card" style="width:auto;">
+          <div class="lab-label">option b · grouped by month (gaps)</div>
+          <div class="lab-sidebar"><div class="vchart2" data-v="b"></div></div>
+        </div>
+        <div class="lab-card" style="width:auto;">
+          <div class="lab-label">option c · larger cells + today ring</div>
+          <div class="lab-sidebar"><div class="vchart2" data-v="c"></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ NOTE OPTIONS ============ -->
+  <section class="panel" id="notes-lab">
+    <div class="lab">
+      <div class="lab-title">notes list — pick a direction</div>
+      <div class="lab-sub">journals get a neutral boxy date pill + the title "journal" · freeform notes keep their own title, no pill · every day has a journal (even empty)</div>
+      <div class="lab-row">
+
+        <div class="lab-card">
+          <div class="lab-label">option a · inline date chip</div>
+          <div class="ln-list">
+            <div class="ln-item"><span class="jchip">jun 11</span><div class="jtitle">journal</div><div class="nt-snip">got the workout in before lunch for once, which made the whole afternoon feel ahead instead of behind…</div></div>
+            <div class="ln-item"><div class="nt-title">book ideas</div><div class="nt-snip">running list — the attention-economics one, the saharan trade-routes thing m. mentioned…</div></div>
+            <div class="ln-item"><span class="jchip">jun 10</span><div class="jtitle">journal</div><div class="nt-snip empty">empty · tap to write</div></div>
+          </div>
+        </div>
+
+        <div class="lab-card">
+          <div class="lab-label">option b · outlined calendar tile</div>
+          <div class="ln-list">
+            <div class="ln-item tile-item"><div class="caltile"><span class="ct-m">jun</span><span class="ct-d">11</span></div><div class="tile-body"><div class="jtitle">journal</div><div class="nt-snip">got the workout in before lunch for once, which made the whole afternoon feel ahead instead of behind…</div></div></div>
+            <div class="ln-item tile-item"><div class="caltile" style="visibility:hidden;"></div><div class="tile-body"><div class="nt-title">book ideas</div><div class="nt-snip">running list — the attention-economics one, the saharan trade-routes thing m. mentioned…</div></div></div>
+            <div class="ln-item tile-item"><div class="caltile"><span class="ct-m">jun</span><span class="ct-d">10</span></div><div class="tile-body"><div class="jtitle">journal</div><div class="nt-snip empty">empty · tap to write</div></div></div>
+          </div>
+        </div>
+
+        <div class="lab-card">
+          <div class="lab-label">option c · filled day-number tile</div>
+          <div class="ln-list">
+            <div class="ln-item tile-item"><div class="caltile filled big"><span class="ct-d">11</span><span class="ct-m">jun</span></div><div class="tile-body"><div class="jtitle">journal</div><div class="nt-snip">got the workout in before lunch for once, which made the whole afternoon feel ahead instead of behind…</div></div></div>
+            <div class="ln-item tile-item"><div class="caltile big" style="visibility:hidden;"></div><div class="tile-body"><div class="nt-title">book ideas</div><div class="nt-snip">running list — the attention-economics one, the saharan trade-routes thing m. mentioned…</div></div></div>
+            <div class="ln-item tile-item"><div class="caltile filled big"><span class="ct-d">10</span><span class="ct-m">jun</span></div><div class="tile-body"><div class="jtitle">journal</div><div class="nt-snip empty">empty · tap to write</div></div></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ WEB · TODAY ============ -->
+  <section class="panel" id="web-today">
+    <aside class="sidebar">
+      <div class="logo"><span class="blob"></span> notes</div>
+      <div class="nav-item active"><i data-lucide="calendar-check"></i> today</div>
+      <div class="nav-item"><i data-lucide="notebook-pen"></i> notes</div>
+      <div class="consistency"><div class="vchart2" data-v="a"></div></div>
+      <div class="side-foot">
+        <div class="nav-item"><i data-lucide="settings"></i> settings</div>
+        <div class="user-chip"><span class="avatar">d</span><span class="nm">david</span></div>
+      </div>
+    </aside>
+    <div class="main"><div class="main-inner">
+      <div class="day-title">thursday, june 11</div>
+      <div class="section">
+        <div class="sec-h"><span class="t">daily routine</span><button class="iconbtn"><i data-lucide="plus"></i></button></div>
+        <div class="check done"><span class="box">✓</span><span class="label">eat breakfast</span><span class="grip"><i data-lucide="grip-vertical"></i></span></div>
+        <div class="check done"><span class="box">✓</span><span class="label">take multivitamins</span><span class="grip"><i data-lucide="grip-vertical"></i></span></div>
+        <div class="check done"><span class="box">✓</span><span class="label">take creatine</span><span class="grip"><i data-lucide="grip-vertical"></i></span></div>
+        <div class="check done"><span class="box">✓</span><span class="label">brush teeth (morning)</span><span class="grip"><i data-lucide="grip-vertical"></i></span></div>
+        <div class="check done"><span class="box">✓</span><span class="label">exercise</span><span class="grip"><i data-lucide="grip-vertical"></i></span></div>
+        <div class="check done"><span class="box">✓</span><span class="label">eat lunch</span><span class="grip"><i data-lucide="grip-vertical"></i></span></div>
+        <div class="check"><span class="box"></span><span class="label">eat dinner</span><span class="grip"><i data-lucide="grip-vertical"></i></span></div>
+        <div class="check"><span class="box"></span><span class="label">shower</span><span class="grip"><i data-lucide="grip-vertical"></i></span></div>
+        <div class="check"><span class="box"></span><span class="label">brush teeth (night)</span><span class="grip"><i data-lucide="grip-vertical"></i></span></div>
+        <div class="check"><span class="box"></span><span class="label">sleep by midnight</span><span class="grip"><i data-lucide="grip-vertical"></i></span></div>
+      </div>
+      <div class="section">
+        <div class="sec-h"><span class="t">today's journal</span></div>
+        <div class="journal-ph">do your journal today</div>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- ============ WEB · NOTES (provisional, option b tile) ============ -->
+  <section class="panel" id="web-notes">
+    <aside class="sidebar">
+      <div class="logo"><span class="blob"></span> notes</div>
+      <div class="nav-item"><i data-lucide="calendar-check"></i> today</div>
+      <div class="nav-item active"><i data-lucide="notebook-pen"></i> notes</div>
+      <div class="consistency"><div class="vchart2" data-v="a"></div></div>
+      <div class="side-foot">
+        <div class="nav-item"><i data-lucide="settings"></i> settings</div>
+        <div class="user-chip"><span class="avatar">d</span><span class="nm">david</span></div>
+      </div>
+    </aside>
+    <div class="notes-grid">
+      <div class="notes-list">
+        <div class="nl-head"><span class="t">notes</span><button class="iconbtn"><i data-lucide="plus"></i></button></div>
+        <input class="search" placeholder="search notes…" />
+        <div class="note-item active tile-item"><div class="caltile"><span class="ct-m">jun</span><span class="ct-d">11</span></div><div class="tile-body"><div class="jtitle">journal</div><div class="nt-snip">got the workout in before lunch for once, which made the whole afternoon feel ahead instead of behind…</div></div></div>
+        <div class="note-item tile-item"><div class="caltile" style="visibility:hidden;"></div><div class="tile-body"><div class="nt-title">book ideas</div><div class="nt-snip">running list — the attention-economics one, the saharan trade-routes thing m. mentioned…</div></div></div>
+        <div class="note-item tile-item"><div class="caltile"><span class="ct-m">jun</span><span class="ct-d">10</span></div><div class="tile-body"><div class="jtitle">journal</div><div class="nt-snip">rough sleep, slow start. skipped the gym but hit everything else. counting it.</div></div></div>
+        <div class="note-item tile-item"><div class="caltile" style="visibility:hidden;"></div><div class="tile-body"><div class="nt-title">app — feature wishlist</div><div class="nt-snip">reminders. weekly items. photos in entries. on this day. export. mood…</div></div></div>
+        <div class="note-item tile-item"><div class="caltile"><span class="ct-m">jun</span><span class="ct-d">9</span></div><div class="tile-body"><div class="jtitle">journal</div><div class="nt-snip empty">empty · tap to write</div></div></div>
+      </div>
+      <div class="editor"><div class="editor-inner">
+        <h1>journal</h1>
+        <div class="edate">thursday, june 11</div>
+        <p>got the workout in before lunch for once, which made the whole afternoon feel ahead instead of behind.</p>
+        <p>the thing i actually want from this app isn't features — it's the feeling of opening one calm place every morning. <b>rich text</b>, <i>real formatting</i> with ⌘b / ⌘i, the day one look. that's it.</p>
+        <blockquote>don't break the chain.</blockquote>
+        <p>tomorrow: sketch the data model and start the spec.</p>
+      </div></div>
+    </div>
+  </section>
+
+  <!-- ============ SETTINGS ============ -->
+  <section class="panel" id="web-settings">
+    <aside class="sidebar">
+      <div class="logo"><span class="blob"></span> notes</div>
+      <div class="nav-item"><i data-lucide="calendar-check"></i> today</div>
+      <div class="nav-item"><i data-lucide="notebook-pen"></i> notes</div>
+      <div class="consistency"><div class="vchart2" data-v="a"></div></div>
+      <div class="side-foot">
+        <div class="nav-item active"><i data-lucide="settings"></i> settings</div>
+        <div class="user-chip"><span class="avatar">d</span><span class="nm">david</span></div>
+      </div>
+    </aside>
+    <div class="main"><div class="set-inner">
+      <h1>settings</h1>
+      <div class="set-sec">
+        <h2>appearance</h2>
+        <div class="set-row">
+          <div class="k">accent color <small>tap a color — the whole app recolors live</small></div>
+          <div class="swatches" id="swatches">
+            <span class="sw active" style="background:#3b6ef0" data-c="#3b6ef0"></span>
+            <span class="sw" style="background:#6257e6" data-c="#6257e6"></span>
+            <span class="sw" style="background:#12a594" data-c="#12a594"></span>
+            <span class="sw" style="background:#2f9e44" data-c="#2f9e44"></span>
+            <span class="sw" style="background:#e8930c" data-c="#e8930c"></span>
+            <span class="sw" style="background:#e5484d" data-c="#e5484d"></span>
+            <span class="sw" style="background:#52525b" data-c="#52525b"></span>
+          </div>
+        </div>
+        <div class="set-row"><div class="k">theme</div><div class="seg" id="themeseg"><button class="active" data-t="light">light</button><button data-t="dark">dark</button></div></div>
+        <div class="set-row"><div class="k">font</div><div class="seg"><button class="active">lato</button><button>system</button></div></div>
+      </div>
+      <div class="set-sec">
+        <h2>account</h2>
+        <div class="set-row"><div class="k">username</div><input class="set-input" value="david"></div>
+        <div class="set-row"><div class="k">password</div><button class="linkbtn">change password</button></div>
+        <div class="set-note">you're signed in on this device and will stay signed in. <span style="color:var(--accent);cursor:pointer;">sign out</span></div>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- ============ MOBILE · TODAY ============ -->
+  <section class="panel" id="m-today">
+    <div class="stage-bg"></div>
+    <div class="phone"><div class="notch"></div><div class="screen">
+      <div class="statusbar"><span>9:41</span><span>5g &nbsp;100%</span></div>
+      <div class="m-scroll">
+        <div class="m-title">thu, june 11</div>
+        <div class="m-sec">
+          <div class="sec-h"><span class="t">daily routine</span><button class="iconbtn"><i data-lucide="plus"></i></button></div>
+          <div class="m-check check done"><span class="box">✓</span><span class="label">eat breakfast</span></div>
+          <div class="m-check check done"><span class="box">✓</span><span class="label">take multivitamins</span></div>
+          <div class="m-check check done"><span class="box">✓</span><span class="label">take creatine</span></div>
+          <div class="m-check check done"><span class="box">✓</span><span class="label">brush teeth (morning)</span></div>
+          <div class="m-check check done"><span class="box">✓</span><span class="label">exercise</span></div>
+          <div class="m-check check done"><span class="box">✓</span><span class="label">eat lunch</span></div>
+          <div class="m-check check"><span class="box"></span><span class="label">eat dinner</span></div>
+          <div class="m-check check"><span class="box"></span><span class="label">shower</span></div>
+          <div class="m-check check"><span class="box"></span><span class="label">brush teeth (night)</span></div>
+          <div class="m-check check"><span class="box"></span><span class="label">sleep by midnight</span></div>
+        </div>
+        <div class="m-sec">
+          <div style="display:flex;justify-content:center;"><div class="vchart2" data-v="a"></div></div>
+        </div>
+        <div class="m-sec">
+          <div class="sec-h"><span class="t">today's journal</span></div>
+          <div class="journal-ph" style="font-size:16px;">do your journal today</div>
+        </div>
+      </div>
+      <div class="m-tabbar">
+        <div class="m-tab active"><i data-lucide="calendar-check"></i>today</div>
+        <div class="m-tab"><i data-lucide="notebook-pen"></i>notes</div>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- ============ MOBILE · NOTES ============ -->
+  <section class="panel" id="m-notes">
+    <div class="stage-bg"></div>
+    <div class="phone"><div class="notch"></div><div class="screen">
+      <div class="statusbar"><span>9:41</span><span>5g &nbsp;100%</span></div>
+      <div class="m-scroll">
+        <div class="sec-h" style="padding-top:10px;"><span class="m-title" style="padding:0;">notes</span><button class="iconbtn"><i data-lucide="plus"></i></button></div>
+        <input class="m-search" placeholder="search…" />
+        <div class="m-note tile-item"><div class="caltile"><span class="ct-m">jun</span><span class="ct-d">11</span></div><div class="tile-body"><div class="jtitle">journal</div><div class="nt-snip">got the workout in before lunch for once, which made the whole afternoon feel ahead instead of behind…</div></div></div>
+        <div class="m-note tile-item"><div class="caltile" style="visibility:hidden;"></div><div class="tile-body"><div class="nt-title">book ideas</div><div class="nt-snip">running list — the attention-economics one, the saharan trade-routes thing m. mentioned…</div></div></div>
+        <div class="m-note tile-item"><div class="caltile"><span class="ct-m">jun</span><span class="ct-d">10</span></div><div class="tile-body"><div class="jtitle">journal</div><div class="nt-snip">rough sleep, slow start. skipped the gym but hit everything else. counting it.</div></div></div>
+        <div class="m-note tile-item"><div class="caltile" style="visibility:hidden;"></div><div class="tile-body"><div class="nt-title">app — feature wishlist</div><div class="nt-snip">reminders. weekly items. photos in entries. on this day. export. mood…</div></div></div>
+        <div class="m-note tile-item"><div class="caltile"><span class="ct-m">jun</span><span class="ct-d">9</span></div><div class="tile-body"><div class="jtitle">journal</div><div class="nt-snip empty">empty · tap to write</div></div></div>
+      </div>
+      <div class="m-tabbar">
+        <div class="m-tab"><i data-lucide="calendar-check"></i>today</div>
+        <div class="m-tab active"><i data-lucide="notebook-pen"></i>notes</div>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- ============ SIGN IN ============ -->
+  <section class="panel" id="signin">
+    <div class="stage-bg"></div>
+    <div class="signin-card">
+      <div class="blob"></div>
+      <h1>notes</h1>
+      <div class="sub">welcome back, david</div>
+      <input class="si-field" placeholder="username" value="david" />
+      <input class="si-field" type="password" placeholder="password" value="••••••••" />
+      <button class="si-btn">sign in</button>
+      <div class="si-stay"><span class="chk">✓</span> keep me signed in on this device</div>
+    </div>
+  </section>
+
+<script>
+  function go(v){ document.body.dataset.view = v; document.querySelectorAll('.switch button').forEach(b => b.classList.toggle('active', b.dataset.go === v)); }
+  document.querySelectorAll('.switch button').forEach(b => b.addEventListener('click', () => go(b.dataset.go)));
+
+  // vertical consistency chart: weekday columns on top, months down the left, newest week at bottom
+  const BLOCKS = [{m:'apr',w:4},{m:'may',w:5},{m:'jun',w:5}];
+  const WD = ['m','t','w','t','f','s','s'];
+  function buildV(el){
+    const variant = el.dataset.v || 'a';
+    const head = document.createElement('div'); head.className='vrow';
+    const hsp = document.createElement('div'); hsp.className='vmonth'; head.appendChild(hsp);
+    const hwk = document.createElement('div'); hwk.className='vweek';
+    WD.forEach(d => { const l=document.createElement('div'); l.className='vlab'; l.textContent=d; hwk.appendChild(l); });
+    head.appendChild(hwk); el.appendChild(head);
+
+    const total = BLOCKS.reduce((a,b)=>a+b.w,0);
+    let seed=9; const rnd=()=>{seed=(seed*1103515245+12345)&0x7fffffff;return seed/0x7fffffff;};
+    let row=0;
+    BLOCKS.forEach((blk, bi) => {
+      for(let i=0;i<blk.w;i++){
+        const r = document.createElement('div'); r.className='vrow';
+        if(variant==='b' && i===0 && bi>0) r.classList.add('block-start');
+        const mo = document.createElement('div'); mo.className='vmonth'; mo.textContent = (i===0)? blk.m : '';
+        r.appendChild(mo);
+        const wk = document.createElement('div'); wk.className='vweek';
+        for(let d=0;d<7;d++){
+          const c = document.createElement('div');
+          const v = rnd()*0.5 + (row/total)*0.6;
+          let lvl=''; if(v>0.85)lvl='l4'; else if(v>0.62)lvl='l3'; else if(v>0.42)lvl='l2'; else if(v>0.2)lvl='l1';
+          c.className='vc '+lvl;
+          if(variant==='c' && bi===BLOCKS.length-1 && i===blk.w-1 && d===3) c.classList.add('today');
+          wk.appendChild(c);
+        }
+        r.appendChild(wk); el.appendChild(r); row++;
+      }
+    });
+  }
+  document.querySelectorAll('.vchart2').forEach(buildV);
+
+  // live theming
+  document.querySelectorAll('#swatches .sw').forEach(s => s.addEventListener('click', () => {
+    document.querySelectorAll('#swatches .sw').forEach(x=>x.classList.remove('active'));
+    s.classList.add('active');
+    document.documentElement.style.setProperty('--accent', s.dataset.c);
+    document.documentElement.style.setProperty('--accent-soft', s.dataset.c + '22');
+  }));
+  document.querySelectorAll('#themeseg button').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('#themeseg button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    if(b.dataset.t==='dark') document.documentElement.setAttribute('data-theme','dark'); else document.documentElement.removeAttribute('data-theme');
+  }));
+
+  if (window.lucide) lucide.createIcons();
+</script>
+</body>
+</html>
