@@ -39,8 +39,8 @@ export default function Today() {
           </h1>
           <RoutineSection day={day} />
           {/* mobile only — web shows the chart in the sidebar */}
-          <section className="mt-[46px] flex justify-center md:hidden">
-            <ConsistencyChart />
+          <section className="mt-[46px] md:hidden">
+            <ConsistencyChart orientation="horizontal" />
           </section>
           <JournalSection day={day} />
         </>

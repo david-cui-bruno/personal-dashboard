@@ -1,8 +1,10 @@
 "use client";
 
-// Vertical consistency heatmap (chart option A, #021): weekday columns across
-// the top, months down the left, newest week at the bottom; cells shaded by
-// % of that day's routine completed (#020). Fixed ~3-month window (#102).
+// Consistency heatmap (#020, #021): cells shaded by % of that day's routine
+// completed, fixed ~3-month window (#102).
+// - vertical (default): weekday columns on top, months down the left — for the
+//   narrow web sidebar.
+// - horizontal: weeks left→right, days stacked, months on top — for mobile.
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { getConsistency, type DayConsistency } from "@/lib/data";
@@ -24,10 +26,12 @@ function weekdayIndex(day: string): number {
   return (new Date(`${day}T00:00:00`).getDay() + 6) % 7;
 }
 
-type Row = { month?: string; cells: (DayConsistency | null)[] };
+type Week = { month?: string; cells: (DayConsistency | null)[] };
 
-function buildRows(days: DayConsistency[]): Row[] {
-  const rows: Row[] = [];
+// Group days into weeks of 7 (Mon→Sun), padding the first week, and tag the
+// first week of each month with its short name.
+function buildWeeks(days: DayConsistency[]): Week[] {
+  const weeks: Week[] = [];
   let cur: (DayConsistency | null)[] = [];
   if (days.length) {
     for (let i = 0; i < weekdayIndex(days[0].day); i++) cur.push(null);
@@ -35,31 +39,39 @@ function buildRows(days: DayConsistency[]): Row[] {
   for (const dc of days) {
     cur.push(dc);
     if (cur.length === 7) {
-      rows.push({ cells: cur });
+      weeks.push({ cells: cur });
       cur = [];
     }
   }
   if (cur.length) {
     while (cur.length < 7) cur.push(null);
-    rows.push({ cells: cur });
+    weeks.push({ cells: cur });
   }
   let last = "";
-  for (const row of rows) {
-    const first = row.cells.find((c): c is DayConsistency => c !== null);
+  for (const w of weeks) {
+    const first = w.cells.find((c): c is DayConsistency => c !== null);
     if (first) {
       const m = new Date(`${first.day}T00:00:00`)
         .toLocaleString("en", { month: "short" })
         .toLowerCase();
       if (m !== last) {
-        row.month = m;
+        w.month = m;
         last = m;
       }
     }
   }
-  return rows;
+  return weeks;
 }
 
-export function ConsistencyChart() {
+function tip(c: DayConsistency | null): string {
+  return c ? `${c.day} · ${Math.round(c.pct * 100)}%` : "";
+}
+
+export function ConsistencyChart({
+  orientation = "vertical",
+}: {
+  orientation?: "vertical" | "horizontal";
+}) {
   const [days, setDays] = useState<DayConsistency[] | null>(null);
 
   useEffect(() => {
@@ -71,9 +83,38 @@ export function ConsistencyChart() {
       .catch(() => setDays([]));
   }, []);
 
-  if (!days) return <div className="h-44" />;
-  const rows = buildRows(days);
+  if (!days) return <div className={orientation === "horizontal" ? "h-32" : "h-44"} />;
+  const weeks = buildWeeks(days);
 
+  // ---- horizontal (mobile): weeks across, days stacked, months on top ----
+  if (orientation === "horizontal") {
+    return (
+      <div className="w-full">
+        <div className="mb-1.5 flex gap-[3px] text-[10px] font-bold text-ink-3">
+          {weeks.map((w, i) => (
+            <span key={i} className="flex-1 overflow-visible whitespace-nowrap">
+              {w.month ?? ""}
+            </span>
+          ))}
+        </div>
+        <div className="flex gap-[3px]">
+          {weeks.map((w, wi) => (
+            <div key={wi} className="flex flex-1 flex-col gap-[3px]">
+              {w.cells.map((c, ci) => (
+                <span
+                  key={ci}
+                  title={tip(c)}
+                  className={`aspect-square rounded-[3px] ${c ? CELL[level(c.pct)] : "opacity-0"}`}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // ---- vertical (web sidebar): weekday columns on top, months down the left ----
   return (
     <div>
       <div className="mb-1.5 flex gap-1 pl-8 text-[10px] font-bold text-ink-3">
@@ -84,15 +125,15 @@ export function ConsistencyChart() {
         ))}
       </div>
       <div className="space-y-1">
-        {rows.map((row, ri) => (
-          <div key={ri} className="flex items-center gap-1">
+        {weeks.map((w, wi) => (
+          <div key={wi} className="flex items-center gap-1">
             <span className="w-7 text-right text-[10px] font-bold text-ink-3">
-              {row.month ?? ""}
+              {w.month ?? ""}
             </span>
-            {row.cells.map((c, ci) => (
+            {w.cells.map((c, ci) => (
               <span
                 key={ci}
-                title={c ? `${c.day} · ${Math.round(c.pct * 100)}%` : ""}
+                title={tip(c)}
                 className={`h-[17px] w-[17px] rounded ${c ? CELL[level(c.pct)] : "opacity-0"}`}
               />
             ))}
