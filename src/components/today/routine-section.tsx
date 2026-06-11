@@ -133,9 +133,23 @@ export function RoutineSection({ day }: { day: string }) {
     const sortOrder = list.length
       ? Math.max(...list.map((i) => i.sort_order)) + 1
       : 0;
+    // Optimistic: show the committed row instantly (no async flicker), then swap
+    // in the real server row once it returns.
+    const tempId = `tmp-${sortOrder}`;
+    const optimistic = {
+      id: tempId,
+      label,
+      sort_order: sortOrder,
+      created_on: day,
+      archived_on: null,
+      created_at: new Date().toISOString(),
+    } as RoutineItem;
+    setItems((prev) => [...(prev ?? []), optimistic]);
     return addItem(sb, label, sortOrder, day)
-      .then((item) => setItems((prev) => [...(prev ?? []), item]))
-      .catch(() => reload());
+      .then((item) =>
+        setItems((prev) => (prev ?? []).map((i) => (i.id === tempId ? item : i))),
+      )
+      .catch(() => setItems((prev) => (prev ?? []).filter((i) => i.id !== tempId)));
   }
   function commitAdd() {
     const cancelled = addCancel.current;
@@ -300,10 +314,7 @@ export function RoutineSection({ day }: { day: string }) {
               if (e.key === "Enter") {
                 e.preventDefault();
                 const label = newLabel.trim();
-                if (!label) {
-                  e.currentTarget.blur(); // empty Enter closes the add row
-                  return;
-                }
+                if (!label) return; // empty Enter: do nothing (don't remove the row)
                 setNewLabel(""); // commit this one and keep the row open for the next
                 void addOne(label);
               } else if (e.key === "Escape") {
