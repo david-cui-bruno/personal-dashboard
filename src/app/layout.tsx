@@ -26,6 +26,11 @@ export const metadata: Metadata = {
     title: "notes",
     statusBarStyle: "default",
   },
+  // Next 16 emits the modern `mobile-web-app-capable`; add the legacy Apple tag too so
+  // iOS reliably launches the home-screen app in standalone mode (no Safari chrome).
+  other: {
+    "apple-mobile-web-app-capable": "yes",
+  },
 };
 
 // theme-color tracks the app background (calm, no chrome) per light/dark (#063).
