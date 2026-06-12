@@ -64,9 +64,15 @@ export default function RootLayout({
         {children}
         <Script id="sw-register" strategy="afterInteractive">
           {`if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function () {
+            var swReg = function () {
               navigator.serviceWorker.register('/sw.js').catch(function () {});
-            });
+            };
+            // This script runs afterInteractive, which can be *after* window 'load'
+            // has already fired — in which case an addEventListener('load') never
+            // runs and the SW never registers (#130). Register now if the page is
+            // already loaded, else wait for load.
+            if (document.readyState === 'complete') swReg();
+            else window.addEventListener('load', swReg);
           }`}
         </Script>
       </body>

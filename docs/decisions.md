@@ -591,3 +591,16 @@ heavy. These target perceived-paint first (1,2,3) and actual bytes second (4). D
 this pack (need contract/decisions entries): swapping the proxy's `getUser()` for `getSession()`
 (auth #070) and folding `daily_song` into the `today_summary` RPC (FROZEN data-model). Extends
 the #122 performance work. `docs/handoff.md` §11 updated.
+
+**#130 — Fix: the service worker never actually registered (so #129's cache was inert).**
+While verifying #129 on the live site, found the SW was **not registering in production at
+all** — `navigator.serviceWorker.getRegistrations()` was empty on prod. Root cause: the inline
+registration script (`layout.tsx`, `next/script strategy="afterInteractive"`) did
+`window.addEventListener('load', register)`, but `afterInteractive` can run **after** `window`'s
+`load` event has already fired (common on fast/prod pages), so the listener never ran and the SW
+never registered. This means the SW had been inert since it shipped — both the original
+shell-asset cache **and** #129's new navigation cache. Fix: register immediately when
+`document.readyState === 'complete'`, else fall back to the `load` listener. **Why:** the SW is
+the biggest cold-start lever (#129) and was doing nothing; this is what actually turns it on.
+Verified: with the fix the SW **auto-registers** in a fresh browser (it didn't before);
+confirmed live after deploy. Pure bug fix — no contract change. `docs/handoff.md` §11 updated.

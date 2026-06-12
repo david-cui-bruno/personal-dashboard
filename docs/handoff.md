@@ -21,7 +21,7 @@ desktop (macOS), and iOS.**
   migrations `0001–0007` are all pushed (Local == Remote).
 - **Read first:** `docs/product.md` (why) → `docs/spec.md` (what, FROZEN) →
   `docs/data-model.md` (schema, FROZEN) → this file (how to run/ship). Full "why" log:
-  `docs/decisions.md` (#001–#129).
+  `docs/decisions.md` (#001–#130).
 - **One thing still pending on David:** connect Spotify once (web/iOS) to enable "song of
   the day → from your listening" (§9). Everything else is done.
 
@@ -80,7 +80,7 @@ AGENTS.md / CLAUDE.md      the 5 anti-drift rules + doc index (read first)
 docs/
   product / spec / data-model   FROZEN: goal / behavior / schema
   architecture / design         living: stack+deploy / tokens+screens
-  decisions.md                  append-only "why" log (#001–#129)
+  decisions.md                  append-only "why" log (#001–#130)
   roadmap.md / phase-1.md       status + parallel-slice briefs
   widget-and-notifications.md   the iOS widget + notifications design (#119)
   ship-desktop-and-ios.md       signing/notarize/release + iOS Xcode runbook
@@ -256,8 +256,11 @@ journal + chart data) instead of ~5 separate selects, behind a **30s in-memory p
 back-navigation instant; writes call `invalidateTodaySummary()`. TipTap is **lazy-loaded** off
 the initial bundle. Measured: Today dropped from ~26 mixed calls → 1 RPC / 0 legacy selects.
 
-**Cold start (#129):** the iOS/desktop shells load the live site over the network on every
-launch, so perceived first-paint was the pain point. (1) The **service worker** serves
+**Cold start (#129, #130):** the iOS/desktop shells load the live site over the network on
+every launch, so perceived first-paint was the pain point. **#130 first fixed a latent bug:**
+the SW had never actually registered (the `afterInteractive` register script attached a `load`
+listener after `load` had already fired), so every SW cache was inert — registration now runs
+immediately if the page is already loaded. With that live: (1) the **service worker** serves
 top-level navigations **stale-while-revalidate** (`public/sw.js`, `SHELL_CACHE` bumped on
 shell-logic changes) — cached HTML paints instantly, refreshes in the background; only
 same-origin non-redirected 200s are cached (an expired-session `/sign-in` redirect is never
