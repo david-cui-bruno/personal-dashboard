@@ -18,6 +18,7 @@ import {
 } from "@/lib/data";
 import dynamic from "next/dynamic";
 import type { EditorValue } from "@/components/editor";
+import type { DailySong } from "@/lib/data";
 import { SectionHeader } from "@/components/ui/section-header";
 import { SongOfDay } from "@/components/song-of-day";
 
@@ -38,6 +39,9 @@ export function JournalSection({ day }: { day: string }) {
     day: string;
     content: JSONContent | null;
   } | null>(null);
+  // Today's song from the same payload (#131), passed to <SongOfDay> so it doesn't
+  // make its own round-trip. undefined = the RPC didn't include it → the bar fetches.
+  const [songSeed, setSongSeed] = useState<DailySong | null | undefined>(undefined);
 
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pending = useRef<EditorValue | null>(null);
@@ -55,6 +59,7 @@ export function JournalSection({ day }: { day: string }) {
       .then((s) => {
         if (!active) return;
         journalId.current = s.journal?.id ?? null;
+        setSongSeed(s.song);
         setLoaded({ day, content: (s.journal?.content as JSONContent | null) ?? null });
       })
       .catch(() => {
@@ -116,7 +121,9 @@ export function JournalSection({ day }: { day: string }) {
   return (
     <section className="mt-[46px]">
       <SectionHeader title="today's journal" />
-      <SongOfDay day={day} />
+      {/* Mount once the payload resolves so the seeded song skips a second fetch (#131);
+          keyed by day so a midnight rollover re-seeds it. */}
+      {ready && <SongOfDay key={day} day={day} initialSong={songSeed} />}
       <div className="mt-1.5">
         {ready && (
           <Editor

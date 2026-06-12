@@ -147,5 +147,9 @@ Post-V1 additions (read-only, additive):
 - widget: `getWidgetSummary(day)` → `{done, total, focusLabel, focusItemId}` via the
   `widget_summary(p_day)` Postgres function (migration `0004`, #119). Locked to the
   `authenticated` role (anon execute revoked), like every table (#108).
+- today: `today_summary(p_from, p_to)` Postgres function (migration `0005`) → one
+  round-trip for the whole Today screen: `{routine_items, completions, journal,
+  song}` — `song` is today's `daily_song` row, folded in by migration `0008` (#131).
+  `security invoker` (RLS applies), `authenticated`-only like `widget_summary`.
 
 Exact signatures finalize with `spec.md` at freeze.

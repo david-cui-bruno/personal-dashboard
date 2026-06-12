@@ -28,10 +28,19 @@ const Label = () => (
   </div>
 );
 
-export function SongOfDay({ day }: { day: string }) {
+// `initialSong` (#131): when Today already loaded the song via the today_summary RPC,
+// it's passed in so the bar doesn't make its own round-trip. undefined = not provided
+// (e.g. the /notes/[date] entry) → fetch it ourselves.
+export function SongOfDay({
+  day,
+  initialSong,
+}: {
+  day: string;
+  initialSong?: DailySong | null;
+}) {
   const [sb] = useState(createClient);
-  const [song, setSong] = useState<DailySong | null>(null);
-  const [ready, setReady] = useState(false);
+  const [song, setSong] = useState<DailySong | null>(initialSong ?? null);
+  const [ready, setReady] = useState(initialSong !== undefined);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Result[]>([]);
@@ -40,6 +49,8 @@ export function SongOfDay({ day }: { day: string }) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    // Authoritative song already provided (Today via the RPC) → no fetch.
+    if (initialSong !== undefined) return;
     let active = true;
     getSong(sb, day)
       .then((s) => {
@@ -53,7 +64,7 @@ export function SongOfDay({ day }: { day: string }) {
     return () => {
       active = false;
     };
-  }, [sb, day]);
+  }, [sb, day, initialSong]);
 
   useEffect(() => {
     if (open) inputRef.current?.focus();
