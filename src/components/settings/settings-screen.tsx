@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import { AppearanceSection } from "./appearance-section";
 import { AccountSection } from "./account-section";
 import { DataSection } from "./data-section";
+import { NotificationsSection } from "./notifications-section";
 import {
   applyAppearance,
   DEFAULT_APPEARANCE,
@@ -58,6 +59,7 @@ export function SettingsScreen() {
     <div className="mx-auto max-w-[600px] px-10 pb-32 pt-14">
       <h1 className="mb-9 text-[31px] font-black lowercase tracking-tight">settings</h1>
       <AppearanceSection value={appearance} onChange={update} />
+      <NotificationsSection />
       <DataSection />
       <AccountSection username={username} />
     </div>
