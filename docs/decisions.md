@@ -454,6 +454,24 @@ from the one payload, nav reuses cache. `getTodaySummary` **falls back** to plai
 the RPC is unreachable, so a Vercel deploy that lands before `supabase db push` (the cloud
 migration, which needs the DB password) degrades gracefully instead of breaking.
 
+**#123 — Song of the day: one logged song per day, atop the journal.**
+David logs one song per day. UI: a calm horizontal **bar at the top of the daily journal**
+(both Today's journal section and the `/notes/[date]` entry, placement "A" from the
+mockups) — empty state invites "add today's song", paste a **Spotify/Apple Music link**,
+and it shows the **cover art + title (+ artist)**, tappable to open the track. It also
+appears as a `♪ title — artist` line on the Notes-stream day row. Data: a new `daily_song`
+table (day PK, url, title, artist, art_url) — migration 0006, RLS like 0003 (#108). Metadata
+is fetched **server-side** by `/api/song` (host-allowlisted to Spotify/Apple to avoid SSRF),
+scraping OpenGraph `title`/`image` + parsing artist — no music-API auth, no browser CORS.
+**Why:** the Day-One-style "soundtrack to your day" David wanted; link-paste keeps it
+zero-friction and provider-agnostic; server-side OG scraping gets art reliably.
+**Notes:** (1) a song shows on the **stream** only for days already in range (today back to
+earliest journal/note, #111) — a song alone doesn't extend the range; revisit if David wants
+song-only days to appear. (2) Like the RPC (#122), reads tolerate a missing `daily_song`
+table so a deploy before the cloud migration degrades gracefully. `daily_song` added to the
+data export (#109/#114) and to the FROZEN `docs/data-model.md` via this entry + David's ask.
+Verified end-to-end (add → OG fetch title/artist/art → persist → stream line).
+
 **#120 — Widget session bridge: App Group via Preferences; app owns tokens, widget fetches live.**
 The WidgetKit extension can't read the WebView's session, so the web app (only when running
 in the native shell) writes one JSON blob to a shared **App Group**
