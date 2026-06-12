@@ -87,6 +87,36 @@ export type Database = {
           },
         ]
       }
+      daily_song: {
+        Row: {
+          art_url: string | null
+          artist: string | null
+          created_at: string
+          day: string
+          title: string | null
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          art_url?: string | null
+          artist?: string | null
+          created_at?: string
+          day: string
+          title?: string | null
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          art_url?: string | null
+          artist?: string | null
+          created_at?: string
+          day?: string
+          title?: string | null
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
       journal: {
         Row: {
           content: Json | null

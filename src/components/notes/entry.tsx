@@ -20,6 +20,7 @@ import {
 } from "@/lib/data";
 import dynamic from "next/dynamic";
 import type { EditorValue } from "@/components/editor";
+import { SongOfDay } from "@/components/song-of-day";
 
 // Lazy-load TipTap so it's not in the initial bundle (#122).
 const Editor = dynamic(() => import("@/components/editor").then((m) => m.Editor), {
@@ -183,6 +184,8 @@ export function Entry(props: EntryProps) {
           className="mb-5 w-full bg-transparent text-[30px] font-black tracking-tight outline-none placeholder:text-ink-3"
         />
       )}
+
+      {kind === "journal" && <SongOfDay day={day} />}
 
       {missing ? (
         <p className="text-[15px] font-bold lowercase text-ink-3">

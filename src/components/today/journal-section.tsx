@@ -19,6 +19,7 @@ import {
 import dynamic from "next/dynamic";
 import type { EditorValue } from "@/components/editor";
 import { SectionHeader } from "@/components/ui/section-header";
+import { SongOfDay } from "@/components/song-of-day";
 
 // Lazy-load TipTap so it's not in the initial Today bundle (#122).
 const Editor = dynamic(() => import("@/components/editor").then((m) => m.Editor), {
@@ -115,6 +116,7 @@ export function JournalSection({ day }: { day: string }) {
   return (
     <section className="mt-[46px]">
       <SectionHeader title="today's journal" />
+      <SongOfDay day={day} />
       <div className="mt-1.5">
         {ready && (
           <Editor

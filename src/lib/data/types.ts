@@ -10,6 +10,7 @@ export type Journal = Tables["journal"]["Row"];
 export type Note = Tables["note"]["Row"];
 export type Attachment = Tables["attachment"]["Row"];
 export type Settings = Tables["settings"]["Row"];
+export type DailySong = Tables["daily_song"]["Row"];
 
 // % of the day's active routine items completed (#020, #022).
 export type DayConsistency = {
