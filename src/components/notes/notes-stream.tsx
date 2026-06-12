@@ -34,7 +34,11 @@ function snippet(text: string | null | undefined): string {
 
 // Build the interleaved stream: for each day (newest first) the journal leads,
 // then that day's notes (newest first). Days run from today back to first use.
-function buildStream(journals: Journal[], notes: Note[]): StreamEntry[] {
+function buildStream(
+  journals: Journal[],
+  notes: Note[],
+  songs: DailySong[],
+): StreamEntry[] {
   const t = today();
   const journalByDay = new Map(journals.map((j) => [j.day, j]));
   const notesByDay = new Map<string, Note[]>();
@@ -46,10 +50,15 @@ function buildStream(journals: Journal[], notes: Note[]): StreamEntry[] {
   }
 
   // First use = the earliest day with any content; otherwise today (lists are
-  // newest-first, so the last element is the earliest).
+  // newest-first, so the last element is the earliest). A logged song counts as
+  // content too (#123/#124), so a song-only day still shows in the stream.
+  const songsEarliest = songs.length
+    ? songs.reduce((m, s) => (s.day < m ? s.day : m), songs[0].day)
+    : undefined;
   const earliest = [
     journals.at(-1)?.day,
     notes.length ? toDayString(new Date(notes.at(-1)!.created_at)) : undefined,
+    songsEarliest,
   ].filter((d): d is string => Boolean(d));
   const firstUse = earliest.length ? earliest.reduce((a, b) => (a < b ? a : b)) : t;
 
@@ -71,21 +80,28 @@ export function NotesStream() {
   const [creating, setCreating] = useState(false);
   const [trashed, setTrashed] = useState<{ id: string; title: string } | null>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Songs are loaded once on mount; held in a ref so fetchStream (also used by
+  // trash/undo) can rebuild the stream — including song-only days (#124).
+  const songsRef = useRef<DailySong[]>([]);
 
   const fetchStream = useCallback(async () => {
     const [journals, notes] = await Promise.all([listJournals(sb), listNotes(sb)]);
-    return buildStream(journals, notes);
+    return buildStream(journals, notes, songsRef.current);
   }, [sb]);
 
   useEffect(() => {
     let cancelled = false;
-    // listSongs tolerates a missing daily_song table (deploy before migration 0006).
-    Promise.all([fetchStream(), listSongs(sb).catch(() => [])]).then(([next, songs]) => {
+    (async () => {
+      // listSongs tolerates a missing daily_song table (deploy before migration 0006).
+      const songs = await listSongs(sb).catch(() => [] as DailySong[]);
+      if (cancelled) return;
+      songsRef.current = songs;
+      setSongsByDay(new Map(songs.map((s) => [s.day, s])));
+      const next = await fetchStream(); // now anchors on songs too
       if (cancelled) return;
       setEntries(next);
-      setSongsByDay(new Map(songs.map((s) => [s.day, s])));
       setLoading(false);
-    });
+    })();
     return () => {
       cancelled = true;
       if (undoTimer.current) clearTimeout(undoTimer.current);
