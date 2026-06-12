@@ -130,21 +130,22 @@ no API. Used by the widget's all-done state (and available to the app if we ever
       Extension target, drop in the Swift, sign, run — see `docs/widget-phase2-runbook.md`.
 - [x] **Go-live deploys**: `supabase db push` (migration `0004`) + `vercel --prod` (bridge).
 
-**Phase 3 — notifications (Capacitor).** *native wiring done; delivery verification pending*
+**Phase 3 — notifications (Capacitor).** ✅ done
 - [x] `@capacitor/local-notifications` added (web + mobile, v8); permission requested on
       first reschedule.
 - [x] `src/lib/native/notifications.ts` — cancel + (re)schedule morning/evening from prefs;
       evening body reflects today's `{left, focus}`/all-done. Rescheduled on launch, auth
       change, and **foreground** (via `initNative()` in `src/lib/native/index.ts`).
 - [x] `src/components/settings/notifications-section.tsx` — native-only Settings section
-      (toggle + morning/evening time pickers) on `notif-prefs.ts`; reschedules on change.
+      (toggle + morning/evening time pickers + test action) on `notif-prefs.ts`;
+      reschedules on change.
 - [x] **Xcode wiring**: `@capacitor/local-notifications` pod synced into the generated iOS
       project.
-- [ ] **Delivery verification**: permission prompt + test notification fire — see
+- [x] **Delivery verification**: permission prompt + test notification fire — see
       `docs/notifications-phase3-runbook.md`.
 
-Phase 2 native widget wiring is done. Phase 3 notification delivery still needs the
-permission prompt and one scheduled-notification smoke test.
+Phase 2 native widget wiring is done. Phase 3 notification delivery is verified in the
+iOS Simulator.
 
 ## deferred
 
