@@ -621,3 +621,20 @@ took the per-navigation auth round-trip off the cold-start critical path (warm c
 navigations don't hit the proxy). **Why:** one fewer round-trip on the hottest screen, with no
 auth risk. Touches the FROZEN data-model (the RPC shape) — David signed off. Extends #122.
 `docs/data-model.md` + `docs/handoff.md` §11 updated.
+
+**#132 — Routine reorder: touch-capable (pointer events) + smooth FLIP animation.**
+Reorder (#013) used **HTML5 drag events**, which don't fire on touch — so on a phone you
+couldn't reorder at all (the #128 sibling to the hidden delete/grip problem), and on desktop
+rows **jumped** instantly to their new slots. Rewrote it on **Pointer Events**: the grip
+handles `pointerdown/move/up` (with `setPointerCapture` + `touch-none` so a drag doesn't scroll
+the page), hit-testing the pointer's Y against each row's midpoint to pick the target slot. On
+each reorder the rows **glide** via a **FLIP** transition (measure tops before the state change,
+invert with a `translateY`, then animate to 0 over ~200ms) — no animation library, pure
+CSS+DOM. The dragged row gets a subtle lift (shadow). The grip is now **visible on touch**
+(`opacity-40`, hover-only on desktop like the delete button, #128). Bonus: the checkbox got a
+quick `active:scale-90` press feedback. A stale-closure bug (pointer events fire faster than
+React commits, so `endDrag` read an out-of-date `items` and persisted the *old* order) is
+avoided with an `itemsRef` synced during the drag. **Why:** reorder was broken on the phone —
+the app's primary device — and the desktop jump felt mechanical; David asked for smoother card
+movement. Behavior-compatible with the spec's "hold-drag to reorder" (#013), now true on touch
+too. Pure UI. `docs/handoff.md` updated.
