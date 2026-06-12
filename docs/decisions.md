@@ -472,6 +472,14 @@ table so a deploy before the cloud migration degrades gracefully. `daily_song` a
 data export (#109/#114) and to the FROZEN `docs/data-model.md` via this entry + David's ask.
 Verified end-to-end (add → OG fetch title/artist/art → persist → stream line).
 
+**#124 — A logged song anchors the Notes stream too (refines #111/#123).**
+A `daily_song` now counts as day "content" for the stream range: the stream runs from today
+back to the earliest of {earliest journal, earliest note, **earliest song**}, so a day with
+only a song (no journal/note) still renders as a row (empty journal + the `♪` line). **Why:**
+David logs a song every day but doesn't journal every day — without this, song-only days
+wouldn't appear in the stream (the open question flagged in #123). Updates #123's note and
+extends the #111 anchor. `docs/spec.md` §6 updated.
+
 **#120 — Widget session bridge: App Group via Preferences; app owns tokens, widget fetches live.**
 The WidgetKit extension can't read the WebView's session, so the web app (only when running
 in the native shell) writes one JSON blob to a shared **App Group**

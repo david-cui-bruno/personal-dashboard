@@ -108,8 +108,9 @@ Today/Notes only (#064).
 ### stream
 - One reverse-chronological stream combining **every day's journal** (#030) and
   **freeform notes** (#032), newest first. The range is **today back to the earliest day
-  with a journal or note** (#100 as amended by #111); empty days *inside* that range show
-  `empty · tap to write`, but days before any content ever existed are not listed.
+  with a journal, note, or logged song** (#100 as amended by #111/#124); empty days *inside*
+  that range show `empty · tap to write` (plus a `♪` line if that day has a song, #123), but
+  days before any content ever existed are not listed.
 - **Journal item**: filled day-number tile (note option C, #031) + title `journal` +
   snippet.
 - **Freeform note**: its own title + snippet, **no** date tile (#032).
