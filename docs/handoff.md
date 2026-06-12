@@ -124,7 +124,9 @@ URL precedence: `APP_URL` env → `localhost:3000` (unpackaged) → Vercel prod 
 The build is **unsigned** (right-click → Open on first launch); signing/notarization
 needs an Apple account (#086). **Auto-update (#112):** `updater.js` checks GitHub Releases
 on launch; unsigned ⇒ it *notifies + opens the download* (silent install is one switch
-away once signed). Publish a build with `GH_TOKEN=… npm run release`. Full detail:
+away once signed). Publish a build with `GH_TOKEN=… npm run release`. Signing config +
+entitlements + a release GitHub Action are wired; full **signing/notarize/release
+runbook** (for David or an assistant) is `docs/ship-desktop-and-ios.md`. Quick ref:
 `desktop/README.md`.
 
 ### 4b. Mobile app (Capacitor, #113)
@@ -134,7 +136,8 @@ needs full **Xcode** / **Android Studio** + an **Apple Developer account** (#086
 installed here. Once they are: `cd mobile && npm install && npm run add:ios` (or
 `add:android`) → `npm run sync` → `npm run open:ios`. Generated `ios/`/`android/` are
 git-ignored until you're building them. The widget + rich notifications (#082/#090) are
-further native work. Full detail: `mobile/README.md`.
+further native work. Step-by-step setup (incl. signing on device) is in
+`docs/ship-desktop-and-ios.md`; quick ref: `mobile/README.md`.
 
 ## 5. Data model & the load-bearing rules
 
