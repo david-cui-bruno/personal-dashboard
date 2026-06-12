@@ -32,13 +32,17 @@ See `docs/architecture.md` for deploy details.
 - [x] **Manual data export** — Settings → data → "export my data" (#109).
 - [x] **Desktop app** — Electron hosted-URL shell (#110), **signed + notarized + released
       v0.1.0** with silent auto-update (#112/#118).
-- [ ] **Backups** — enable Supabase automatic backups in the dashboard (#085, manual step).
+- [x] **Backups** — confirmed: Supabase Pro takes **automatic daily DB backups** (verified
+      in the dashboard, #085). Note: Storage objects (photos) aren't in DB backups — the
+      manual export (#114) covers those.
 
 ## explicitly deferred (post-V1)
 
 - Native **mobile** shell via **Capacitor** (#113): **scaffolded** in `mobile/`
-  (hosted-URL); **iOS verified in the simulator**. Remaining: the home-screen **widget** +
-  rich "big-banner" notifications (#082, #090), and optional TestFlight/App Store.
+  (hosted-URL); **iOS verified in the simulator**. The home-screen **widget** + daily
+  **notifications** are now **designed** (#119, `docs/widget-and-notifications.md`):
+  Phase 1 (web/data foundations) in progress — `quotes.ts` done; Phases 2–3 (WidgetKit +
+  Capacitor local-notifications) are native (need Xcode). Plus optional TestFlight/App Store.
   *(Desktop is covered by Electron, #110.)*
 - ~~Code signing + notarization for the desktop `.dmg`~~ — **done** (#118): signed Developer
   ID build, notarized, released v0.1.0; silent auto-update enabled.

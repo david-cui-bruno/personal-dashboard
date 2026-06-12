@@ -390,3 +390,30 @@ only the `.app` inside is notarized + stapled; that's the normal electron-builde
 Gatekeeper still approves (verify with `stapler validate` on the **`.app`**, not the dmg);
 (2) iOS (#113) is verified in the **simulator** only — not yet on TestFlight/App Store, which
 stays optional/deferred (David is fine either way).
+
+**#119 — Home-screen widget + daily notifications design (the #082/#090 native payoff).**
+Full design in `docs/widget-and-notifications.md`. The settled calls:
+- **Widget (small first):** a progress **ring** + "**X/N left today**" + today's **focus**
+  item; when the day is complete it flips to an "all done ✓ + quote" state. Medium/large
+  are deferred.
+- **"Focus" = weakest habit:** the active routine item with the **lowest completion rate
+  over the last ~30 days** — always surfaces what David's been avoiding (his core ask).
+- **Live data (not a snapshot):** the widget is a native **WidgetKit** extension that
+  queries Supabase directly. The app shares its signed-in session to the widget via an
+  iOS **App Group**; a Postgres function `widget_summary` returns {done, total, focus} in
+  one call. The app calls `reloadAllTimelines()` on change (instant in-app), and the
+  widget self-refreshes on its iOS timeline when the app is closed (~minutes of lag).
+- **Tap-to-open** Today for v1; interactive check-off-from-widget (iOS 17+) is a
+  fast-follow.
+- **Notifications:** exactly **two/day**, **local** (on-device, no server), **8am + 9pm**,
+  times **configurable** in Settings. Morning = "journal + start your day"; evening =
+  "journal + you've still got N left (focus)"; all-done evening = "all done today.
+  journal?". Scheduled best-effort and **rescheduled on app open/background** so counts
+  stay current without a server (accepts minor staleness; a push server is a later option).
+- **Quotes:** a small **built-in curated set**, **deterministic daily rotation**, offline;
+  headlines the all-done widget state.
+**Why:** realizes the widget + rich-notification payoff #082/#090 always pointed to, built
+around David's "show me what I've been slipping on" goal while staying calm and $0.
+**Supersedes #090's "no daily reminder"** for the post-V1 native phase (V1 had none by
+design; #090 explicitly deferred reminders to here) — these two gentle, configurable
+reminders are opt-in and minimal, consistent with #002/#003's anti-nag intent.
