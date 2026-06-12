@@ -129,8 +129,8 @@ redirect to `/sign-in`. Verified at runtime (`/` → 307 → `/sign-in`).
 - Desktop shell (#110): **shipped + signed + notarized**, released v0.1.0 with silent
   launch-time auto-update (#112/#118).
 - Notes stream (#100): **amended** to ship behavior (#111) — anchors on earliest content.
-- Mobile shell (#113): **scaffolded** (`mobile/`, hosted-URL); native projects +
-  widget/notifications remain (need Xcode/Android Studio + Apple account, #082/#090/#086).
+- Mobile shell (#113): **shipped on iOS** (`mobile/`, hosted-URL) — home-screen widget +
+  daily notifications live on device (#119). Optional: interactive widget, Android, TestFlight.
 - Supabase automatic backups: **still a manual dashboard step** (#085) — enable
   Point-in-Time / scheduled backups in the Supabase dashboard (needs David's access).
 - Optional: a custom domain.
