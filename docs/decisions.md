@@ -379,3 +379,14 @@ favicon; a **full-bleed** accent square (page within the maskable safe zone) for
 **Why:** David chose the folded-page direction over the "n" monogram and picked the
 squarer/bigger-fold/shadow combo; one mark across desktop + web keeps the brand
 consistent. Regenerable from `.context/generate_icon.py` (swap the geometry + re-run).
+
+**#118 — Desktop app is signed, notarized & released; silent auto-update is live (closes #112's caveat).**
+The macOS app now ships **code-signed with a Developer ID + notarized**, published as
+**v0.1.0** to GitHub Releases via the wired config/Action (`docs/ship-desktop-and-ios.md`).
+`SILENT_INSTALL` is now `true` (#112) — updates download and self-install. **Why:** David's
+assistant completed the signing runbook end-to-end; this closes the "unsigned / notify-only"
+caveat from #110/#112. Two accepted nuances: (1) the **`.dmg` container is not stapled** —
+only the `.app` inside is notarized + stapled; that's the normal electron-builder result and
+Gatekeeper still approves (verify with `stapler validate` on the **`.app`**, not the dmg);
+(2) iOS (#113) is verified in the **simulator** only — not yet on TestFlight/App Store, which
+stays optional/deferred (David is fine either way).

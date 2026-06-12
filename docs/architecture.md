@@ -50,12 +50,13 @@ stays the single source of truth.
   unpackaged → production Vercel URL when packaged.
 - External links open in the system browser; same-origin nav stays in-window. Native
   mac inset title bar + a role-based menu (copy/paste, reload, fullscreen).
-- **Build:** `electron-builder` → `npm run dist` (`.dmg` + `.zip`) / `npm run dist:dir`
-  (unpacked `.app`) / `npm run release` (publish to GitHub Releases). Unsigned for now —
-  code signing + notarization needs an Apple Developer account (deferred, #086).
-- **Auto-update (#112):** `updater.js` checks GitHub Releases on launch via
-  `electron-updater`. Unsigned ⇒ "notify + open download" mode (macOS only silent-installs
-  signed apps); flip `SILENT_INSTALL` once signed. Full runbook: `desktop/README.md`.
+- **Build:** `electron-builder` → `npm run dist:signed` (signed + notarized `.dmg`/`.zip`)
+  / `npm run dist:dir` (unsigned `.app`) / `npm run release` (sign + notarize + publish).
+  **Signed + notarized with a Developer ID and released as v0.1.0** (#118); the
+  `desktop-release` GitHub Action does it on a `desktop-v*` tag. Full runbook:
+  `docs/ship-desktop-and-ios.md`.
+- **Auto-update (#112/#118):** `updater.js` checks GitHub Releases on launch via
+  `electron-updater`; `SILENT_INSTALL = true` (signed) → background download + restart-to-apply.
 
 ## mobile shell (Capacitor, #082/#113)
 
@@ -125,8 +126,8 @@ redirect to `/sign-in`. Verified at runtime (`/` → 307 → `/sign-in`).
 - Photos (#050): **verified** end-to-end (drop → upload → render); the inline Today
   journal now also accepts images, matching the notes editor.
 - Manual data export (#109): **shipped** (Settings → data).
-- Desktop shell (#110): **shipped** — `desktop/` Electron app, smoke-tested + packaged,
-  with launch-time auto-update (#112, notify-mode until signed).
+- Desktop shell (#110): **shipped + signed + notarized**, released v0.1.0 with silent
+  launch-time auto-update (#112/#118).
 - Notes stream (#100): **amended** to ship behavior (#111) — anchors on earliest content.
 - Mobile shell (#113): **scaffolded** (`mobile/`, hosted-URL); native projects +
   widget/notifications remain (need Xcode/Android Studio + Apple account, #082/#090/#086).

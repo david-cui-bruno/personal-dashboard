@@ -16,11 +16,13 @@
   horizontal mobile chart, routine spacing + smooth Enter-to-add), and a post-V1 batch:
   **photos verified end-to-end** (+ Today journal now accepts images), **manual data
   export** in Settings (#109), an **Electron desktop app** in `desktop/` (#110) with
-  auto-update (#112), the Notes-stream spec amended to the shipped behavior (#111), and a
-  **Capacitor mobile shell scaffolded** in `mobile/` (#113).
+  auto-update (#112), the Notes-stream spec amended to the shipped behavior (#111), a
+  **Capacitor mobile shell scaffolded** in `mobile/` (#113), the folded-page **app icon**
+  (#117), and the desktop app **signed + notarized + released as v0.1.0** with silent
+  auto-update (#118).
 - **Trunk:** `main` (this is what's deployed). Build is green; auth + RLS verified.
   Photos + export are **live in prod** (deployed 2026-06-11); the desktop shell ships
-  separately as a `.dmg` (not part of the web deploy).
+  separately as a signed `.dmg` on **GitHub Releases** (v0.1.0; not part of the web deploy).
 - **Read first:** `docs/product.md` (why), then `docs/spec.md` (what), then this file
   (how to run/deploy). The full "why" log is `docs/decisions.md` (#001–#116).
 
@@ -121,13 +123,13 @@ npm run dist:dir            # → desktop/dist/mac-arm64/notes.app (unpacked, fa
 ```
 
 URL precedence: `APP_URL` env → `localhost:3000` (unpackaged) → Vercel prod (packaged).
-The build is **unsigned** (right-click → Open on first launch); signing/notarization
-needs an Apple account (#086). **Auto-update (#112):** `updater.js` checks GitHub Releases
-on launch; unsigned ⇒ it *notifies + opens the download* (silent install is one switch
-away once signed). Publish a build with `GH_TOKEN=… npm run release`. Signing config +
-entitlements + a release GitHub Action are wired; full **signing/notarize/release
-runbook** (for David or an assistant) is `docs/ship-desktop-and-ios.md`. Quick ref:
-`desktop/README.md`.
+Builds are now **signed + notarized** (Developer ID) and released to GitHub Releases as
+**v0.1.0** (#118) — a normal double-click install. To cut a release: `git tag desktop-v*`
+→ the `desktop-release` Action signs/notarizes/publishes (or local `npm run dist:signed`
+with `APPLE_*` env). **Auto-update (#112):** `updater.js` checks GitHub Releases
+on launch and (now that builds are signed, #118) **silently downloads + installs**
+(`SILENT_INSTALL = true`), offering "restart to update." Full signing/notarize/release
+runbook is `docs/ship-desktop-and-ios.md`. Quick ref: `desktop/README.md`.
 
 ### 4b. Mobile app (Capacitor, #113)
 
@@ -198,13 +200,13 @@ verified) → RLS → deploy. Anything used by 2+ slices lives in Phase 0.
 
 ## 9. What's next (deferred — `docs/roadmap.md`)
 
-Capacitor mobile shell **scaffolded** (`mobile/`, #113) — remaining: generate native
-projects (Xcode/Android Studio) + the home-screen widget + rich notifications (#082/#090) ·
-code-sign + notarize the desktop `.dmg` (needs an Apple account, #086) · **end-of-day
-summary as a notification** (rides on Capacitor notifications). The post-V1 backlog was
-triaged (#115): **declined** — mood, "on this day", weekly/non-daily items, fixed
-home-timezone, offline mode, custom domain. **Browse-by-date** shipped as date-aware Notes
-search (#116), not a calendar.
+Capacitor mobile shell **scaffolded** (`mobile/`, #113); iOS verified in the **simulator** —
+remaining: the home-screen **widget** + rich **notifications** (#082/#090), and optional
+TestFlight/App Store · **end-of-day summary as a notification** (rides on Capacitor
+notifications). *(Desktop signing + notarization + silent auto-update is **done** — v0.1.0
+shipped, #118.)* The post-V1 backlog was triaged (#115): **declined** — mood, "on this day",
+weekly/non-daily items, fixed home-timezone, offline mode, custom domain. **Browse-by-date**
+shipped as date-aware Notes search (#116), not a calendar.
 
 ## 10. Verifying a change
 
