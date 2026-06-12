@@ -417,3 +417,20 @@ around David's "show me what I've been slipping on" goal while staying calm and 
 **Supersedes #090's "no daily reminder"** for the post-V1 native phase (V1 had none by
 design; #090 explicitly deferred reminders to here) — these two gentle, configurable
 reminders are opt-in and minimal, consistent with #002/#003's anti-nag intent.
+
+**#120 — Widget session bridge: App Group via Preferences; app owns tokens, widget fetches live.**
+The WidgetKit extension can't read the WebView's session, so the web app (only when running
+in the native shell) writes one JSON blob to a shared **App Group**
+(`group.health.framewise.notes`) via `@capacitor/preferences` (`configure({group})`):
+`{accessToken, expiresAt, supabaseUrl, anonKey, today's quote, cached done/total/focus}`.
+The widget reads `_capacitor_widget.payload` from that suite (Capacitor prefixes keys with
+`_capacitor_`), fetches `widget_summary` **live** while the access token is valid, and
+renders the **cached** values otherwise. **The app is the sole token manager** — it
+refreshes on open and rewrites the blob; the widget **never** refreshes (avoids
+refresh-token rotation fighting). Updates ride WidgetKit's ~30-min timeline (an instant
+in-app `reloadAllTimelines()` would need a tiny custom native plugin — deferred). **Why:**
+delivers "live" (#119) with the least native surface — no custom plugin, one key — and
+degrades gracefully when the token's expired/offline. The web bridge is fully **inert on
+web/desktop** (guarded on the native global; nothing imported there). The Next app gains
+`@capacitor/core` + `@capacitor/preferences` deps for this (loaded only in the native shell).
+Wiring runbook: `docs/widget-phase2-runbook.md`.
