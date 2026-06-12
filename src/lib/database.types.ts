@@ -205,6 +205,7 @@ export type Database = {
     Functions: {
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      today_summary: { Args: { p_from: string; p_to: string }; Returns: Json }
       widget_summary: {
         Args: { p_day: string }
         Returns: {

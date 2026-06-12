@@ -8,13 +8,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Check, GripVertical, Plus, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
-  listActiveItems,
-  listCompletions,
   addItem,
   renameItem,
   reorderItems,
   archiveItem,
   setCompletion,
+  getTodaySummaryCached,
+  invalidateTodaySummary,
+  activeItemsOn,
+  completedOn,
+  todayWindow,
   type RoutineItem,
 } from "@/lib/data";
 import { SectionHeader } from "@/components/ui/section-header";
@@ -49,21 +52,26 @@ export function RoutineSection({ day }: { day: string }) {
 
   // Re-sync from the server after a write fails (event-handler context only).
   const reload = useCallback(() => {
-    Promise.all([listActiveItems(sb, day), listCompletions(sb, day)])
-      .then(([its, comps]) => {
-        setItems(its);
-        setCompleted(new Set(comps));
+    invalidateTodaySummary();
+    const { from, to } = todayWindow();
+    getTodaySummaryCached(sb, from, to)
+      .then((s) => {
+        setItems(activeItemsOn(s.items, day));
+        setCompleted(completedOn(s.completions, day));
       })
       .catch(() => {});
   }, [sb, day]);
 
   useEffect(() => {
     let active = true;
-    Promise.all([listActiveItems(sb, day), listCompletions(sb, day)])
-      .then(([its, comps]) => {
+    // Routine + completions come from the shared Today payload (#122) — one
+    // round-trip for the whole screen, de-duped + cached across components.
+    const { from, to } = todayWindow();
+    getTodaySummaryCached(sb, from, to)
+      .then((s) => {
         if (!active) return;
-        setItems(its);
-        setCompleted(new Set(comps));
+        setItems(activeItemsOn(s.items, day));
+        setCompleted(completedOn(s.completions, day));
       })
       .catch(() => {
         if (!active) return;
@@ -95,6 +103,7 @@ export function RoutineSection({ day }: { day: string }) {
       else next.delete(item.id);
       return next;
     });
+    invalidateTodaySummary(); // today's % changed → refresh the chart on next read
     setCompletion(sb, item.id, day, done).catch(() => {
       // revert on failure
       setCompleted((prev) => {
@@ -120,6 +129,7 @@ export function RoutineSection({ day }: { day: string }) {
     setItems((prev) =>
       (prev ?? []).map((i) => (i.id === item.id ? { ...i, label } : i)),
     );
+    invalidateTodaySummary();
     renameItem(sb, item.id, label).catch(() => reload());
   }
 
@@ -145,6 +155,7 @@ export function RoutineSection({ day }: { day: string }) {
       created_at: new Date().toISOString(),
     } as RoutineItem;
     setItems((prev) => [...(prev ?? []), optimistic]);
+    invalidateTodaySummary();
     return addItem(sb, label, sortOrder, day)
       .then((item) =>
         setItems((prev) => (prev ?? []).map((i) => (i.id === tempId ? item : i))),
@@ -169,6 +180,7 @@ export function RoutineSection({ day }: { day: string }) {
       next.delete(item.id);
       return next;
     });
+    invalidateTodaySummary();
     archiveItem(sb, item.id, day).catch(() => reload());
   }
 
@@ -190,6 +202,7 @@ export function RoutineSection({ day }: { day: string }) {
     if (!items) return;
     const renumbered = items.map((it, i) => ({ ...it, sort_order: i }));
     setItems(renumbered);
+    invalidateTodaySummary();
     reorderItems(
       sb,
       renumbered.map((it) => ({ id: it.id, sortOrder: it.sort_order })),

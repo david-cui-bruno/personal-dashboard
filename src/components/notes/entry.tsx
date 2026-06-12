@@ -18,7 +18,13 @@ import {
   trashNote,
   uploadImage,
 } from "@/lib/data";
-import { Editor, type EditorValue } from "@/components/editor";
+import dynamic from "next/dynamic";
+import type { EditorValue } from "@/components/editor";
+
+// Lazy-load TipTap so it's not in the initial bundle (#122).
+const Editor = dynamic(() => import("@/components/editor").then((m) => m.Editor), {
+  ssr: false,
+});
 
 type EntryProps = { kind: "journal"; day: string } | { kind: "note"; id: string };
 
