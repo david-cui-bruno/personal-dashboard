@@ -604,3 +604,20 @@ shell-asset cache **and** #129's new navigation cache. Fix: register immediately
 the biggest cold-start lever (#129) and was doing nothing; this is what actually turns it on.
 Verified: with the fix the SW **auto-registers** in a fresh browser (it didn't before);
 confirmed live after deploy. Pure bug fix — no contract change. `docs/handoff.md` §11 updated.
+
+**#131 — Fold the daily song into `today_summary` so Today loads in one round-trip.**
+Today made **two** parallel reads on load: the `today_summary` RPC (#122) and a separate
+`daily_song` select for the song bar. Migration `0008` adds a `song` key to `today_summary`
+(today's `daily_song` row, `security invoker` so RLS still applies). `getTodaySummary` returns
+it and the Today journal section passes it to `<SongOfDay initialSong>`, which then skips its
+own fetch. **Decouple-safe:** the RPC always includes the `song` key once `0008` is applied; a
+client hitting the **old** RPC sees no key → `song` is `undefined` → the bar fetches itself as
+before, so a deploy that lands before the migration degrades gracefully (same pattern as
+#122/#123). The `/notes/[date]` entry passes no `initialSong`, so it still self-fetches. The
+**`getUser()`→`getSession()`** idea from the perf list was **dropped**: Supabase explicitly
+warns never to use `getSession()` in middleware (it isn't guaranteed to revalidate the token →
+risks silently logging David out, against #070), and the SW shell cache (#129/#130) already
+took the per-navigation auth round-trip off the cold-start critical path (warm cached
+navigations don't hit the proxy). **Why:** one fewer round-trip on the hottest screen, with no
+auth risk. Touches the FROZEN data-model (the RPC shape) — David signed off. Extends #122.
+`docs/data-model.md` + `docs/handoff.md` §11 updated.
