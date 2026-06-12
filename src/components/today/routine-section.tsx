@@ -251,7 +251,8 @@ export function RoutineSection({ day }: { day: string }) {
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
-                    e.currentTarget.blur();
+                    e.currentTarget.blur(); // commit this rename (via onBlur)
+                    startAdd(); // then open a fresh line — Enter on any row = new line
                   } else if (e.key === "Escape") {
                     renameCancel.current = true;
                     e.currentTarget.blur();
