@@ -19,8 +19,10 @@
   auto-update (#112), the Notes-stream spec amended to the shipped behavior (#111), a
   **Capacitor iOS app shipped** with a home-screen **widget + daily notifications** (#113/#119),
   the folded-page **app icon**
-  (#117), and the desktop app **signed + notarized + released as v0.1.0** with silent
-  auto-update (#118).
+  (#117), the desktop app **signed + notarized + released as v0.1.0** with silent
+  auto-update (#118), **Today-screen latency** cut to one `today_summary` RPC + cache + lazy
+  TipTap (#122), and **song of the day** (#123/#124). Cloud migrations **0001–0006** are all
+  pushed; everything above is **live in prod**.
 - **Trunk:** `main` (this is what's deployed). Build is green; auth + RLS verified.
   Photos + export are **live in prod** (deployed 2026-06-11); the desktop shell ships
   separately as a signed `.dmg` on **GitHub Releases** (v0.1.0; not part of the web deploy).
