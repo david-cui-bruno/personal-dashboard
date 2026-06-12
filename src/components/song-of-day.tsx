@@ -3,14 +3,13 @@
 // Song of the day (#123, #125): one logged song per day, shown atop the daily journal
 // (Today + the /notes/[date] entry). Tap "add today's song" → search Spotify inline →
 // tap a result. No link pasting, no Spotify login (search runs via an app token,
-// /api/song/search). The X clears it.
-// Playback (#127): the green button reveals Spotify's sanctioned inline embed player
-// (lazy-mounted only on click) instead of opening open.spotify.com in a new tab — so
-// playback stays in-app. Full-track playback needs a logged-in Spotify Premium session
-// in that browser; otherwise the embed plays a 30s preview (hard Spotify limit). The
-// album-art/title still links out to Spotify as a guaranteed full-track fallback.
+// /api/song/search). A minimal grey X clears it.
+// Playback (#127, refined #128): once a song is set, the bar *is* Spotify's sanctioned
+// inline embed player — playback stays in-app (no new tab). Full track needs a logged-in
+// Spotify Premium session in that browser; otherwise the embed plays a 30s preview (hard
+// Spotify limit). A non-Spotify-track url has no embed → falls back to a link-out row.
 import { useEffect, useRef, useState } from "react";
-import { ChevronUp, Headphones, Music, Play, Search, X } from "lucide-react";
+import { Headphones, Music, Search, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getSong, saveSong, removeSong, type DailySong } from "@/lib/data";
 
@@ -38,7 +37,6 @@ export function SongOfDay({ day }: { day: string }) {
   const [results, setResults] = useState<Result[]>([]);
   const [searching, setSearching] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [playing, setPlaying] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -93,7 +91,6 @@ export function SongOfDay({ day }: { day: string }) {
         artUrl: r.artUrl,
       });
       setSong(await getSong(sb, day));
-      setPlaying(false);
       setOpen(false);
       setQuery("");
       setResults([]);
@@ -124,7 +121,6 @@ export function SongOfDay({ day }: { day: string }) {
   async function clear() {
     const prev = song;
     setSong(null);
-    setPlaying(false);
     try {
       await removeSong(sb, day);
     } catch {
@@ -232,83 +228,71 @@ export function SongOfDay({ day }: { day: string }) {
 
   const trackId = spotifyTrackId(song.url);
 
+  // Remove control — minimal grey X, always visible (touch-friendly, #128).
+  const remove = (
+    <button
+      type="button"
+      onClick={clear}
+      aria-label="remove song"
+      className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-ink-3 transition hover:bg-field hover:text-ink"
+    >
+      <X size={16} />
+    </button>
+  );
+
   return (
-    <div className="group mt-4">
+    <div className="mt-4">
       <Label />
-      <div className="flex items-center gap-3 rounded-xl bg-field px-3 py-2.5">
-        <a
-          href={song.url}
-          target="_blank"
-          rel="noreferrer"
-          className="flex min-w-0 flex-1 items-center gap-3"
-        >
-          {song.art_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={song.art_url}
-              alt=""
-              className="h-[44px] w-[44px] shrink-0 rounded-lg object-cover"
-            />
-          ) : (
-            <span className="grid h-[44px] w-[44px] shrink-0 place-items-center rounded-lg bg-accent text-white">
-              <Music size={18} />
-            </span>
-          )}
-          <span className="min-w-0">
-            <span className="block truncate text-[14.5px] font-extrabold lowercase">
-              {song.title || "today's song"}
-            </span>
-            {song.artist && (
-              <span className="block truncate text-[12.5px] font-bold lowercase text-ink-3">
-                {song.artist}
-              </span>
-            )}
-          </span>
-        </a>
-        {trackId ? (
-          <button
-            type="button"
-            onClick={() => setPlaying((p) => !p)}
-            aria-label={playing ? "hide player" : "play"}
-            aria-expanded={playing}
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#1db954] text-white"
-          >
-            {playing ? <ChevronUp size={16} /> : <Play size={15} fill="currentColor" />}
-          </button>
-        ) : (
-          // Non-track / non-Spotify url: no inline player, fall back to opening the link.
+      {trackId ? (
+        // The bar IS the player: Spotify's inline embed + a grey X to clear (#128).
+        // Full track when signed into Spotify Premium here, else a 30s preview (#127).
+        <div className="flex items-center gap-1.5">
+          <iframe
+            title="spotify player"
+            src={`https://open.spotify.com/embed/track/${trackId}?utm_source=notes`}
+            width="100%"
+            height={80}
+            loading="lazy"
+            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+            style={{ border: 0, borderRadius: 12 }}
+            className="min-w-0 flex-1"
+          />
+          {remove}
+        </div>
+      ) : (
+        // Non-Spotify-track url: no embed available — link out + remove.
+        <div className="flex items-center gap-3 rounded-xl bg-field px-3 py-2.5">
           <a
             href={song.url}
             target="_blank"
             rel="noreferrer"
-            aria-label="play"
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#1db954] text-white"
+            className="flex min-w-0 flex-1 items-center gap-3"
           >
-            <Play size={15} fill="currentColor" />
+            {song.art_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={song.art_url}
+                alt=""
+                className="h-[44px] w-[44px] shrink-0 rounded-lg object-cover"
+              />
+            ) : (
+              <span className="grid h-[44px] w-[44px] shrink-0 place-items-center rounded-lg bg-accent text-white">
+                <Music size={18} />
+              </span>
+            )}
+            <span className="min-w-0">
+              <span className="block truncate text-[14.5px] font-extrabold lowercase">
+                {song.title || "today's song"}
+              </span>
+              {song.artist && (
+                <span className="block truncate text-[12.5px] font-bold lowercase text-ink-3">
+                  {song.artist}
+                </span>
+              )}
+            </span>
           </a>
-        )}
-        <button
-          type="button"
-          onClick={clear}
-          aria-label="remove song"
-          className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-ink-3 opacity-0 transition hover:bg-bg hover:text-ink group-hover:opacity-60"
-        >
-          <X size={15} />
-        </button>
-      </div>
-      {playing && trackId && (
-        // Spotify's sanctioned inline embed, lazy-mounted only when the user taps play.
-        // Plays full track if logged into Spotify Premium here, else a 30s preview (#127).
-        <iframe
-          title="spotify player"
-          src={`https://open.spotify.com/embed/track/${trackId}?utm_source=notes`}
-          width="100%"
-          height={80}
-          loading="lazy"
-          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-          style={{ border: 0, borderRadius: 12 }}
-          className="mt-2"
-        />
+          {remove}
+        </div>
       )}
     </div>
   );
