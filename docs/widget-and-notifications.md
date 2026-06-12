@@ -120,12 +120,16 @@ no API. Used by the widget's all-done state (and available to the app if we ever
       (it's native-only — times are device-local and only act in the iOS shell, so the
       control is gated to the native app where it can be tested with the scheduler).
 
-**Phase 2 — native widget (needs Xcode + the iOS project, #113).**
-- [ ] Generate `mobile/ios` (`npm run add:ios`).
-- [ ] App Group + share the Supabase session to it.
-- [ ] WidgetKit small widget (Swift): read session → call `widget_summary` → render ring +
-      X/N + focus, with the all-done/quote + empty states; `notes://today` tap target.
-- [ ] App calls `reloadAllTimelines()` on routine change.
+**Phase 2 — native widget (needs Xcode + the iOS project, #113).** *prep done; Xcode wiring pending*
+- [x] WidgetKit small widget written: `mobile/widget/NotesWidget.swift` (ring + X/N + focus,
+      all-done/quote, empty, needs-open states; live fetch + cached fallback; `notes://today`).
+- [x] Web→widget **session bridge** (#120): `src/lib/native/widget-bridge.ts` +
+      `<NativeBridge>` (mounted in the app layout, native-only) write the App Group payload
+      via `@capacitor/preferences`.
+- [ ] **Xcode wiring** (assistant): generate `mobile/ios`, add the App Group + Widget
+      Extension target, drop in the Swift, sign, run — see `docs/widget-phase2-runbook.md`.
+- [ ] **Go-live deploys**: `supabase db push` (migration `0004`) + `vercel --prod` (bridge).
+- [ ] Later: instant in-app refresh via a tiny `reloadAllTimelines()` plugin (#120).
 
 **Phase 3 — notifications (Capacitor).**
 - [ ] Add `@capacitor/local-notifications`; request permission on first native launch.
