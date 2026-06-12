@@ -10,7 +10,8 @@
     "smoke": "SMOKE=1 APP_URL=http://localhost:3000 electron .",
     "dist": "electron-builder --mac",
     "dist:dir": "electron-builder --mac dir",
-    "release": "electron-builder --mac --publish always"
+    "dist:signed": "electron-builder --mac -c.mac.notarize=true",
+    "release": "electron-builder --mac -c.mac.notarize=true --publish always"
   },
   "dependencies": {
     "electron-updater": "^6.3.9"
@@ -36,7 +37,11 @@
         "dmg",
         "zip"
       ],
-      "icon": "build/icon.png"
+      "icon": "build/icon.png",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
     },
     "publish": {
       "provider": "github",

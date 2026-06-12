@@ -1,0 +1,44 @@
+# Builds, signs, notarizes, and publishes the macOS desktop app to GitHub Releases
+# (#110/#112). Triggers on a tag like `desktop-v0.1.0` (or run manually).
+#
+# Required repo secrets (Settings → Secrets and variables → Actions):
+#   MAC_CSC_LINK                 base64 of your "Developer ID Application" .p12
+#   MAC_CSC_KEY_PASSWORD         the password you set when exporting that .p12
+#   APPLE_ID                     your Apple ID email
+#   APPLE_APP_SPECIFIC_PASSWORD  an app-specific password (appleid.apple.com)
+#   APPLE_TEAM_ID                your 10-char Apple Developer Team ID
+# GITHUB_TOKEN is provided automatically (contents:write below lets it publish).
+#
+# See docs/ship-desktop-and-ios.md for how to produce MAC_CSC_LINK.
+name: desktop release
+
+on:
+  push:
+    tags:
+      - "desktop-v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: install desktop deps
+        working-directory: desktop
+        run: npm ci
+      - name: build, sign, notarize & publish
+        working-directory: desktop
+        env:
+          CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run release
