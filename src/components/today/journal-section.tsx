@@ -8,9 +8,22 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { JSONContent } from "@tiptap/react";
 import type { Json } from "@/lib/database.types";
 import { createClient } from "@/lib/supabase/client";
-import { getJournal, saveJournal, uploadImage } from "@/lib/data";
-import { Editor, type EditorValue } from "@/components/editor";
+import {
+  getJournal,
+  saveJournal,
+  uploadImage,
+  getTodaySummaryCached,
+  invalidateTodaySummary,
+  todayWindow,
+} from "@/lib/data";
+import dynamic from "next/dynamic";
+import type { EditorValue } from "@/components/editor";
 import { SectionHeader } from "@/components/ui/section-header";
+
+// Lazy-load TipTap so it's not in the initial Today bundle (#122).
+const Editor = dynamic(() => import("@/components/editor").then((m) => m.Editor), {
+  ssr: false,
+});
 
 const SAVE_DEBOUNCE_MS = 700;
 const EMPTY_DOC: JSONContent = { type: "doc", content: [{ type: "paragraph" }] };
@@ -34,11 +47,14 @@ export function JournalSection({ day }: { day: string }) {
   useEffect(() => {
     let active = true;
     journalId.current = null;
-    getJournal(sb, day)
-      .then((j) => {
+    // Today's journal comes from the shared Today payload (#122) — one round-trip
+    // for routine + journal + chart, de-duped + cached.
+    const { from, to } = todayWindow();
+    getTodaySummaryCached(sb, from, to)
+      .then((s) => {
         if (!active) return;
-        journalId.current = j?.id ?? null;
-        setLoaded({ day, content: (j?.content as JSONContent | null) ?? null });
+        journalId.current = s.journal?.id ?? null;
+        setLoaded({ day, content: (s.journal?.content as JSONContent | null) ?? null });
       })
       .catch(() => {
         if (active) setLoaded({ day, content: null });
@@ -59,6 +75,7 @@ export function JournalSection({ day }: { day: string }) {
         const { json, text } = pending.current;
         pending.current = null;
         void saveJournal(sb, day, json as unknown as Json, text);
+        invalidateTodaySummary();
       }
     };
   }, [sb, day]);
@@ -70,6 +87,7 @@ export function JournalSection({ day }: { day: string }) {
       timer.current = null;
       pending.current = null;
       void saveJournal(sb, day, value.json as unknown as Json, value.text);
+      invalidateTodaySummary();
     }, SAVE_DEBOUNCE_MS);
   }
 
@@ -86,6 +104,7 @@ export function JournalSection({ day }: { day: string }) {
       );
       const j = await getJournal(sb, day);
       journalId.current = j?.id ?? null;
+      invalidateTodaySummary();
     }
     if (!journalId.current) throw new Error("could not prepare the journal");
     return uploadImage(sb, file, { type: "journal", id: journalId.current });

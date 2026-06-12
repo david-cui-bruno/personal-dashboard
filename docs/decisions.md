@@ -438,6 +438,22 @@ few things David actually wants; keep scope tight (#002/#003). Adds to the firm 
 #115. None are scheduled yet — this just prunes the candidate list. *(Separately,
 **song-of-the-day** — a per-day logged song, #119-adjacent — is in design; placement TBD.)*
 
+**#122 — Today screen loads via one `today_summary` RPC + a shared cache (latency).**
+The Today screen used to fire ~5 separate browser→Supabase selects (routine, completions,
+journal, + the chart's 2), and the consistency chart fetched **twice** (it mounts in both
+the sidebar and the CSS-hidden mobile section), all *after* hydrate — plus a full refetch on
+every navigation. Now: a `today_summary(p_from, p_to)` Postgres function (migration 0005)
+returns the routine template + completions-in-window + today's journal in **one** call; a
+short-lived (30s) in-memory promise cache (`data/today.ts`) **de-dupes** the routine/journal/
+chart mounts into a single request and makes back-navigation instant; writes call
+`invalidateTodaySummary()`. TipTap is now **lazy-loaded** (`next/dynamic`) so it's off the
+initial Today bundle. **Why:** the latency David asked to reduce was mostly N serial round-
+trips to us-east-1 + refetch-on-nav. Verified: Today dropped from ~26 mixed calls (dev) to
+**1 RPC / 0 legacy selects** (prod; 2 in dev StrictMode), routine/journal/chart all render
+from the one payload, nav reuses cache. `getTodaySummary` **falls back** to plain selects if
+the RPC is unreachable, so a Vercel deploy that lands before `supabase db push` (the cloud
+migration, which needs the DB password) degrades gracefully instead of breaking.
+
 **#120 — Widget session bridge: App Group via Preferences; app owns tokens, widget fetches live.**
 The WidgetKit extension can't read the WebView's session, so the web app (only when running
 in the native shell) writes one JSON blob to a shared **App Group**
