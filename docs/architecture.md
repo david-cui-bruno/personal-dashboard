@@ -28,8 +28,8 @@ hosted-URL (#082) removes the static-export concern. See #080.
 - **Routes** (`src/app/`): an `(app)/` route group holds the shell + `/` (Today),
   `/notes`, `/settings`; `/sign-in` sits outside the group (no shell). `/notes/[id]`
   arrives with the Notes slice.
-- **Shell**: `src/components/app-frame.tsx` — sidebar (web) + bottom nav (mobile,
-  today/notes only, #064). The consistency chart lives in the sidebar.
+- **Shell**: `src/components/app-frame.tsx` — sidebar (web) + bottom nav (mobile:
+  today/notes/settings, #064). The consistency chart lives in the sidebar.
 - **Data access**: `src/lib/data/*` (the seam, see `data-model.md`) over typed Supabase
   clients in `src/lib/supabase/{client,server}.ts`; DB types in
   `src/lib/database.types.ts` (regenerate via `supabase gen types typescript --local`).

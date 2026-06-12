@@ -130,7 +130,7 @@ day one. **Why:** themeability is cheap if designed in now, painful to retrofit.
 
 **#064 — Web layout:** pinned **Today** tab + left sidebar (logo, today, notes, the
 consistency chart, settings, user). ~700px reading column. **Mobile:** bottom nav with
-**Today** and **Notes** only.
+**Today**, **Notes**, and **Settings** (needed for native-only notification prefs).
 
 **#065 — No card/box chrome around the routine or the journal, and no dividing lines
 between checklist items.** **Why:** David wants it clean and unboxed.
