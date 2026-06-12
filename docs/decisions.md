@@ -480,6 +480,18 @@ David logs a song every day but doesn't journal every day — without this, song
 wouldn't appear in the stream (the open question flagged in #123). Updates #123's note and
 extends the #111 anchor. `docs/spec.md` §6 updated.
 
+**#125 — Song input is inline Spotify search, not link-pasting (replaces #123's input).**
+Pasting a Spotify/Apple Music link was too much friction (David). The song bar now opens an
+inline **search box → tap a Spotify result** (with album art) — `/api/song/search` calls
+Spotify's search with an app-level **Client Credentials** token (server-side; the Client
+Secret never reaches the browser, and David never logs into Spotify). The picked track's
+name/artist/cover fill `daily_song` (same schema). The old OG-scraping `/api/song` paste
+route is removed. Creds (`SPOTIFY_CLIENT_ID`/`SECRET`) live in Vercel env + `.env.local`
+(never committed). **Why:** search-and-tap is the low-friction flow David wanted; Client
+Credentials avoids any OAuth/login for plain search. Verified end-to-end (query → 8 results
+w/ art → pick → save → persist). **B (pull from your Spotify listening, OAuth)** is the
+next build — needs the redirect URI + a one-time login.
+
 **#120 — Widget session bridge: App Group via Preferences; app owns tokens, widget fetches live.**
 The WidgetKit extension can't read the WebView's session, so the web app (only when running
 in the native shell) writes one JSON blob to a shared **App Group**
