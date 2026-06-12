@@ -4,7 +4,14 @@
 // the day's active items in sort_order: tap the box to check, tap the label to
 // rename inline, hold-drag the grip to reorder, "+" in the header adds a row,
 // hover delete = archive. No box around the section, no row dividers (#065).
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Check, GripVertical, Plus, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -24,7 +31,7 @@ import { SectionHeader } from "@/components/ui/section-header";
 
 // Unchecked box border — a soft gray with a dark-theme override (matches the mockup).
 const BOX_BASE =
-  "grid h-[23px] w-[23px] shrink-0 place-items-center rounded-[7px] border-2 transition-colors";
+  "grid h-[23px] w-[23px] shrink-0 place-items-center rounded-[7px] border-2 transition duration-150";
 const BOX_EMPTY =
   "border-[#d0d0d4] [[data-theme=dark]_&]:border-[#45454c]";
 const LABEL_BASE = "min-w-0 flex-1 text-[16.5px] font-bold leading-snug";
@@ -34,6 +41,13 @@ export function RoutineSection({ day }: { day: string }) {
 
   // null = loading; the active items for `day`, in sort_order.
   const [items, setItems] = useState<RoutineItem[] | null>(null);
+  // Mirror of `items` for the drag handlers: pointer events can fire faster than React
+  // commits re-renders, so reading the state closure mid-drag goes stale (#132). The
+  // ref is synced after every render and also written synchronously during a drag.
+  const itemsRef = useRef<RoutineItem[] | null>(null);
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
   // ids of items checked on `day`.
   const [completed, setCompleted] = useState<Set<string>>(new Set());
 
@@ -47,8 +61,14 @@ export function RoutineSection({ day }: { day: string }) {
   const renameInput = useRef<HTMLInputElement>(null);
   const addInput = useRef<HTMLInputElement>(null);
 
-  // drag-reorder bookkeeping
+  // drag-reorder bookkeeping (pointer-based so it works on touch too, #132)
   const dragIndex = useRef<number | null>(null);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  // id → row element (for hit-testing the pointer + FLIP measurement).
+  const rowEls = useRef<Map<string, HTMLElement>>(new Map());
+  // id → row top before a reorder, so the rows can glide to their new slots (FLIP).
+  const prevTops = useRef<Map<string, number>>(new Map());
+  const shouldFlip = useRef(false);
 
   // Re-sync from the server after a write fails (event-handler context only).
   const reload = useCallback(() => {
@@ -184,23 +204,77 @@ export function RoutineSection({ day }: { day: string }) {
     archiveItem(sb, item.id, day).catch(() => reload());
   }
 
-  // --- hold-drag reorder (#013) -----------------------------------------
-  function onDragEnter(index: number) {
-    const from = dragIndex.current;
-    if (from === null || from === index) return;
-    setItems((prev) => {
-      if (!prev) return prev;
-      const next = [...prev];
-      const [moved] = next.splice(from, 1);
-      next.splice(index, 0, moved);
-      return next;
-    });
-    dragIndex.current = index;
+  // --- hold-drag reorder (#013), pointer-based for touch + smooth (#132) ---
+  // Snapshot every row's current top so the next render can animate rows from
+  // their old positions to their new ones (the "Invert"+"Play" of FLIP).
+  function captureTops() {
+    const m = new Map<string, number>();
+    rowEls.current.forEach((el, id) => m.set(id, el.getBoundingClientRect().top));
+    prevTops.current = m;
   }
-  function endDrag() {
+
+  // After a reorder, glide each row from where it was to where it now is.
+  useLayoutEffect(() => {
+    if (!shouldFlip.current) return;
+    shouldFlip.current = false;
+    rowEls.current.forEach((el, id) => {
+      const prev = prevTops.current.get(id);
+      if (prev === undefined) return;
+      const dy = prev - el.getBoundingClientRect().top;
+      if (Math.abs(dy) < 1) return;
+      el.style.transition = "none";
+      el.style.transform = `translateY(${dy}px)`;
+      requestAnimationFrame(() => {
+        el.style.transition = "transform 200ms cubic-bezier(0.2, 0, 0, 1)";
+        el.style.transform = "";
+      });
+    });
+  });
+
+  // Which slot the pointer is currently over (first row whose midpoint is below it).
+  function pointerTargetIndex(clientY: number): number {
+    const list = itemsRef.current ?? [];
+    for (let i = 0; i < list.length; i++) {
+      const el = rowEls.current.get(list[i].id);
+      if (!el) continue;
+      const r = el.getBoundingClientRect();
+      if (clientY < r.top + r.height / 2) return i;
+    }
+    return list.length - 1;
+  }
+
+  function startDrag(e: React.PointerEvent, index: number) {
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragIndex.current = index;
+    setDraggingId((itemsRef.current ?? [])[index]?.id ?? null);
+  }
+  function moveDrag(e: React.PointerEvent) {
+    if (dragIndex.current === null) return;
+    const target = pointerTargetIndex(e.clientY);
+    const from = dragIndex.current;
+    const cur = itemsRef.current;
+    if (target === from || !cur) return;
+    captureTops();
+    shouldFlip.current = true;
+    const next = [...cur];
+    const [moved] = next.splice(from, 1);
+    next.splice(target, 0, moved);
+    itemsRef.current = next; // keep the ref ahead of the async re-render
+    setItems(next);
+    dragIndex.current = target;
+  }
+  function endDrag(e: React.PointerEvent) {
+    if (dragIndex.current === null) return;
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {}
     dragIndex.current = null;
-    if (!items) return;
-    const renumbered = items.map((it, i) => ({ ...it, sort_order: i }));
+    setDraggingId(null);
+    const cur = itemsRef.current;
+    if (!cur) return;
+    const renumbered = cur.map((it, i) => ({ ...it, sort_order: i }));
+    itemsRef.current = renumbered;
     setItems(renumbered);
     invalidateTodaySummary();
     reorderItems(
@@ -240,15 +314,21 @@ export function RoutineSection({ day }: { day: string }) {
           <div
             key={item.id}
             data-row
-            onDragOver={(e) => e.preventDefault()}
-            onDragEnter={() => onDragEnter(index)}
-            className="group flex items-center gap-[14px] px-0.5 py-1.5"
+            ref={(el) => {
+              if (el) rowEls.current.set(item.id, el);
+              else rowEls.current.delete(item.id);
+            }}
+            className={`group flex items-center gap-[14px] rounded-lg px-0.5 py-1.5 ${
+              draggingId === item.id
+                ? "relative z-10 bg-bg shadow-[0_6px_20px_rgba(0,0,0,0.12)]"
+                : ""
+            }`}
           >
             <button
               type="button"
               onClick={() => toggle(item)}
               aria-label={done ? "uncheck" : "check"}
-              className={`${BOX_BASE} cursor-pointer text-white ${
+              className={`${BOX_BASE} cursor-pointer text-white active:scale-90 ${
                 done ? "border-accent bg-accent" : BOX_EMPTY
               }`}
             >
@@ -295,19 +375,15 @@ export function RoutineSection({ day }: { day: string }) {
                 <Trash2 size={15} />
               </button>
               <span
-                draggable
-                onDragStart={(e) => {
-                  dragIndex.current = index;
-                  const row = e.currentTarget.closest(
-                    "[data-row]",
-                  ) as HTMLElement | null;
-                  if (row)
-                    e.dataTransfer.setDragImage(row, 24, row.offsetHeight / 2);
-                  e.dataTransfer.effectAllowed = "move";
-                }}
-                onDragEnd={endDrag}
-                aria-hidden
-                className="grid h-7 w-7 cursor-grab place-items-center text-ink-3 opacity-0 transition group-hover:opacity-40"
+                role="button"
+                aria-label="reorder item"
+                onPointerDown={(e) => startDrag(e, index)}
+                onPointerMove={moveDrag}
+                onPointerUp={endDrag}
+                onPointerCancel={endDrag}
+                // Visible + draggable on touch; hover-reveal only on desktop (#132).
+                // touch-none stops the page scrolling while you drag a row on mobile.
+                className="grid h-8 w-8 shrink-0 cursor-grab touch-none select-none place-items-center text-ink-3 opacity-40 transition hover:text-ink md:opacity-0 md:group-hover:opacity-40"
               >
                 <GripVertical size={17} />
               </span>

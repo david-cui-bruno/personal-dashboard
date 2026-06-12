@@ -21,7 +21,7 @@ desktop (macOS), and iOS.**
   migrations `0001–0007` are all pushed (Local == Remote).
 - **Read first:** `docs/product.md` (why) → `docs/spec.md` (what, FROZEN) →
   `docs/data-model.md` (schema, FROZEN) → this file (how to run/ship). Full "why" log:
-  `docs/decisions.md` (#001–#131).
+  `docs/decisions.md` (#001–#132).
 - **One thing still pending on David:** connect Spotify once (web/iOS) to enable "song of
   the day → from your listening" (§9). Everything else is done.
 
@@ -58,8 +58,9 @@ Lato · PWA. Plus two thin **hosted-URL native shells** that load the same web a
 ## 3. Feature map (the product surface)
 
 - **Today (`/`)** — date title · **daily routine** (inline add/rename/reorder/check; Enter
-  on any row opens a new one, #120) · **song of the day** (§9) · **today's journal** (inline
-  TipTap, autosave) · consistency chart (mobile). One `today_summary` RPC loads it all (§11).
+  on any row opens a new one, #120; reorder is **touch-capable + FLIP-animated**, #132) ·
+  **song of the day** (§9) · **today's journal** (inline TipTap, autosave) · consistency
+  chart (mobile). One `today_summary` RPC loads it all (§11).
 - **Notes (`/notes`, `/notes/[id|YYYY-MM-DD]`)** — reverse-chron stream of every day's
   journal + freeform notes back to the earliest journal/note/**song** (#111/#124); per-entry
   editor with inline **photos** (#050); a song day shows a `♪ title — artist` line. In-list
@@ -80,7 +81,7 @@ AGENTS.md / CLAUDE.md      the 5 anti-drift rules + doc index (read first)
 docs/
   product / spec / data-model   FROZEN: goal / behavior / schema
   architecture / design         living: stack+deploy / tokens+screens
-  decisions.md                  append-only "why" log (#001–#131)
+  decisions.md                  append-only "why" log (#001–#132)
   roadmap.md / phase-1.md       status + parallel-slice briefs
   widget-and-notifications.md   the iOS widget + notifications design (#119)
   ship-desktop-and-ios.md       signing/notarize/release + iOS Xcode runbook
