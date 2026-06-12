@@ -5,7 +5,7 @@
 // tap a result. No link pasting, no Spotify login (search runs via an app token,
 // /api/song/search). Bar opens the track; the X clears it.
 import { useEffect, useRef, useState } from "react";
-import { Music, Play, Search, X } from "lucide-react";
+import { Headphones, Music, Play, Search, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getSong, saveSong, removeSong, type DailySong } from "@/lib/data";
 
@@ -88,6 +88,25 @@ export function SongOfDay({ day }: { day: string }) {
     }
   }
 
+  // "from your spotify" (#126): pull recently-played / now-playing. If not connected,
+  // kick off the one-time OAuth (server route → Spotify consent → back to Today).
+  async function loadRecent() {
+    setSearching(true);
+    try {
+      const r = await fetch("/api/spotify/recent");
+      const j = (await r.json()) as { connected: boolean; tracks?: Result[] };
+      if (!j.connected) {
+        window.location.href = "/api/spotify/login";
+        return;
+      }
+      setResults(j.tracks ?? []);
+    } catch {
+      setResults([]);
+    } finally {
+      setSearching(false);
+    }
+  }
+
   async function clear() {
     const prev = song;
     setSong(null);
@@ -129,6 +148,13 @@ export function SongOfDay({ day }: { day: string }) {
             </span>
           )}
         </div>
+        <button
+          type="button"
+          onClick={() => void loadRecent()}
+          className="mt-2 flex items-center gap-1.5 text-[12.5px] font-bold lowercase text-accent"
+        >
+          <Headphones size={14} /> from your spotify
+        </button>
         {results.length > 0 && (
           <ul className="mt-1.5 overflow-hidden rounded-xl border border-line">
             {results.map((r, i) => (
