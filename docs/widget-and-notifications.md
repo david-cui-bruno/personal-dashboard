@@ -131,11 +131,16 @@ no API. Used by the widget's all-done state (and available to the app if we ever
 - [ ] **Go-live deploys**: `supabase db push` (migration `0004`) + `vercel --prod` (bridge).
 - [ ] Later: instant in-app refresh via a tiny `reloadAllTimelines()` plugin (#120).
 
-**Phase 3 — notifications (Capacitor).**
-- [ ] Add `@capacitor/local-notifications`; request permission on first native launch.
-- [ ] Schedule 8am/9pm from prefs; reschedule on app open/background with live counts.
-- [ ] Build the **notifications Settings section** (gated to the native shell) on top of
-      `notif-prefs.ts`, wired to the scheduler.
+**Phase 3 — notifications (Capacitor).** *prep done; Xcode wiring pending*
+- [x] `@capacitor/local-notifications` added (web + mobile, v8); permission requested on
+      first reschedule.
+- [x] `src/lib/native/notifications.ts` — cancel + (re)schedule morning/evening from prefs;
+      evening body reflects today's `{left, focus}`/all-done. Rescheduled on launch, auth
+      change, and **foreground** (via `initNative()` in `src/lib/native/index.ts`).
+- [x] `src/components/settings/notifications-section.tsx` — native-only Settings section
+      (toggle + morning/evening time pickers) on `notif-prefs.ts`; reschedules on change.
+- [ ] **Xcode wiring** (assistant): `@capacitor/local-notifications` pod via `npm run sync`
+      after the iOS project exists — see `docs/notifications-phase3-runbook.md`.
 
 Phases 2–3 are real **native** work and will be packaged as an assistant/Xcode runbook
 (like `docs/ship-desktop-and-ios.md`) when we reach them. Phase 1 lands in the repo now.
