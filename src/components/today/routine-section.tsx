@@ -289,7 +289,8 @@ export function RoutineSection({ day }: { day: string }) {
                 type="button"
                 onClick={() => remove(item)}
                 aria-label="delete item"
-                className="grid h-7 w-7 place-items-center rounded-md text-ink-3 opacity-0 transition hover:bg-field hover:text-ink group-hover:opacity-60"
+                // Visible on touch (no hover); hover-reveal only on desktop (#128).
+                className="grid h-8 w-8 place-items-center rounded-md text-ink-3 opacity-60 transition hover:bg-field hover:text-ink md:opacity-0 md:group-hover:opacity-60"
               >
                 <Trash2 size={15} />
               </button>

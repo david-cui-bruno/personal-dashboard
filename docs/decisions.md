@@ -546,3 +546,22 @@ requires a Premium OAuth login + active session — deferred as not worth the su
 **song bar** got the inline player; the Notes-stream `♪` line stays a quiet marker (#124) to
 keep the stream calm/scannable. No API key needed (embeds are unauthenticated); no CSP change
 needed (the app sets none). `docs/spec.md` §2 + `docs/handoff.md` §9 updated.
+
+**#128 — Song bar IS the embed player; hover-only controls made touch-visible.**
+Two UX refinements David asked for after using #127 on his phone:
+(1) **Song bar = the player.** Instead of a song "card" with a green play button that
+*revealed* the embed underneath (a two-step, and confusing on a preview-only device), once a
+song is set the bar now simply **is** Spotify's inline embed player, with a minimal grey **X**
+on the right to clear. No more album-art/title card or play toggle; the embed shows the art,
+title, play and scrubber itself. A non-Spotify-track url (no embed possible) still falls back
+to a link-out row + the same X.
+(2) **Touch visibility.** Several controls were `opacity-0` / `hidden` and only appeared on
+**hover**, so they were invisible and untappable on a phone (David's report). Fixed by showing
+them **always on touch** and keeping hover-reveal **only on desktop** (`md:` + `md:group-hover`):
+the song remove-X (now always-visible by design), the **routine item delete** button
+(`routine-section.tsx`), and the **note-row trash** button (`notes-stream.tsx`); tap targets
+bumped toward ~36px (`h-9`/`h-8`). The routine **drag handle** stays desktop-hover-only on
+purpose — HTML5 drag-to-reorder doesn't fire on touch, so showing it on mobile would be a dead
+affordance (touch reorder is a separate, deferred feature). **Why:** the app is opened mostly
+on the phone; hidden-on-hover controls and a redundant play step made it feel broken there.
+Pure UI — no schema/RPC/contract change. `docs/spec.md` §2 + `docs/handoff.md` §9 updated.

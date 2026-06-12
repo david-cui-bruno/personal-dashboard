@@ -287,7 +287,8 @@ function NoteRow({ note, onTrash }: { note: Note; onTrash: (n: Note) => void }) 
       <button
         onClick={() => onTrash(note)}
         aria-label="move note to trash"
-        className="absolute right-2 top-4 hidden h-8 w-8 place-items-center rounded-lg text-ink-3 hover:bg-bg hover:text-ink md:group-hover:grid"
+        // Visible on touch; hidden-until-hover only on desktop (#128).
+        className="absolute right-2 top-4 grid h-9 w-9 place-items-center rounded-lg text-ink-3 hover:bg-bg hover:text-ink md:hidden md:group-hover:grid"
       >
         <Trash2 size={16} />
       </button>

@@ -35,11 +35,11 @@ The home screen and the pinned tab (#064). Top to bottom:
   "x of y done" counter (#065 / removed by David).
 - **daily routine section** (see §3).
 - **song of the day** — one logged song per day (#123), set via inline Spotify
-  search or "from your spotify" (#125/#126). Shown atop the journal as a bar with album
-  art + title + artist. The green play button reveals **Spotify's inline embed player**
-  in-app (#127) — full track if signed into Spotify Premium in that browser, else a 30s
-  preview; the art/title links out to Spotify as a full-track fallback. Also shown on the
-  `/notes/[date]` entry; a quiet `♪` line marks it on the stream (§6).
+  search or "from your spotify" (#125/#126). Once set, the bar **is Spotify's inline embed
+  player** (#127/#128) — playback in-app (full track if signed into Spotify Premium in that
+  browser, else a 30s preview), with a minimal grey × to clear. A non-Spotify-track url
+  falls back to a link-out row. Also shown on the `/notes/[date]` entry; a quiet `♪` line
+  marks it on the stream (§6).
 - **today's journal section** — a larger section header `today's journal`, then the
   journal body inline. Empty state shows a gray, non-italic placeholder
   `do your journal today`. Typing autosaves (§5). This edits the *same* journal object
