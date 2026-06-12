@@ -418,6 +418,16 @@ around David's "show me what I've been slipping on" goal while staying calm and 
 design; #090 explicitly deferred reminders to here) — these two gentle, configurable
 reminders are opt-in and minimal, consistent with #002/#003's anti-nag intent.
 
+**#120 — Enter on any routine row opens a new row (refines #013).**
+Pressing **Enter** while editing a routine item — whether renaming an existing row or in
+the `+` add row — commits it and opens a fresh empty row at the bottom, focused, to type
+the next item. Empty Enter is a no-op; Escape cancels. **Why:** "cursor at the end of a
+line → Enter → new line" is the intuitive list-editor behavior David expected. Previously
+Enter only chain-added in the dedicated `+` flow; renaming an existing row just committed
+and exited, so editing-then-Enter did nothing — the reported bug. New rows always append at
+the bottom (consistent with `+` and the forward-only add model #017), not inserted mid-list.
+Verified end-to-end. `docs/spec.md` §3 updated (FROZEN change via this entry + David's ask).
+
 **#120 — Widget session bridge: App Group via Preferences; app owns tokens, widget fetches live.**
 The WidgetKit extension can't read the WebView's session, so the web app (only when running
 in the native shell) writes one JSON blob to a shared **App Group**

@@ -56,6 +56,9 @@ Today/Notes only (#064).
 - **Hold-drag** a row to reorder (updates `sort_order`).
 - **`+`** at the top-right of the section header adds a new empty row at the bottom;
   focus lands in it to type the label.
+- **Enter** while editing any row — a rename *or* the add row — commits it and opens a
+  fresh empty row at the bottom to type the next item, so several can be added in a row
+  without reaching for `+` (#120). Empty Enter is a no-op; Escape cancels.
 - Deleting an item: a per-row delete (e.g. swipe on mobile / hover affordance on web).
   Deleting **archives** the item (see snapshot rules) — it does not erase history.
 
