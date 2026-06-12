@@ -15,7 +15,7 @@ const RELEASES_PAGE = "https://github.com/david-cui-bruno/personal-dashboard/rel
 
 // Set to true only after the app is code-signed + notarized (#086). Until then,
 // silent install fails on macOS, so we keep it false and notify instead.
-const SILENT_INSTALL = false;
+const SILENT_INSTALL = true;
 
 function initAutoUpdate() {
   // The updater is a no-op in dev (there's no packaged app to replace).
