@@ -117,4 +117,10 @@ agents consistent). Indicative surface:
 - search: `search(query, {type, fromDay, toDay})`.
 - settings: `getSettings()`, `saveSettings(patch)`.
 
+Post-V1 additions (read-only, additive):
+- export: `exportAll()` / `buildExportArchive()` — full data dump ± photo bytes (#109/#114).
+- widget: `getWidgetSummary(day)` → `{done, total, focusLabel, focusItemId}` via the
+  `widget_summary(p_day)` Postgres function (migration `0004`, #119). Locked to the
+  `authenticated` role (anon execute revoked), like every table (#108).
+
 Exact signatures finalize with `spec.md` at freeze.
