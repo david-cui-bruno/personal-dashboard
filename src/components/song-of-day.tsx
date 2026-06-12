@@ -1,13 +1,15 @@
 "use client";
 
-// Song of the day (#123): one logged song per day, shown atop the daily journal
-// (Today + the /notes/[date] entry). Paste a Spotify/Apple Music link → we fetch
-// title + cover art server-side (/api/song) → a calm, tappable bar that opens the
-// track. Empty state invites adding; the X clears it.
+// Song of the day (#123, #125): one logged song per day, shown atop the daily journal
+// (Today + the /notes/[date] entry). Tap "add today's song" → search Spotify inline →
+// tap a result. No link pasting, no Spotify login (search runs via an app token,
+// /api/song/search). Bar opens the track; the X clears it.
 import { useEffect, useRef, useState } from "react";
-import { Music, Play, X } from "lucide-react";
+import { Music, Play, Search, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getSong, saveSong, removeSong, type DailySong } from "@/lib/data";
+
+type Result = { title: string; artist: string; artUrl: string | null; url: string };
 
 const Label = () => (
   <div className="mb-1 text-[10px] font-black uppercase tracking-wide text-accent">
@@ -19,10 +21,11 @@ export function SongOfDay({ day }: { day: string }) {
   const [sb] = useState(createClient);
   const [song, setSong] = useState<DailySong | null>(null);
   const [ready, setReady] = useState(false);
-  const [editing, setEditing] = useState(false);
-  const [url, setUrl] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<Result[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [saving, setSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -42,42 +45,46 @@ export function SongOfDay({ day }: { day: string }) {
   }, [sb, day]);
 
   useEffect(() => {
-    if (editing) inputRef.current?.focus();
-  }, [editing]);
+    if (open) inputRef.current?.focus();
+  }, [open]);
 
-  async function submit() {
-    const link = url.trim();
-    if (!link) {
-      setEditing(false);
-      return;
-    }
-    setBusy(true);
-    setErr(false);
+  // Debounced Spotify search. All state changes happen inside the timer (async), so
+  // the effect body has no synchronous setState.
+  useEffect(() => {
+    const q = query.trim();
+    if (!q) return;
+    const id = setTimeout(() => {
+      void (async () => {
+        setSearching(true);
+        try {
+          const r = await fetch(`/api/song/search?q=${encodeURIComponent(q)}`);
+          const j = (await r.json()) as { results?: Result[] };
+          setResults(j.results ?? []);
+        } catch {
+          setResults([]);
+        } finally {
+          setSearching(false);
+        }
+      })();
+    }, 300);
+    return () => clearTimeout(id);
+  }, [query]);
+
+  async function pick(r: Result) {
+    setSaving(true);
     try {
-      let meta: { title: string | null; artist: string | null; artUrl: string | null } = {
-        title: null,
-        artist: null,
-        artUrl: null,
-      };
-      try {
-        const r = await fetch(`/api/song?url=${encodeURIComponent(link)}`);
-        if (r.ok) meta = await r.json();
-      } catch {
-        // metadata is best-effort; still save the link
-      }
       await saveSong(sb, day, {
-        url: link,
-        title: meta.title,
-        artist: meta.artist,
-        artUrl: meta.artUrl,
+        url: r.url,
+        title: r.title,
+        artist: r.artist,
+        artUrl: r.artUrl,
       });
       setSong(await getSong(sb, day));
-      setEditing(false);
-      setUrl("");
-    } catch {
-      setErr(true);
+      setOpen(false);
+      setQuery("");
+      setResults([]);
     } finally {
-      setBusy(false);
+      setSaving(false);
     }
   }
 
@@ -87,40 +94,71 @@ export function SongOfDay({ day }: { day: string }) {
     try {
       await removeSong(sb, day);
     } catch {
-      setSong(prev); // restore on failure
+      setSong(prev);
     }
   }
 
   if (!ready) return null;
 
-  if (editing) {
+  if (open) {
     return (
       <div className="mt-4">
         <Label />
-        <input
-          ref={inputRef}
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              void submit();
-            } else if (e.key === "Escape") {
-              setEditing(false);
-              setUrl("");
-            }
-          }}
-          onBlur={() => {
-            if (!busy) void submit();
-          }}
-          placeholder="paste a spotify or apple music link"
-          disabled={busy}
-          className="w-full rounded-xl border border-line bg-field px-3.5 py-3 text-[14px] font-bold text-ink outline-none placeholder:text-ink-3 focus:border-accent disabled:opacity-60"
-        />
-        {err && (
-          <p className="mt-1.5 text-[12.5px] font-bold lowercase text-red-500">
-            couldn&apos;t add that link
-          </p>
+        <div className="flex items-center gap-2 rounded-xl border border-line bg-field px-3 py-2.5 focus-within:border-accent">
+          <Search size={16} className="shrink-0 text-ink-3" />
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              if (!e.target.value.trim()) setResults([]);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                setOpen(false);
+                setQuery("");
+                setResults([]);
+              }
+            }}
+            placeholder="search a song on spotify"
+            className="min-w-0 flex-1 bg-transparent text-[14px] font-bold text-ink outline-none placeholder:text-ink-3"
+          />
+          {(searching || saving) && (
+            <span className="shrink-0 text-[12px] font-bold lowercase text-ink-3">
+              {saving ? "saving…" : "…"}
+            </span>
+          )}
+        </div>
+        {results.length > 0 && (
+          <ul className="mt-1.5 overflow-hidden rounded-xl border border-line">
+            {results.map((r, i) => (
+              <li key={`${r.url}-${i}`}>
+                <button
+                  type="button"
+                  onClick={() => void pick(r)}
+                  disabled={saving}
+                  className="flex w-full items-center gap-3 bg-bg px-3 py-2 text-left hover:bg-field disabled:opacity-60"
+                >
+                  {r.artUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={r.artUrl} alt="" className="h-9 w-9 shrink-0 rounded-md object-cover" />
+                  ) : (
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-accent text-white">
+                      <Music size={14} />
+                    </span>
+                  )}
+                  <span className="min-w-0">
+                    <span className="block truncate text-[13.5px] font-extrabold lowercase">
+                      {r.title}
+                    </span>
+                    <span className="block truncate text-[12px] font-bold lowercase text-ink-3">
+                      {r.artist}
+                    </span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
     );
@@ -132,7 +170,7 @@ export function SongOfDay({ day }: { day: string }) {
         <Label />
         <button
           type="button"
-          onClick={() => setEditing(true)}
+          onClick={() => setOpen(true)}
           className="flex w-full items-center gap-3 rounded-xl bg-field px-3 py-2.5 text-left transition-colors hover:bg-line"
         >
           <span className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-lg bg-[#e7e9ee] text-ink-3">
@@ -143,7 +181,7 @@ export function SongOfDay({ day }: { day: string }) {
               add today&apos;s song
             </span>
             <span className="block text-[12px] font-bold lowercase text-ink-3">
-              paste a spotify or apple music link
+              search spotify
             </span>
           </span>
         </button>

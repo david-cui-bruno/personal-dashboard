@@ -1,6 +1,6 @@
 // Song of the day (#123): one logged song per day. `url` is the pasted Spotify/
-// Apple Music link; title/artist/art_url are best-effort OpenGraph metadata fetched
-// server-side via /api/song. Shown atop the journal entry + on the Notes stream.
+// Apple Music link; title/artist/art_url come from the picked Spotify search result
+// (/api/song/search, #125). Shown atop the journal entry + on the Notes stream.
 import type { DB, DailySong } from "./types";
 
 export async function getSong(sb: DB, day: string): Promise<DailySong | null> {
