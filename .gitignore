@@ -51,5 +51,4 @@ next-env.d.ts
 # capacitor mobile shell (#113)
 /mobile/node_modules
 # generated native projects — toolchain-specific; commit once you're building them
-/mobile/ios
 /mobile/android
