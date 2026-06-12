@@ -8,7 +8,7 @@
 // hosted URL and reuses this exact service worker; nothing here assumes a browser
 // chrome or blocks the wrap.
 
-const SHELL_CACHE = "notes-shell-v1";
+const SHELL_CACHE = "notes-shell-v2";
 
 // Stable, self-owned static assets safe to precache. Build assets under
 // /_next/static/* are content-hashed (URLs change every build) so they're cached
@@ -47,6 +47,34 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return; // never touch Supabase / cross-origin
+
+  // Top-level page navigations (a cold start / hard reload in the WebView) →
+  // stale-while-revalidate the app *shell* (#129). Serve the cached HTML instantly so
+  // the phone paints immediately instead of waiting on a network round-trip, then
+  // refresh the cache in the background for next launch. The document is a user-agnostic
+  // client-rendered shell (all data is fetched client-side, #084), so caching it leaks
+  // no journal/note data. Only same-origin, non-redirected 200s are cached, so an
+  // expired-session redirect to /sign-in is never stored under the "/" key.
+  if (request.mode === "navigate") {
+    event.respondWith(
+      (async () => {
+        const cache = await caches.open(SHELL_CACHE);
+        const cached = await cache.match(request);
+        const fromNetwork = fetch(request)
+          .then((res) => {
+            if (res && res.ok && !res.redirected) cache.put(request, res.clone());
+            return res;
+          })
+          .catch(() => null);
+        if (cached) {
+          event.waitUntil(fromNetwork); // revalidate without blocking the response
+          return cached;
+        }
+        return (await fromNetwork) || Response.error();
+      })(),
+    );
+    return;
+  }
 
   // Immutable build assets + our static icons/manifest = the shell → cache-first.
   const isShellAsset =
