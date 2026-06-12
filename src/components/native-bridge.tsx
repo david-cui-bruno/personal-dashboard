@@ -6,15 +6,19 @@
 // nothing.
 import { useEffect } from "react";
 
-type CapacitorGlobal = { isNativePlatform?: () => boolean };
-
 export function NativeBridge() {
   useEffect(() => {
-    const cap = (globalThis as unknown as { Capacitor?: CapacitorGlobal }).Capacitor;
-    if (!cap?.isNativePlatform?.()) return; // web / desktop: do nothing
-    void import("@/lib/native/widget-bridge")
-      .then((m) => m.initWidgetBridge())
+    let cancelled = false;
+    void import("@capacitor/core")
+      .then(({ Capacitor }) => {
+        if (cancelled || !Capacitor.isNativePlatform()) return; // web / desktop: do nothing
+        return import("@/lib/native/widget-bridge").then((m) => m.initWidgetBridge());
+      })
       .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return null;

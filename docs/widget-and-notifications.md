@@ -52,8 +52,8 @@ server-side so the widget makes **one** call (next section).
 The widget is a native **WidgetKit** extension — a separate process from the Capacitor
 WebView, so it can't read the web app's state. Instead:
 
-1. **Session sharing:** the app writes its Supabase session (access + refresh token) to a
-   shared **App Group** (`group.health.framewise.notes`) keychain entry on sign-in /
+1. **Session sharing:** the app writes the widget payload (Supabase access token + cached
+   summary) to shared **App Group** defaults (`group.health.framewise.notes`) on sign-in /
    refresh. The widget reads it to authenticate as David (RLS still applies, #108).
 2. **One round-trip:** a Postgres function **`widget_summary()`** returns
    `{ done, total, focus_label, focus_item_id }` for today in a single PostgREST/RPC call,
@@ -102,7 +102,7 @@ no API. Used by the widget's all-done state (and available to the app if we ever
 | `widget_summary()` Postgres function | Supabase migration | no |
 | notification scheduling + Settings UI | web/Capacitor (`@capacitor/local-notifications`) | runs natively; UI is web |
 | WidgetKit small widget (Swift) | `mobile/ios` extension | **yes** |
-| App Group + session sharing | native iOS + a small app hook | **yes** |
+| App Group + session sharing | native iOS + `NotesWidgetBridge` app hook | **yes** |
 | deep link `notes://today` | Capacitor config + app routing | partial |
 
 ---
@@ -120,16 +120,16 @@ no API. Used by the widget's all-done state (and available to the app if we ever
       (it's native-only — times are device-local and only act in the iOS shell, so the
       control is gated to the native app where it can be tested with the scheduler).
 
-**Phase 2 — native widget (needs Xcode + the iOS project, #113).** *prep done; Xcode wiring pending*
+**Phase 2 — native widget (needs Xcode + the iOS project, #113).** ✅ done
 - [x] WidgetKit small widget written: `mobile/widget/NotesWidget.swift` (ring + X/N + focus,
       all-done/quote, empty, needs-open states; live fetch + cached fallback; `notes://today`).
 - [x] Web→widget **session bridge** (#120): `src/lib/native/widget-bridge.ts` +
       `<NativeBridge>` (mounted in the app layout, native-only) write the App Group payload
-      via `@capacitor/preferences`.
-- [ ] **Xcode wiring** (assistant): generate `mobile/ios`, add the App Group + Widget
+      via the native `NotesWidgetBridge` plugin, which writes App Group defaults directly
+      and reloads WidgetKit timelines.
+- [x] **Xcode wiring** (assistant): generate `mobile/ios`, add the App Group + Widget
       Extension target, drop in the Swift, sign, run — see `docs/widget-phase2-runbook.md`.
-- [ ] **Go-live deploys**: `supabase db push` (migration `0004`) + `vercel --prod` (bridge).
-- [ ] Later: instant in-app refresh via a tiny `reloadAllTimelines()` plugin (#120).
+- [x] **Go-live deploys**: `supabase db push` (migration `0004`) + `vercel --prod` (bridge).
 
 **Phase 3 — notifications (Capacitor).**
 - [ ] Add `@capacitor/local-notifications`; request permission on first native launch.

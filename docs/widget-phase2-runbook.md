@@ -37,7 +37,7 @@ The native app loads the **hosted** web app and calls Supabase directly, so both
 cd mobile
 npm install
 npm run add:ios     # creates mobile/ios
-npm run sync        # installs pods incl. @capacitor/preferences
+npm run sync        # installs Capacitor iOS pods
 npm run open:ios    # opens Xcode
 ```
 
@@ -67,9 +67,9 @@ npm run open:ios    # opens Xcode
    web app write the shared payload).
 2. Long-press the home screen → **+** → search **notes** → add the **small** widget.
 3. You should see the **ring + "X/N left today" + focus**. Check items off in the app →
-   within ~30 min (or sooner) the widget updates; complete everything → **all done ✓ +
-   quote**. Before signing in it shows "open to set up"; with no routine items, "add your
-   routine."
+   the app bridge reloads WidgetKit timelines, and iOS also refreshes on its own timeline;
+   complete everything → **all done ✓ + quote**. Before signing in it shows "open to set
+   up"; with no routine items, "add your routine."
 
 ## step 6 (optional) — tap-to-open deep link
 Tapping the widget already opens the app. To land on Today specifically, add a URL scheme:
@@ -78,17 +78,19 @@ App target → **Info → URL Types → +** → URL Schemes `notes`. (Capacitor 
 
 ## how it works (for debugging)
 - The web app (in the native shell) writes one JSON blob to the App Group via
-  `@capacitor/preferences` configured with `group.health.framewise.notes`. Preferences
-  prefixes keys, so the widget reads **`_capacitor_widget.payload`** from
-  `UserDefaults(suiteName: "group.health.framewise.notes")`.
+  the native `NotesWidgetBridge` Capacitor plugin. The plugin writes
+  **`_capacitor_widget.payload`** directly to
+  `UserDefaults(suiteName: "group.health.framewise.notes")` and calls
+  `WidgetCenter.reloadAllTimelines()` after writes/removes.
 - The blob holds the Supabase access token (+ expiry), URL, anon key, today's quote, and a
   cached summary. The widget fetches `widget_summary` **live** while the token is valid,
   else renders the cached values. The app refreshes the token on open, so it stays current.
 
 ## troubleshooting
 - **Widget stuck on "open to set up"** → the App Group id must match **exactly** on both
-  the App and Widget targets, and you must have signed in once in the app **after** step 0's
-  web deploy. Confirm the App Group exists in the portal.
+  the App and Widget targets, the App target must register `NotesWidgetBridgePlugin`, and
+  you must have signed in once in the app **after** step 0's web deploy. Confirm the App
+  Group exists in the portal.
 - **Shows cached/older numbers** → token expired (app not opened in >1h); open the app. (The
   widget never refreshes tokens by design, #120.)
 - **`permission denied for function widget_summary`** → migration `0004` wasn't pushed to

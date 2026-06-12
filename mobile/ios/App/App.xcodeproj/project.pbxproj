@@ -14,8 +14,10 @@
 		504EC30F1FED79650016851F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30E1FED79650016851F /* Assets.xcassets */; };
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
+		6E3EE906570BA3BD37B72FFE /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E53A7163F8573442C17ABB21 /* MainViewController.swift */; };
 		873D64D0D2F74D2C768BA255 /* NotesWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = E867F1670AF217654916B768 /* NotesWidget.swift */; };
 		A084ECDBA7D38E1E42DFC39D /* Pods_App.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AF277DCFFFF123FFC6DF26C7 /* Pods_App.framework */; };
+		BBCEDF78F6752675832076FC /* NotesWidgetBridgePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = F57A5767EDB0111C7202EC9F /* NotesWidgetBridgePlugin.swift */; };
 		C8D6BC28604A48B12853F030 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6FC1DF703009B5C47EA9C3A8 /* WidgetKit.framework */; };
 		CB6338C7334CC955D640480D /* NotesWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 4D131BA80510DEABD9F413BB /* NotesWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		FF8800218A63476C1398B410 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43FB1D5183E9BBB494DB1A70 /* Foundation.framework */; };
@@ -63,7 +65,9 @@
 		AF51FD2D460BCFE21FA515B2 /* Pods-App.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-App.release.xcconfig"; path = "Pods/Target Support Files/Pods-App/Pods-App.release.xcconfig"; sourceTree = "<group>"; };
 		AFB5516B66EDE26AF6BA07F1 /* NotesWidget.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = NotesWidget.entitlements; sourceTree = "<group>"; };
 		DFDBAE47F2B5B84D1DADAD1B /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		E53A7163F8573442C17ABB21 /* MainViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
 		E867F1670AF217654916B768 /* NotesWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NotesWidget.swift; path = ../../widget/NotesWidget.swift; sourceTree = SOURCE_ROOT; };
+		F57A5767EDB0111C7202EC9F /* NotesWidgetBridgePlugin.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotesWidgetBridgePlugin.swift; sourceTree = "<group>"; };
 		FC68EB0AF532CFC21C3344DD /* Pods-App.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-App.debug.xcconfig"; path = "Pods/Target Support Files/Pods-App/Pods-App.debug.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -130,6 +134,8 @@
 				2FAD9762203C412B000D30F8 /* config.xml */,
 				50B271D01FEDC1A000F3C39B /* public */,
 				05EF39A4B5B7B0FE03DE5F03 /* App.entitlements */,
+				E53A7163F8573442C17ABB21 /* MainViewController.swift */,
+				F57A5767EDB0111C7202EC9F /* NotesWidgetBridgePlugin.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -317,6 +323,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
+				6E3EE906570BA3BD37B72FFE /* MainViewController.swift in Sources */,
+				BBCEDF78F6752675832076FC /* NotesWidgetBridgePlugin.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

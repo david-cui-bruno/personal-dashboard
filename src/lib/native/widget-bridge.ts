@@ -1,20 +1,24 @@
 // Web → iOS widget bridge (#119/#120). Runs ONLY inside the native Capacitor shell
 // (the caller guards on the native platform). It writes the Supabase session + today's
-// quote + a cached summary into the shared **App Group** via @capacitor/preferences
-// (`configure({ group })`), so the WidgetKit extension can:
+// quote + a cached summary into the shared **App Group** via a tiny native plugin, so the
+// WidgetKit extension can:
 //   • fetch `widget_summary` LIVE using the access token (while it's valid), and
 //   • still render from the cached values when the token is expired / offline.
 //
 // The widget reads the single key `_capacitor_widget.payload` from the App Group's
-// UserDefaults suite (Capacitor Preferences prefixes keys with `_capacitor_`).
-import { Preferences } from "@capacitor/preferences";
+// UserDefaults suite.
+import { registerPlugin } from "@capacitor/core";
 import { createClient } from "@/lib/supabase/client";
 import { getWidgetSummary } from "@/lib/data";
 import { quoteForDay } from "@/lib/quotes";
 import { today } from "@/lib/date";
 
-const GROUP = "group.health.framewise.notes";
-const KEY = "widget.payload";
+type NotesWidgetBridgePlugin = {
+  setPayload(options: { value: string }): Promise<void>;
+  removePayload(): Promise<void>;
+};
+
+const NotesWidgetBridge = registerPlugin<NotesWidgetBridgePlugin>("NotesWidgetBridge");
 
 export type WidgetPayload = {
   accessToken: string;
@@ -30,7 +34,6 @@ export type WidgetPayload = {
 };
 
 export async function initWidgetBridge(): Promise<void> {
-  await Preferences.configure({ group: GROUP });
   const sb = createClient();
 
   async function write(): Promise<void> {
@@ -38,7 +41,7 @@ export async function initWidgetBridge(): Promise<void> {
       data: { session },
     } = await sb.auth.getSession();
     if (!session) {
-      await Preferences.remove({ key: KEY });
+      await NotesWidgetBridge.removePayload();
       return;
     }
 
@@ -68,7 +71,7 @@ export async function initWidgetBridge(): Promise<void> {
       quoteText: q.text,
       quoteAuthor: q.author,
     };
-    await Preferences.set({ key: KEY, value: JSON.stringify(payload) });
+    await NotesWidgetBridge.setPayload({ value: JSON.stringify(payload) });
   }
 
   await write();
