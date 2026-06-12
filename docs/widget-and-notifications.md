@@ -58,10 +58,10 @@ WebView, so it can't read the web app's state. Instead:
 2. **One round-trip:** a Postgres function **`widget_summary()`** returns
    `{ done, total, focus_label, focus_item_id }` for today in a single PostgREST/RPC call,
    so the widget doesn't reimplement the consistency math in Swift.
-3. **Freshness:** the app calls `WidgetCenter.reloadAllTimelines()` whenever routine state
-   changes (instant while the app is used). When the app is closed, WidgetKit refreshes the
-   widget on its own timeline (iOS budget → ~every 15–30 min). That's what "live" means
-   here: current-when-you-use-the-app, near-current otherwise.
+3. **Freshness:** the app calls `WidgetCenter.reloadAllTimelines()` whenever the native
+   bridge rewrites the shared payload (launch, auth change, foreground). When the app is
+   closed, WidgetKit refreshes the widget on its own timeline (iOS budget → ~every 15–30
+   min). That's what "live" means here: current when the app syncs, near-current otherwise.
 
 ---
 
@@ -113,12 +113,11 @@ no API. Used by the widget's all-done state (and available to the app if we ever
 - [x] `src/lib/quotes.ts` + `quoteForDay()`.
 - [x] `widget_summary(p_day)` Postgres function (migration `0004`) + `getWidgetSummary()`
       in the data layer; DB types regenerated. Verified: authenticated call returns
-      `{done,total,focus}`; anon execute revoked (#108). **Still to do before the widget
-      ships: `supabase db push` this migration to the cloud (Phase 2 deploy step).**
+      `{done,total,focus}`; anon execute revoked (#108). Remote migration `0004` was pushed
+      during Phase 2 go-live.
 - [x] `src/lib/notif-prefs.ts` — device-local notification prefs (enabled + morning/evening
-      times) with safe defaults/validation. *The Settings **UI** for these moves to Phase 3*
-      (it's native-only — times are device-local and only act in the iOS shell, so the
-      control is gated to the native app where it can be tested with the scheduler).
+      times) with safe defaults/validation. The Settings UI is native-only because times
+      are device-local and only act in the iOS shell.
 
 **Phase 2 — native widget (needs Xcode + the iOS project, #113).** ✅ done
 - [x] WidgetKit small widget written: `mobile/widget/NotesWidget.swift` (ring + X/N + focus,
@@ -131,14 +130,21 @@ no API. Used by the widget's all-done state (and available to the app if we ever
       Extension target, drop in the Swift, sign, run — see `docs/widget-phase2-runbook.md`.
 - [x] **Go-live deploys**: `supabase db push` (migration `0004`) + `vercel --prod` (bridge).
 
-**Phase 3 — notifications (Capacitor).**
-- [ ] Add `@capacitor/local-notifications`; request permission on first native launch.
-- [ ] Schedule 8am/9pm from prefs; reschedule on app open/background with live counts.
-- [ ] Build the **notifications Settings section** (gated to the native shell) on top of
-      `notif-prefs.ts`, wired to the scheduler.
+**Phase 3 — notifications (Capacitor).** *native wiring done; delivery verification pending*
+- [x] `@capacitor/local-notifications` added (web + mobile, v8); permission requested on
+      first reschedule.
+- [x] `src/lib/native/notifications.ts` — cancel + (re)schedule morning/evening from prefs;
+      evening body reflects today's `{left, focus}`/all-done. Rescheduled on launch, auth
+      change, and **foreground** (via `initNative()` in `src/lib/native/index.ts`).
+- [x] `src/components/settings/notifications-section.tsx` — native-only Settings section
+      (toggle + morning/evening time pickers) on `notif-prefs.ts`; reschedules on change.
+- [x] **Xcode wiring**: `@capacitor/local-notifications` pod synced into the generated iOS
+      project.
+- [ ] **Delivery verification**: permission prompt + test notification fire — see
+      `docs/notifications-phase3-runbook.md`.
 
-Phases 2–3 are real **native** work and will be packaged as an assistant/Xcode runbook
-(like `docs/ship-desktop-and-ios.md`) when we reach them. Phase 1 lands in the repo now.
+Phase 2 native widget wiring is done. Phase 3 notification delivery still needs the
+permission prompt and one scheduled-notification smoke test.
 
 ## deferred
 

@@ -401,8 +401,9 @@ Full design in `docs/widget-and-notifications.md`. The settled calls:
 - **Live data (not a snapshot):** the widget is a native **WidgetKit** extension that
   queries Supabase directly. The app shares its signed-in session to the widget via an
   iOS **App Group**; a Postgres function `widget_summary` returns {done, total, focus} in
-  one call. The app calls `reloadAllTimelines()` on change (instant in-app), and the
-  widget self-refreshes on its iOS timeline when the app is closed (~minutes of lag).
+  one call. The app calls `reloadAllTimelines()` whenever the native bridge rewrites the
+  payload, and the widget self-refreshes on its iOS timeline when the app is closed
+  (~minutes of lag).
 - **Tap-to-open** Today for v1; interactive check-off-from-widget (iOS 17+) is a
   fast-follow.
 - **Notifications:** exactly **two/day**, **local** (on-device, no server), **8am + 9pm**,
@@ -429,8 +430,8 @@ The plugin writes `_capacitor_widget.payload` directly to
 `widget_summary` **live** while the access token is valid, and renders the **cached**
 values otherwise. **The app is the sole token manager** — it
 refreshes on open and rewrites the blob; the widget **never** refreshes (avoids
-refresh-token rotation fighting). Updates are instant while the app is used and otherwise
-ride WidgetKit's timeline. **Why:** delivers "live" (#119) with a narrow native surface,
+refresh-token rotation fighting). Updates are immediate on native payload rewrites and
+otherwise ride WidgetKit's timeline. **Why:** delivers "live" (#119) with a narrow native surface,
 one shared key, and graceful fallback when the token's expired/offline. The web bridge is
 fully **inert on web/desktop** (guarded on Capacitor's native-platform check; the widget
 bridge is loaded only there). The Next app gains `@capacitor/core` for this.

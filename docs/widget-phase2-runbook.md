@@ -67,7 +67,7 @@ npm run open:ios    # opens Xcode
    web app write the shared payload).
 2. Long-press the home screen → **+** → search **notes** → add the **small** widget.
 3. You should see the **ring + "X/N left today" + focus**. Check items off in the app →
-   the app bridge reloads WidgetKit timelines, and iOS also refreshes on its own timeline;
+   the next native payload rewrite or WidgetKit timeline refresh picks up the new counts;
    complete everything → **all done ✓ + quote**. Before signing in it shows "open to set
    up"; with no routine items, "add your routine."
 
@@ -81,7 +81,7 @@ App target → **Info → URL Types → +** → URL Schemes `notes`. (Capacitor 
   the native `NotesWidgetBridge` Capacitor plugin. The plugin writes
   **`_capacitor_widget.payload`** directly to
   `UserDefaults(suiteName: "group.health.framewise.notes")` and calls
-  `WidgetCenter.reloadAllTimelines()` after writes/removes.
+  `WidgetCenter.reloadAllTimelines()` after payload writes/removes.
 - The blob holds the Supabase access token (+ expiry), URL, anon key, today's quote, and a
   cached summary. The widget fetches `widget_summary` **live** while the token is valid,
   else renders the cached values. The app refreshes the token on open, so it stays current.
