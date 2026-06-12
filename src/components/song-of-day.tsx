@@ -3,13 +3,25 @@
 // Song of the day (#123, #125): one logged song per day, shown atop the daily journal
 // (Today + the /notes/[date] entry). Tap "add today's song" → search Spotify inline →
 // tap a result. No link pasting, no Spotify login (search runs via an app token,
-// /api/song/search). Bar opens the track; the X clears it.
+// /api/song/search). The X clears it.
+// Playback (#127): the green button reveals Spotify's sanctioned inline embed player
+// (lazy-mounted only on click) instead of opening open.spotify.com in a new tab — so
+// playback stays in-app. Full-track playback needs a logged-in Spotify Premium session
+// in that browser; otherwise the embed plays a 30s preview (hard Spotify limit). The
+// album-art/title still links out to Spotify as a guaranteed full-track fallback.
 import { useEffect, useRef, useState } from "react";
-import { Headphones, Music, Play, Search, X } from "lucide-react";
+import { ChevronUp, Headphones, Music, Play, Search, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getSong, saveSong, removeSong, type DailySong } from "@/lib/data";
 
 type Result = { title: string; artist: string; artUrl: string | null; url: string };
+
+// Pull the Spotify track id out of a stored url (open.spotify.com/track/ID or
+// spotify:track:ID). Null for non-track / non-Spotify urls → fall back to the link.
+function spotifyTrackId(url: string): string | null {
+  const m = url.match(/track[/:]([A-Za-z0-9]+)/);
+  return m ? m[1] : null;
+}
 
 const Label = () => (
   <div className="mb-1 text-[10px] font-black uppercase tracking-wide text-accent">
@@ -26,6 +38,7 @@ export function SongOfDay({ day }: { day: string }) {
   const [results, setResults] = useState<Result[]>([]);
   const [searching, setSearching] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [playing, setPlaying] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -80,6 +93,7 @@ export function SongOfDay({ day }: { day: string }) {
         artUrl: r.artUrl,
       });
       setSong(await getSong(sb, day));
+      setPlaying(false);
       setOpen(false);
       setQuery("");
       setResults([]);
@@ -110,6 +124,7 @@ export function SongOfDay({ day }: { day: string }) {
   async function clear() {
     const prev = song;
     setSong(null);
+    setPlaying(false);
     try {
       await removeSong(sb, day);
     } catch {
@@ -215,6 +230,8 @@ export function SongOfDay({ day }: { day: string }) {
     );
   }
 
+  const trackId = spotifyTrackId(song.url);
+
   return (
     <div className="group mt-4">
       <Label />
@@ -248,15 +265,28 @@ export function SongOfDay({ day }: { day: string }) {
             )}
           </span>
         </a>
-        <a
-          href={song.url}
-          target="_blank"
-          rel="noreferrer"
-          aria-label="play"
-          className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#1db954] text-white"
-        >
-          <Play size={15} fill="currentColor" />
-        </a>
+        {trackId ? (
+          <button
+            type="button"
+            onClick={() => setPlaying((p) => !p)}
+            aria-label={playing ? "hide player" : "play"}
+            aria-expanded={playing}
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#1db954] text-white"
+          >
+            {playing ? <ChevronUp size={16} /> : <Play size={15} fill="currentColor" />}
+          </button>
+        ) : (
+          // Non-track / non-Spotify url: no inline player, fall back to opening the link.
+          <a
+            href={song.url}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="play"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#1db954] text-white"
+          >
+            <Play size={15} fill="currentColor" />
+          </a>
+        )}
         <button
           type="button"
           onClick={clear}
@@ -266,6 +296,20 @@ export function SongOfDay({ day }: { day: string }) {
           <X size={15} />
         </button>
       </div>
+      {playing && trackId && (
+        // Spotify's sanctioned inline embed, lazy-mounted only when the user taps play.
+        // Plays full track if logged into Spotify Premium here, else a 30s preview (#127).
+        <iframe
+          title="spotify player"
+          src={`https://open.spotify.com/embed/track/${trackId}?utm_source=notes`}
+          width="100%"
+          height={80}
+          loading="lazy"
+          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+          style={{ border: 0, borderRadius: 12 }}
+          className="mt-2"
+        />
+      )}
     </div>
   );
 }

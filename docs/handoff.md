@@ -21,7 +21,7 @@ desktop (macOS), and iOS.**
   migrations `0001–0007` are all pushed (Local == Remote).
 - **Read first:** `docs/product.md` (why) → `docs/spec.md` (what, FROZEN) →
   `docs/data-model.md` (schema, FROZEN) → this file (how to run/ship). Full "why" log:
-  `docs/decisions.md` (#001–#126).
+  `docs/decisions.md` (#001–#127).
 - **One thing still pending on David:** connect Spotify once (web/iOS) to enable "song of
   the day → from your listening" (§9). Everything else is done.
 
@@ -80,7 +80,7 @@ AGENTS.md / CLAUDE.md      the 5 anti-drift rules + doc index (read first)
 docs/
   product / spec / data-model   FROZEN: goal / behavior / schema
   architecture / design         living: stack+deploy / tokens+screens
-  decisions.md                  append-only "why" log (#001–#126)
+  decisions.md                  append-only "why" log (#001–#127)
   roadmap.md / phase-1.md       status + parallel-slice briefs
   widget-and-notifications.md   the iOS widget + notifications design (#119)
   ship-desktop-and-ios.md       signing/notarize/release + iOS Xcode runbook
@@ -194,7 +194,7 @@ Xcode + an Apple account). Runbook: `docs/ship-desktop-and-ios.md`.
   "N left" stays current (`src/lib/native/notifications.ts`). Design:
   `docs/widget-and-notifications.md`; wiring: `docs/notifications-phase3-runbook.md`.
 
-## 9. Song of the day + Spotify (#123–#126)
+## 9. Song of the day + Spotify (#123–#127)
 
 One logged song per day, shown atop the daily journal + as a `♪` line on the Notes stream.
 Two ways to set it (no link-pasting):
@@ -204,6 +204,15 @@ Two ways to set it (no link-pasting):
 - **"from your spotify" (#126):** lists your recently-played / now-playing to tap. Spotify
   **OAuth** (`/api/spotify/{login,callback,recent}`); tokens stored in `spotify_auth`
   (server-only). **Requires a one-time "connect" consent.**
+
+**Playback (#127):** the green play button reveals **Spotify's inline embed player**
+(`open.spotify.com/embed/track/{id}`, lazy-mounted only on tap) right under the song bar —
+playback stays in-app instead of opening a browser tab. The track id is derived from the
+stored `daily_song.url` (no schema change); the art/title still links out as a full-track
+fallback. **Hard Spotify limit:** the embed plays the **full track** only with a logged-in
+Spotify **Premium** session in that browser — otherwise a **30s preview**. So full on web (if
+signed into Spotify there), **preview-only in the iOS WebView + Electron shell** (no Spotify
+cookie). No API key / CSP change needed (embeds are unauthenticated; the app sets no CSP).
 
 **Setup that's already done:** a Spotify app exists; `SPOTIFY_CLIENT_ID/SECRET/REDIRECT_URI`
 are in Vercel env + `.env.local`; redirect URIs registered for both prod + `127.0.0.1:3000`.
