@@ -30,17 +30,18 @@ See `docs/architecture.md` for deploy details.
 - [x] **RLS** — all tables locked to `authenticated` (#108).
 - [x] **Inline photos** — verified end-to-end; Today journal also accepts images (#050).
 - [x] **Manual data export** — Settings → data → "export my data" (#109).
-- [x] **Desktop app** — Electron hosted-URL shell in `desktop/` (#110).
+- [x] **Desktop app** — Electron hosted-URL shell (#110), **signed + notarized + released
+      v0.1.0** with silent auto-update (#112/#118).
 - [ ] **Backups** — enable Supabase automatic backups in the dashboard (#085, manual step).
 
 ## explicitly deferred (post-V1)
 
 - Native **mobile** shell via **Capacitor** (#113): **scaffolded** in `mobile/`
-  (hosted-URL). Remaining: generate the native iOS/Android projects (Xcode/Android Studio)
-  and build the home-screen **widget** + rich "big-banner" notifications (#082, #090).
+  (hosted-URL); **iOS verified in the simulator**. Remaining: the home-screen **widget** +
+  rich "big-banner" notifications (#082, #090), and optional TestFlight/App Store.
   *(Desktop is covered by Electron, #110.)*
-- Code signing + notarization for the desktop `.dmg` (needs an Apple account, #086, #110);
-  unblocks true silent desktop auto-update (#112).
+- ~~Code signing + notarization for the desktop `.dmg`~~ — **done** (#118): signed Developer
+  ID build, notarized, released v0.1.0; silent auto-update enabled.
 - Move the Supabase project out of the paid Framewise Health **work** org to a personal
   free project (#086) — data-governance + cost cleanup for a personal journal.
 - ~~Browse-by-date~~ — **done** as date-aware Notes search (#116), not a calendar: type a

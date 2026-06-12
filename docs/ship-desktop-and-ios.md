@@ -89,7 +89,9 @@ Apple requires notarization — Apple scans the app so macOS trusts it.
    *Team ID* (10 chars).
 
 Keep these two values handy. **Do not paste the app-specific password into chat,
-commits, or anywhere public.**
+commits, or anywhere public.** If you end up generating more than one app-specific
+password, revoke the unused ones at appleid.apple.com afterward (hygiene only — extras
+are harmless).
 
 ## A3. Build the signed + notarized `.dmg` (local)
 
@@ -119,13 +121,19 @@ desktop/dist/notes-<version>-arm64.dmg
 ```bash
 # from desktop/
 APP=dist/mac-arm64/notes.app
-codesign --verify --deep --strict --verbose=2 "$APP"      # should say "valid on disk"
-spctl -a -vvv -t install "$APP"                            # should say "accepted / Notarized Developer ID"
-xcrun stapler validate dist/notes-*-arm64.dmg              # should say "The validate action worked"
+codesign --verify --deep --strict --verbose=2 "$APP"   # "valid on disk"
+spctl -a -vvv -t install "$APP"                         # "accepted / source=Notarized Developer ID"
+xcrun stapler validate "$APP"                           # "The validate action worked" (the .app is stapled)
 ```
 
-If all three pass, double-clicking the `.dmg` and dragging **notes** to Applications
-gives a clean install with no Gatekeeper warning. Hand the `.dmg` to David.
+> **Note:** validate the **`.app`**, not the `.dmg`. With this electron-builder path the
+> `.app` inside is notarized **and stapled**, but the `.dmg` container itself is *not*
+> stapled — that's expected and fine (Gatekeeper approves because the app within is). So
+> `stapler validate` on the `.dmg` will fail; that's not a problem. (Confirmed shipping
+> v0.1.0 this way.)
+
+If the three checks above pass, double-clicking the `.dmg` and dragging **notes** to
+Applications gives a clean install with no Gatekeeper warning. Hand the `.dmg` to David.
 
 ## A5. Turn on silent auto-update
 
