@@ -9,6 +9,7 @@ import { getNotifPrefs } from "@/lib/notif-prefs";
 
 const MORNING_ID = 1;
 const EVENING_ID = 2;
+const TEST_ID = 99;
 
 function parseHM(hhmm: string): { hour: number; minute: number } {
   const [h, m] = hhmm.split(":");
@@ -59,6 +60,28 @@ export async function rescheduleNotifications(sb: DB): Promise<void> {
         title: "notes",
         body: await eveningBody(sb),
         schedule: { on: { hour: e.hour, minute: e.minute }, allowWhileIdle: true },
+      },
+    ],
+  });
+}
+
+export async function scheduleTestNotification(): Promise<void> {
+  const perm = await LocalNotifications.requestPermissions();
+  if (perm.display !== "granted") throw new Error("notification permission denied");
+
+  try {
+    await LocalNotifications.cancel({ notifications: [{ id: TEST_ID }] });
+  } catch {
+    // nothing scheduled yet — fine
+  }
+
+  await LocalNotifications.schedule({
+    notifications: [
+      {
+        id: TEST_ID,
+        title: "notes",
+        body: "test notification",
+        schedule: { at: new Date(Date.now() + 10_000), allowWhileIdle: true },
       },
     ],
   });

@@ -23,6 +23,8 @@ function isNative(): boolean {
 export function NotificationsSection() {
   const [native, setNative] = useState(false);
   const [prefs, setPrefs] = useState<NotifPrefs>(DEFAULT_NOTIF_PREFS);
+  const [testing, setTesting] = useState(false);
+  const [testMsg, setTestMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
 
   useEffect(() => {
     // Read client-only state (Capacitor presence + localStorage) AFTER mount, so the first
@@ -44,6 +46,19 @@ export function NotificationsSection() {
     void import("@/lib/native/notifications")
       .then((m) => m.rescheduleNotifications(createClient()))
       .catch(() => {});
+  }
+
+  async function sendTest() {
+    setTesting(true);
+    setTestMsg(null);
+    try {
+      await import("@/lib/native/notifications").then((m) => m.scheduleTestNotification());
+      setTestMsg({ kind: "ok", text: "test sent" });
+    } catch {
+      setTestMsg({ kind: "err", text: "test failed" });
+    } finally {
+      setTesting(false);
+    }
   }
 
   return (
@@ -88,6 +103,26 @@ export function NotificationsSection() {
       <p className="mt-2.5 text-[13px] font-bold lowercase text-ink-3">
         two gentle reminders a day on this device.
       </p>
+
+      <div className="mt-3 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={sendTest}
+          disabled={testing}
+          className="rounded-lg bg-accent px-4 py-2 text-[14px] font-extrabold lowercase text-white disabled:opacity-60"
+        >
+          {testing ? "sending…" : "send test"}
+        </button>
+        {testMsg && (
+          <p
+            className={`text-[13px] font-bold lowercase ${
+              testMsg.kind === "ok" ? "text-accent" : "text-red-500"
+            }`}
+          >
+            {testMsg.text}
+          </p>
+        )}
+      </div>
     </section>
   );
 }
