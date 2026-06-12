@@ -428,6 +428,16 @@ and exited, so editing-then-Enter did nothing — the reported bug. New rows alw
 the bottom (consistent with `+` and the forward-only add model #017), not inserted mid-list.
 Verified end-to-end. `docs/spec.md` §3 updated (FROZEN change via this entry + David's ask).
 
+**#121 — Second triage of the optional backlog (David).**
+Of the not-yet-built optional items, David **keeps interest** in: **lock-screen widget**,
+**TestFlight/App Store** distribution, a **push server for exact-time notification counts**
+(replacing today's best-effort reschedule, #119), and a **richer end-of-day summary**
+(beyond the current "N left" evening notif). **Declined:** interactive widget check-off,
+**medium/large** home-screen widgets, and **Android**. **Why:** focus future effort on the
+few things David actually wants; keep scope tight (#002/#003). Adds to the firm declines in
+#115. None are scheduled yet — this just prunes the candidate list. *(Separately,
+**song-of-the-day** — a per-day logged song, #119-adjacent — is in design; placement TBD.)*
+
 **#120 — Widget session bridge: App Group via Preferences; app owns tokens, widget fetches live.**
 The WidgetKit extension can't read the WebView's session, so the web app (only when running
 in the native shell) writes one JSON blob to a shared **App Group**
