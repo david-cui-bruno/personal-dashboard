@@ -21,8 +21,10 @@
   the folded-page **app icon**
   (#117), the desktop app **signed + notarized + released as v0.1.0** with silent
   auto-update (#118), **Today-screen latency** cut to one `today_summary` RPC + cache + lazy
-  TipTap (#122), and **song of the day** (#123/#124). Cloud migrations **0001–0006** are all
-  pushed; everything above is **live in prod**.
+  TipTap (#122), and **song of the day** — log a song per day via **inline Spotify search**
+  (#123/#124/#125) or **"from your spotify"** recently-played (OAuth, #126). Cloud migrations
+  **0001–0007** are all pushed; everything above is **live in prod**. *(One-time: connect
+  Spotify once via the web/iOS app to enable "from your spotify".)*
 - **Trunk:** `main` (this is what's deployed). Build is green; auth + RLS verified.
   Photos + export are **live in prod** (deployed 2026-06-11); the desktop shell ships
   separately as a signed `.dmg` on **GitHub Releases** (v0.1.0; not part of the web deploy).
