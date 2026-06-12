@@ -38,11 +38,10 @@ See `docs/architecture.md` for deploy details.
 
 ## explicitly deferred (post-V1)
 
-- Native **mobile** shell via **Capacitor** (#113): **scaffolded** in `mobile/`
-  (hosted-URL); **iOS verified in the simulator**. The home-screen **widget** + daily
-  **notifications** are now **designed** (#119, `docs/widget-and-notifications.md`):
-  Phase 1 (web/data foundations) in progress — `quotes.ts` done; Phases 2–3 (WidgetKit +
-  Capacitor local-notifications) are native (need Xcode). Plus optional TestFlight/App Store.
+- Native **mobile** shell via **Capacitor** (#113): **shipped on iOS** — the home-screen
+  **widget** + daily **notifications** (#119, `docs/widget-and-notifications.md`) are
+  running on David's device (Phases 1–3 all done). Remaining/optional: interactive widget
+  check-off, medium/large widgets, Android, TestFlight/App Store.
   *(Desktop is covered by Electron, #110.)*
 - ~~Code signing + notarization for the desktop `.dmg`~~ — **done** (#118): signed Developer
   ID build, notarized, released v0.1.0; silent auto-update enabled.

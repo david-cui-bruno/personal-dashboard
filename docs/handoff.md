@@ -17,7 +17,8 @@
   **photos verified end-to-end** (+ Today journal now accepts images), **manual data
   export** in Settings (#109), an **Electron desktop app** in `desktop/` (#110) with
   auto-update (#112), the Notes-stream spec amended to the shipped behavior (#111), a
-  **Capacitor mobile shell scaffolded** in `mobile/` (#113), the folded-page **app icon**
+  **Capacitor iOS app shipped** with a home-screen **widget + daily notifications** (#113/#119),
+  the folded-page **app icon**
   (#117), and the desktop app **signed + notarized + released as v0.1.0** with silent
   auto-update (#118).
 - **Trunk:** `main` (this is what's deployed). Build is green; auth + RLS verified.
@@ -43,8 +44,8 @@
 
 Next.js 16 (App Router) + React 19 · Tailwind 4 (`@theme` in `globals.css`) · TypeScript ·
 Supabase (Postgres + Auth + Storage) · TipTap (rich text) · Lucide · Lato · PWA · an
-**Electron** desktop shell (`desktop/`, #110) · a **Capacitor** mobile shell scaffolded
-(`mobile/`, #113). Details + rationale: `docs/architecture.md` (and decisions #080–#086,
+**Electron** desktop shell (`desktop/`, #110) · a **Capacitor** iOS app with a home-screen
+widget + notifications (`mobile/`, #113/#119). Details + rationale: `docs/architecture.md` (and decisions #080–#086,
 #110, #113).
 
 ## 3. Repo map
@@ -133,12 +134,12 @@ runbook is `docs/ship-desktop-and-ios.md`. Quick ref: `desktop/README.md`.
 
 ### 4b. Mobile app (Capacitor, #113)
 
-`mobile/` is **scaffolded** — same hosted-URL idea (WebView → live site). Native build
-needs full **Xcode** / **Android Studio** + an **Apple Developer account** (#086), not
-installed here. Once they are: `cd mobile && npm install && npm run add:ios` (or
-`add:android`) → `npm run sync` → `npm run open:ios`. Generated `ios/`/`android/` are
-git-ignored until you're building them. The widget + rich notifications (#082/#090) are
-further native work. Step-by-step setup (incl. signing on device) is in
+`mobile/` is **shipped on iOS** — same hosted-URL idea (WebView → live site), now running
+on David's device with the home-screen **widget** + daily **notifications** (#119). The
+native iOS project is generated locally and **git-ignored** (regenerate with
+`cd mobile && npm install && npm run add:ios && npm run sync && npm run open:ios`; needs
+Xcode + an Apple account, #086). The widget Swift + session bridge + notif scheduling are
+in the repo (`mobile/`, `src/lib/native/`). Step-by-step setup (incl. signing on device) is in
 `docs/ship-desktop-and-ios.md`; quick ref: `mobile/README.md`.
 
 ## 5. Data model & the load-bearing rules
@@ -200,13 +201,14 @@ verified) → RLS → deploy. Anything used by 2+ slices lives in Phase 0.
 
 ## 9. What's next (deferred — `docs/roadmap.md`)
 
-Capacitor mobile shell **scaffolded** (`mobile/`, #113); iOS verified in the **simulator** —
-remaining: the home-screen **widget** + rich **notifications** (#082/#090), and optional
-TestFlight/App Store · **end-of-day summary as a notification** (rides on Capacitor
-notifications). *(Desktop signing + notarization + silent auto-update is **done** — v0.1.0
-shipped, #118.)* The post-V1 backlog was triaged (#115): **declined** — mood, "on this day",
-weekly/non-daily items, fixed home-timezone, offline mode, custom domain. **Browse-by-date**
-shipped as date-aware Notes search (#116), not a calendar.
+Capacitor mobile shell **shipped on iOS** (`mobile/`, #113) — the home-screen **widget** +
+daily **notifications** (#119) run on David's device (Phases 1–3 done). The post-V1 roadmap
+is essentially complete. Remaining/optional only: interactive widget check-off, medium/large
+widgets, Android, TestFlight/App Store · the agreed **move of the Supabase project** out of
+the Framewise Health work org (#086). *(Desktop signing + notarization + silent auto-update
+is **done** — v0.1.0 shipped, #118.)* The post-V1 backlog was triaged (#115): **declined** —
+mood, "on this day", weekly/non-daily items, fixed home-timezone, offline mode, custom domain.
+**Browse-by-date** shipped as date-aware Notes search (#116), not a calendar.
 
 ## 10. Verifying a change
 
