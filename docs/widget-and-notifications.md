@@ -109,11 +109,16 @@ no API. Used by the widget's all-done state (and available to the app if we ever
 
 ## build plan (phased)
 
-**Phase 1 — web/data foundations (no Xcode, verifiable here).**
-- [x] `src/lib/quotes.ts` + `quoteForDay()` (done).
-- [ ] `widget_summary()` migration + a `getWidgetSummary()` in the data layer (also lets the
-      app show "focus" if we want). *Schema add → coordinate on the shared DB (data-model rules).*
-- [ ] Notification **preferences** (times + on/off) in Settings, stored device-local.
+**Phase 1 — web/data foundations (no Xcode, verifiable here).** ✅ done
+- [x] `src/lib/quotes.ts` + `quoteForDay()`.
+- [x] `widget_summary(p_day)` Postgres function (migration `0004`) + `getWidgetSummary()`
+      in the data layer; DB types regenerated. Verified: authenticated call returns
+      `{done,total,focus}`; anon execute revoked (#108). **Still to do before the widget
+      ships: `supabase db push` this migration to the cloud (Phase 2 deploy step).**
+- [x] `src/lib/notif-prefs.ts` — device-local notification prefs (enabled + morning/evening
+      times) with safe defaults/validation. *The Settings **UI** for these moves to Phase 3*
+      (it's native-only — times are device-local and only act in the iOS shell, so the
+      control is gated to the native app where it can be tested with the scheduler).
 
 **Phase 2 — native widget (needs Xcode + the iOS project, #113).**
 - [ ] Generate `mobile/ios` (`npm run add:ios`).
@@ -125,7 +130,8 @@ no API. Used by the widget's all-done state (and available to the app if we ever
 **Phase 3 — notifications (Capacitor).**
 - [ ] Add `@capacitor/local-notifications`; request permission on first native launch.
 - [ ] Schedule 8am/9pm from prefs; reschedule on app open/background with live counts.
-- [ ] Wire the Settings UI from Phase 1 to the scheduler.
+- [ ] Build the **notifications Settings section** (gated to the native shell) on top of
+      `notif-prefs.ts`, wired to the scheduler.
 
 Phases 2–3 are real **native** work and will be packaged as an assistant/Xcode runbook
 (like `docs/ship-desktop-and-ios.md`) when we reach them. Phase 1 lands in the repo now.

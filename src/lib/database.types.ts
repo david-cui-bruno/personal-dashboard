@@ -205,6 +205,15 @@ export type Database = {
     Functions: {
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      widget_summary: {
+        Args: { p_day: string }
+        Returns: {
+          done: number
+          focus_item_id: string
+          focus_label: string
+          total: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
