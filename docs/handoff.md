@@ -6,30 +6,24 @@
 
 ## 0. TL;DR
 
-**notes** is a private, single-user daily-routine + journal app for David — Day One feel
-(Lato, lowercase, calm), simpler model. **V1 is shipped and live.**
+**notes** is a private, single-user daily-routine + journal app for David — the Day One
+feel (Lato, lowercase, calm) with a simpler model: a **Today** screen (routine checklist +
+today's journal + song of the day) and a **Notes** stream (every day's journal + freeform
+notes), with a consistency heatmap for accountability. **It is shipped and live on web,
+desktop (macOS), and iOS.**
 
-- **Live:** https://notes-framewise-health.vercel.app · login `david` / *(password set at
-  deploy — rotate in Settings; the value is not stored in the repo).*
-- **Latest state:** V1 built by parallel Conductor agents → integrated → RLS-hardened →
-  deployed; since then: iOS-PWA standalone fix, UI polish (grays, sticky sidebar,
-  horizontal mobile chart, routine spacing + smooth Enter-to-add), and a post-V1 batch:
-  **photos verified end-to-end** (+ Today journal now accepts images), **manual data
-  export** in Settings (#109), an **Electron desktop app** in `desktop/` (#110) with
-  auto-update (#112), the Notes-stream spec amended to the shipped behavior (#111), a
-  **Capacitor iOS app shipped** with a home-screen **widget + daily notifications** (#113/#119),
-  the folded-page **app icon**
-  (#117), the desktop app **signed + notarized + released as v0.1.0** with silent
-  auto-update (#118), **Today-screen latency** cut to one `today_summary` RPC + cache + lazy
-  TipTap (#122), and **song of the day** — log a song per day via **inline Spotify search**
-  (#123/#124/#125) or **"from your spotify"** recently-played (OAuth, #126). Cloud migrations
-  **0001–0007** are all pushed; everything above is **live in prod**. *(One-time: connect
-  Spotify once via the web/iOS app to enable "from your spotify".)*
-- **Trunk:** `main` (this is what's deployed). Build is green; auth + RLS verified.
-  Photos + export are **live in prod** (deployed 2026-06-11); the desktop shell ships
-  separately as a signed `.dmg` on **GitHub Releases** (v0.1.0; not part of the web deploy).
-- **Read first:** `docs/product.md` (why), then `docs/spec.md` (what), then this file
-  (how to run/deploy). The full "why" log is `docs/decisions.md` (#001–#116).
+- **Live (web):** https://notes-framewise-health.vercel.app · login `david` / *(password set
+  at deploy; rotate in Settings — not stored in the repo)*.
+- **Desktop:** signed + notarized macOS `.dmg` on GitHub Releases (v0.1.0), silent
+  auto-update. **iOS:** native app on David's device with a home-screen widget + daily
+  notifications.
+- **Trunk:** `main` — what's deployed. Build is green; auth + RLS verified. Cloud DB
+  migrations `0001–0007` are all pushed (Local == Remote).
+- **Read first:** `docs/product.md` (why) → `docs/spec.md` (what, FROZEN) →
+  `docs/data-model.md` (schema, FROZEN) → this file (how to run/ship). Full "why" log:
+  `docs/decisions.md` (#001–#126).
+- **One thing still pending on David:** connect Spotify once (web/iOS) to enable "song of
+  the day → from your listening" (§9). Everything else is done.
 
 ## 1. Infra & accounts
 
@@ -39,117 +33,101 @@
 | Vercel project | `framewise-health/notes` (`prj_P6FDDVBwm4Wsc2iiVFxWoED2iP8B`, team `team_8MuYqSwnO080hLkp2Je4plbK`) |
 | Supabase cloud | project `notes`, ref `vrwzxkxdxusbfdilxbrl`, region **us-east-1**, org **Framewise Health** |
 | Cloud API | `https://vrwzxkxdxusbfdilxbrl.supabase.co` |
+| Spotify app | for song-of-the-day search + OAuth; Client ID `8067c011…`, secret in env (§9) |
 | App login (prod) | `david` (→ `david@notes.local`); password set at deploy — reset in Settings |
 | Local dev login | `david` / `notesdev` (local only, harmless) |
+| Desktop releases | GitHub Releases on `david-cui-bruno/personal-dashboard` (public repo) |
 
-**Where secrets live (none are committed):** prod keys → Vercel project env (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`); local keys → `.env.local` (gitignored, well-known local dev keys); cloud DB password → Supabase dashboard. More operational detail + gotchas live in the `deployment` memory.
+**Env vars (none committed):**
+- **Vercel project env (prod):** `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+  `SUPABASE_SERVICE_ROLE_KEY`, `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`,
+  `SPOTIFY_REDIRECT_URI` (= `https://notes-framewise-health.vercel.app/api/spotify/callback`).
+- **Local `.env.local`** (gitignored, auto-copied into every Conductor workspace): local
+  Supabase URL + well-known dev keys + the same `SPOTIFY_*` (redirect uri =
+  `http://127.0.0.1:3000/api/spotify/callback`).
+- Cloud DB password → Supabase dashboard. More operational detail in the `deployment` memory.
 
 ## 2. Stack
 
 Next.js 16 (App Router) + React 19 · Tailwind 4 (`@theme` in `globals.css`) · TypeScript ·
-Supabase (Postgres + Auth + Storage) · TipTap (rich text) · Lucide · Lato · PWA · an
-**Electron** desktop shell (`desktop/`, #110) · a **Capacitor** iOS app with a home-screen
-widget + notifications (`mobile/`, #113/#119). Details + rationale: `docs/architecture.md` (and decisions #080–#086,
-#110, #113).
+Supabase (Postgres + Auth + Storage + RPCs) · TipTap (rich text, lazy-loaded) · Lucide ·
+Lato · PWA. Plus two thin **hosted-URL native shells** that load the same web app:
+**Electron** desktop (`desktop/`) and **Capacitor** iOS (`mobile/`). Rationale:
+`docs/architecture.md` + decisions #080–#086, #110, #113.
 
-## 3. Repo map
+## 3. Feature map (the product surface)
+
+- **Today (`/`)** — date title · **daily routine** (inline add/rename/reorder/check; Enter
+  on any row opens a new one, #120) · **song of the day** (§9) · **today's journal** (inline
+  TipTap, autosave) · consistency chart (mobile). One `today_summary` RPC loads it all (§11).
+- **Notes (`/notes`, `/notes/[id|YYYY-MM-DD]`)** — reverse-chron stream of every day's
+  journal + freeform notes back to the earliest journal/note/**song** (#111/#124); per-entry
+  editor with inline **photos** (#050); a song day shows a `♪ title — artist` line. In-list
+  search also **jumps to a date** (type "june 3", #116).
+- **Search (⌘K)** — full-text over journals/notes + jump-to-date / new note (#040).
+- **Settings (`/settings`)** — appearance (accent/theme/font, #063) · **data → export**
+  (JSON, + a `.zip` with photo files when present, #109/#114) · **notifications**
+  (native-only: 8am/9pm toggle + times, #119).
+- **Consistency heatmap** — fixed ~3-month window, shaded by % done (#020/#102).
+- **Desktop app** — the web app in an Electron window (§7).
+- **iOS app** — the web app in a Capacitor WebView + a native **home-screen widget**
+  (ring + "X/N left" + weakest-habit focus + quote) and **2 daily notifications** (§8).
+
+## 4. Repo map
 
 ```
-AGENTS.md / CLAUDE.md     the 5 anti-drift rules + doc index (read first)
-docs/                     the contract — see the table in AGENTS.md
-  product/spec/data-model FROZEN: goal / behavior / schema
-  architecture/design     living: stack+deploy / tokens+screens
-  decisions.md            append-only "why" log (#001–#116)
-  roadmap.md / phase-1.md  status + the parallel-slice briefs
-  handoff.md              this file
-mockups/index.html        interactive visual reference
-supabase/migrations/      0001_init (schema) · 0002_storage (photos bucket) · 0003_rls
-desktop/                  Electron desktop shell (#110) — self-contained, npm not pnpm;
-                          main.js (hosted-URL window) · updater.js (#112) · build/icon.png
-mobile/                   Capacitor mobile shell (#113) — self-contained, npm not pnpm;
-                          capacitor.config.json (hosted-URL) · www/ fallback · README.md
+AGENTS.md / CLAUDE.md      the 5 anti-drift rules + doc index (read first)
+docs/
+  product / spec / data-model   FROZEN: goal / behavior / schema
+  architecture / design         living: stack+deploy / tokens+screens
+  decisions.md                  append-only "why" log (#001–#126)
+  roadmap.md / phase-1.md       status + parallel-slice briefs
+  widget-and-notifications.md   the iOS widget + notifications design (#119)
+  ship-desktop-and-ios.md       signing/notarize/release + iOS Xcode runbook
+  notifications-phase3-runbook.md   iOS notifications wiring
+  handoff.md                    this file
+mockups/index.html         interactive visual reference
+supabase/migrations/       0001_init · 0002_storage · 0003_rls · 0004_widget_summary
+                           · 0005_today_summary · 0006_daily_song · 0007_spotify_auth
+desktop/                   Electron shell (#110) — self-contained, npm not pnpm.
+                           main.js (hosted-URL window) · updater.js (auto-update, #112)
+                           · build/{icon.png, entitlements.mac.plist} · README.md
+mobile/                    Capacitor iOS shell (#113) — self-contained, npm not pnpm.
+                           capacitor.config.json · www/ fallback · README.md
+                           (generated ios/ is git-ignored)
+.github/workflows/         desktop-release.yml (tag desktop-v* → build/sign/notarize/publish)
 src/
-  proxy.ts                auth gate (Next 16 renamed middleware→proxy); PWA assets excluded
-  middleware? -> NONE      (do not re-add; it's proxy.ts now)
-  lib/supabase/            client.ts (browser) · server.ts · middleware.ts (updateSession)
-  lib/data/                THE DATA-ACCESS LAYER (the seam) — routine, consistency, journal,
-                           notes, settings, search, attachments, export, types. UI calls
-                           these; it never hits Supabase tables directly or changes the schema.
-  lib/database.types.ts    generated types (regen: supabase gen types typescript --local)
+  proxy.ts                 auth gate (Next 16 renamed middleware→proxy); PWA assets excluded
+  lib/supabase/            client.ts (browser) · server.ts (route handlers) · middleware.ts
+  lib/data/                THE DATA-ACCESS LAYER (the seam, docs/data-model.md). UI calls
+                           these only — never hits tables directly:
+                           routine · consistency · journal · notes · settings · search
+                           · attachments · export · today (today_summary RPC + cache)
+                           · song (daily_song) · widget (widget_summary RPC) · types
+  lib/native/              native-shell glue (runs only in Capacitor): index.ts (initNative)
+                           · widget-bridge.ts (App Group payload) · notifications.ts (local)
+  lib/notif-prefs.ts       device-local notification prefs
+  lib/quotes.ts            curated daily quote (widget all-done state, #119)
+  lib/zip.ts               dependency-free store-zip (export with photos, #114)
+  lib/database.types.ts    generated DB types (regen caveat in §12)
   lib/date.ts              local-day helpers (today/eachDay/daysBefore)
-  app/                     (app)/ route group = shell + / (today), /notes, /notes/[id],
-                           /settings ; /sign-in is outside the shell
-  app/layout.tsx           root: Lato, ThemeScript (no-FOUC), PWA metadata, SW registration
+  app/(app)/               shell + / (today) · /notes · /notes/[id] · /settings
+  app/sign-in/             outside the shell
+  app/api/song/search/     Spotify search (Client Credentials, #125)
+  app/api/spotify/         login · callback · recent (OAuth "from your listening", #126)
   components/
-    app-frame.tsx          the shell: sticky sidebar (web) + bottom nav (mobile)
-    consistency-chart.tsx  heatmap; `orientation` prop (vertical sidebar / horizontal mobile)
-    editor.tsx             shared TipTap editor (no toolbar; markdown input; image paste)
-    theme-script.tsx       applies theme/accent/font before paint
-    ui/ today/ notes/ settings/ search/   the per-slice UIs
-public/                    manifest.webmanifest, icons, sw.js
+    app-frame · consistency-chart · editor (TipTap) · theme-script · native-bridge
+    song-of-day.tsx        the song bar (search + "from your spotify")
+    ui/ today/ notes/ settings/ search/   per-slice UIs
+public/                    manifest.webmanifest, icons (folded-page mark #117), sw.js
 ```
-
-## 4. Local dev runbook
-
-Prereqs: Docker Desktop running, Supabase CLI, pnpm, Node.
-
-1. `supabase start` — boots local Postgres/Auth/Storage in Docker. **Ports are remapped to
-   544xx** (api 54421, db 54422, studio 54423) in `supabase/config.toml` so it coexists
-   with other local Supabase projects. First run pulls images (a few min).
-2. `.env.local` already points at the local instance and is auto-copied into every
-   Conductor workspace (`file_include_globs = ".env*"`). If missing, derive from
-   `supabase status -o env`.
-3. `pnpm dev` (port floats: 3000, else 3001… — check the log's `Local:` line).
-4. Sign in `david` / `notesdev` (pre-seeded). Migrations applied on `supabase start`;
-   `supabase db reset` re-applies from scratch (wipes local data).
-5. Regenerate DB types after a schema change: `supabase gen types typescript --local >
-   src/lib/database.types.ts`.
-
-**Gotchas:** the local Supabase Postgres is **shared across all Conductor workspaces**
-(`docs/data-model.md`) — never run conflicting migrations in parallel, and make any
-browser test self-restoring (round-trip toggles, delete rows you create). Browser
-verification uses **Python** Playwright — see the `browser-verification` memory.
-
-### 4a. Desktop app (Electron, #110)
-
-`desktop/` is a **self-contained** package — use **`npm`, not `pnpm`**, and it's outside
-the Next app's lint/build surface. It's a hosted-URL wrapper (same idea as the mobile
-Capacitor plan): the window just points at a running copy of the web app.
-
-```bash
-# terminal 1 (repo root): the web app
-pnpm dev
-# terminal 2:
-cd desktop && npm install   # first time (downloads Electron)
-npm start                   # window → http://localhost:3000
-npm run smoke               # boots, prints "[smoke] loaded … ok", quits
-npm run dist                # → desktop/dist/notes-<ver>.dmg (loads production)
-npm run dist:dir            # → desktop/dist/mac-arm64/notes.app (unpacked, faster)
-```
-
-URL precedence: `APP_URL` env → `localhost:3000` (unpackaged) → Vercel prod (packaged).
-Builds are now **signed + notarized** (Developer ID) and released to GitHub Releases as
-**v0.1.0** (#118) — a normal double-click install. To cut a release: `git tag desktop-v*`
-→ the `desktop-release` Action signs/notarizes/publishes (or local `npm run dist:signed`
-with `APPLE_*` env). **Auto-update (#112):** `updater.js` checks GitHub Releases
-on launch and (now that builds are signed, #118) **silently downloads + installs**
-(`SILENT_INSTALL = true`), offering "restart to update." Full signing/notarize/release
-runbook is `docs/ship-desktop-and-ios.md`. Quick ref: `desktop/README.md`.
-
-### 4b. Mobile app (Capacitor, #113)
-
-`mobile/` is **shipped on iOS** — same hosted-URL idea (WebView → live site), now running
-on David's device with the home-screen **widget** + daily **notifications** (#119). The
-native iOS project is generated locally and **git-ignored** (regenerate with
-`cd mobile && npm install && npm run add:ios && npm run sync && npm run open:ios`; needs
-Xcode + an Apple account, #086). The widget Swift + session bridge + notif scheduling are
-in the repo (`mobile/`, `src/lib/native/`). Step-by-step setup (incl. signing on device) is in
-`docs/ship-desktop-and-ios.md`; quick ref: `mobile/README.md`.
 
 ## 5. Data model & the load-bearing rules
 
-Six tables (`routine_item`, `completion`, `journal`, `note`, `attachment`, `settings`) —
-full schema in `docs/data-model.md`. The rules to not break:
+**8 tables** + **2 RPCs** + 1 storage bucket — full schema in `docs/data-model.md` (FROZEN):
+`routine_item`, `completion`, `journal`, `note`, `attachment`, `settings`, `daily_song`
+(#123), `spotify_auth` (#126); RPCs `widget_summary` (#119) + `today_summary` (#122);
+Storage bucket `attachments` (public, #103). Rules that must not break:
 
 - **History integrity (#016):** the routine is a *template*; a day's checklist = items
   **active that day** (`created_on ≤ day AND (archived_on IS NULL OR archived_on > day)`).
@@ -157,66 +135,171 @@ full schema in `docs/data-model.md`. The rules to not break:
 - **Consistency (#020/#022):** per-day % = completions ÷ active-items-that-day; a day with
   items but no completions = 0%; days before any item existed don't count.
 - **RLS (#108):** every table is locked to the `authenticated` role; the anon key is inert
-  without a login. Don't disable this on a public deploy.
+  without a login. Both RPCs are `security invoker` (RLS applies) + granted to authenticated
+  only. Don't disable this on a public deploy. Spotify tokens (`spotify_auth`) are
+  server-read only — never sent to the browser.
 
-## 6. Deploy runbook
+## 6. Local dev runbook
 
-The app talks to Supabase over HTTPS, so deploying is: push migrations to cloud, set
-Vercel env, deploy. Redeploy with `vercel --prod`. **Two gotchas that cost time:**
+Prereqs: Docker Desktop, Supabase CLI, pnpm, Node.
 
-- **`supabase db push` fails over IPv6 on an IPv4-only network.** Use the session pooler,
-  and this project is on **`aws-1-us-east-1.pooler.supabase.com`** (NOT aws-0 — Supavisor
-  says "tenant not found" on the wrong node). Port 5432, user `postgres.<ref>`.
-- **Vercel 401 on every route** = the Framewise Health team's **Deployment Protection**
-  (Vercel Authentication). It was disabled for this project via the API
-  (`PATCH /v9/projects/<id>` `ssoProtection:null`). If a redeploy 401s site-wide, it got
-  re-enabled.
+1. `supabase start` — boots Postgres/Auth/Storage in Docker. **Ports remapped to 544xx**
+   (api 54421, db 54422, studio 54423) in `supabase/config.toml`. First run pulls images.
+2. `.env.local` already points at local + is auto-copied into every workspace. If missing,
+   derive from `supabase status -o env` (and add the `SPOTIFY_*` vars, §9).
+3. `pnpm dev` (port floats: 3000, else 3001… — check the log's `Local:` line).
+4. Sign in `david` / `notesdev`. Migrations apply on `supabase start`; `supabase db reset`
+   re-applies from scratch (wipes local data).
+5. After a schema change, regenerate types — but **verify the output** (§12 gotcha):
+   `supabase gen types typescript --local > src/lib/database.types.ts`.
 
-Full first-deploy steps and IDs are in the `deployment` memory.
+**Shared local DB:** the local Postgres is **shared across all Conductor workspaces** — never
+run conflicting migrations in parallel, and make browser tests **self-restoring** (round-trip
+toggles, delete rows you create). Browser verification uses **Python Playwright** — see the
+`browser-verification` memory.
 
-## 7. How it was built (Conductor)
+## 7. Desktop app (Electron, #110/#112/#118)
 
-`docs/roadmap.md` has the status; `docs/phase-1.md` has the per-slice briefs. In short:
-**Phase 0** = one sequential foundation PR (scaffold, schema, data-access layer, design
-system, shell, auth, shared editor) → merged to `main`. **Phase 1** = 5 parallel
-workspaces off `main` (today · notes · settings · search · pwa), each owning its files
-with two pre-assigned shared-file edits to avoid conflicts → integrated locally (build
-verified) → RLS → deploy. Anything used by 2+ slices lives in Phase 0.
+`desktop/` is **self-contained** — use **`npm`, not `pnpm`**; it's outside the Next
+lint/build surface. A hosted-URL wrapper (window → the running web app).
 
-## 8. Known issues / watch-list
+```bash
+# dev: terminal 1 → pnpm dev ; terminal 2:
+cd desktop && npm install
+npm start          # window → http://localhost:3000
+npm run smoke      # boots, prints "[smoke] loaded … ok", quits
+npm run dist       # signed+notarized .dmg (needs APPLE_* env, see runbook)
+```
 
-- **Notes stream vs #100:** ✅ **resolved** — amended to the shipped behavior (#111): the
-  stream runs from today back to the **earliest journal/note** (empty days inside that range
-  show `empty · tap to write`); days before any content don't appear. `spec.md` updated.
-- **Photos (#050):** ✅ **verified** end-to-end (drop → storage `200` → public-URL `<img>`
-  renders, no console errors) and the inline **Today journal now accepts images** too
-  (previously only the `/notes/[id]` editor did). Repro: Python Playwright — sign in, open a
-  note, dispatch a `drop` event carrying an image `File` onto `.notes-editor`.
-- **Backups (#085):** ✅ Supabase **daily DB backups confirmed running** (Pro plan,
-  automatic — verified from the dashboard). They **exclude Storage objects**, so the manual
-  **export** now bundles the photo files too (`.zip`, #114) — that's the only off-Supabase
-  copy of the image bytes. So: DB auto-backed-up; photos covered by export.
-- **Cost:** the project lives in a *paid* Supabase org (Framewise Health) → ~$10/mo, and
-  it's a work org (data-governance note for a personal journal). See #086.
+URL precedence: `APP_URL` env → `localhost:3000` (unpackaged) → Vercel prod (packaged).
+Builds are **signed + notarized** (Developer ID) and on **GitHub Releases** (v0.1.0).
+**Cut a release:** `git tag desktop-v0.x.y && git push origin desktop-v0.x.y` → the
+`desktop-release` Action signs/notarizes/publishes (repo secrets `MAC_CSC_*`, `APPLE_*`).
+**Auto-update (#112):** `updater.js`, `SILENT_INSTALL = true` → background download +
+restart-to-apply. Full runbook: `docs/ship-desktop-and-ios.md`; quick ref `desktop/README.md`.
+
+## 8. iOS app (Capacitor, #113) + widget + notifications (#119)
+
+`mobile/` is **self-contained** (`npm`), hosted-URL WebView → the live site. The native
+project is generated locally and **git-ignored**:
+`cd mobile && npm install && npm run add:ios && npm run sync && npm run open:ios` (needs
+Xcode + an Apple account). Runbook: `docs/ship-desktop-and-ios.md`.
+
+- **Home-screen widget** — native WidgetKit; shows a progress ring, "X/N left today", the
+  **weakest-habit** focus (lowest 30-day completion), and an all-done quote. It fetches
+  **live** via the `widget_summary` RPC using the session shared from the app through an
+  **App Group** (`src/lib/native/widget-bridge.ts`).
+- **Notifications** — two/day, local (no server), 8am + 9pm, times configurable in Settings →
+  notifications (native-only section). Rescheduled on launch/auth/foreground so the evening
+  "N left" stays current (`src/lib/native/notifications.ts`). Design:
+  `docs/widget-and-notifications.md`; wiring: `docs/notifications-phase3-runbook.md`.
+
+## 9. Song of the day + Spotify (#123–#126)
+
+One logged song per day, shown atop the daily journal + as a `♪` line on the Notes stream.
+Two ways to set it (no link-pasting):
+
+- **Search (#125):** type → tap a Spotify result (album art). `/api/song/search` uses an
+  app-level **Client Credentials** token (no user login; secret stays server-side).
+- **"from your spotify" (#126):** lists your recently-played / now-playing to tap. Spotify
+  **OAuth** (`/api/spotify/{login,callback,recent}`); tokens stored in `spotify_auth`
+  (server-only). **Requires a one-time "connect" consent.**
+
+**Setup that's already done:** a Spotify app exists; `SPOTIFY_CLIENT_ID/SECRET/REDIRECT_URI`
+are in Vercel env + `.env.local`; redirect URIs registered for both prod + `127.0.0.1:3000`.
+
+**⚠️ Pending + caveats:**
+- David must **connect once** (open the live app → a journal day → add today's song → "from
+  your spotify" → approve). This is also the only flow not yet end-to-end verified (it needs
+  a real Spotify login). If it returns `?spotify=error`, suspect a redirect-URI mismatch.
+- **Do the connect on web or iOS, not the desktop app** — the Electron shell opens off-site
+  links (Spotify's consent page) in the system browser, which breaks the round-trip. The
+  token is stored server-side, so connecting once anywhere enables it everywhere.
+- The Spotify **Client Secret was shared in chat**; it lives only in env now. Rotate in the
+  Spotify dashboard + update the env vars if you ever want to be safe.
+
+## 10. Deploy runbook
+
+The app talks to Supabase over HTTPS, so deploy = push migrations to cloud, ensure Vercel
+env, deploy.
+
+```bash
+supabase db push --linked </dev/null    # applies pending migrations to cloud (see §12)
+vercel --prod                            # deploy (Vercel has the env vars)
+```
+
+- **Migrations + the app are decoupled by design:** new data code (`today_summary`,
+  `daily_song`, `spotify_auth`, the export) **falls back / tolerates a missing table or RPC**,
+  so a Vercel deploy that lands before `db push` degrades gracefully instead of breaking. Push
+  the migration to flip the feature fully on — **no redeploy needed** (the running app detects
+  the new RPC/table).
+- **Vercel 401 on every route** = the Framewise Health team's **Deployment Protection**. It
+  was disabled for this project via API (`PATCH /v9/projects/<id>` `ssoProtection:null`). If a
+  redeploy 401s site-wide, it got re-enabled.
+
+First-deploy steps + IDs are in the `deployment` memory.
+
+## 11. Performance (#122)
+
+The Today screen loads via **one `today_summary(p_from, p_to)` RPC** (routine + completions +
+journal + chart data) instead of ~5 separate selects, behind a **30s in-memory promise cache**
+(`src/lib/data/today.ts`) that de-dupes the routine/journal/chart mounts and makes
+back-navigation instant; writes call `invalidateTodaySummary()`. TipTap is **lazy-loaded** off
+the initial bundle. Measured: Today dropped from ~26 mixed calls → 1 RPC / 0 legacy selects.
+
+## 12. Operational gotchas (hit during this work — save yourself the time)
+
+- **Xcode license breaks `git` & CLI tools.** After Xcode was installed, `xcode-select` points
+  at it; until the license is accepted, anything routed through `xcrun` (incl. `/usr/bin/git`,
+  `gh`, `codesign`) fails with *"You have not agreed to the Xcode license."* Fix: run
+  `sudo xcodebuild -license accept` once. Without sudo, prefix commands with
+  `DEVELOPER_DIR=/Library/Developer/CommandLineTools` (CLT has an accepted license).
+- **`supabase db push --linked </dev/null` JUST WORKS** — non-interactive, **no DB password
+  prompt** (project is linked + CLI authed; the `[Y/n]` defaults to yes on EOF). An agent can
+  push cloud migrations itself. `supabase migration list --linked` shows Local vs Remote. (The
+  old IPv6/`aws-1` pooler note only matters for a raw `--db-url` connection.)
+- **`supabase gen types --local` can be flaky** — it sometimes connects to `:5432` instead of
+  the remapped `:54422` and writes an **empty** file (which `>` then commits). **Always check
+  the output is non-empty before committing.** Reliable fallback: `git checkout HEAD --
+  src/lib/database.types.ts` to restore, then hand-add the new table's `Row/Insert/Update`
+  (the format is simple, mirror an existing table).
+- **Shared local Supabase** across all Conductor workspaces — self-restoring tests only.
+- **Deleting a Storage object** can't be done via psql (a `storage.protect_delete()` trigger
+  blocks it); use the Storage API. See the `browser-verification` memory.
+
+## 13. Known issues / watch-list
+
+- **Photos (#050):** verified end-to-end; works in both the Today journal and the `/notes/…`
+  editor. Image bytes are **not** in Supabase DB backups (those exclude Storage) — the
+  **export `.zip`** (#114) is the off-Supabase copy.
+- **Backups (#085):** Supabase **daily DB backups confirmed running** (Pro plan, automatic).
+- **Song-of-day OAuth not yet exercised live** (needs David's one-time connect, §9).
+- **OAuth doesn't complete inside the Electron desktop shell** (external-link handling) —
+  connect via web/iOS (§9).
+- **Cost (#086):** lives in a *paid* Framewise Health **work** org (~$10/mo) — data-governance
+  oddity for a personal journal; the agreed cleanup is to move it to a personal project.
 - **Optimistic routine add** uses temp ids reconciled on server return; acting on a
   just-added row within ~100ms could error (edge, self-heals on reload).
-- **Hydration:** `<html suppressHydrationWarning>` is intentional (the theme script mutates
-  `<html>` before hydration).
+- **Hydration:** `<html suppressHydrationWarning>` is intentional (theme script runs pre-paint);
+  a couple of components disable `react-hooks/set-state-in-effect` for deliberate post-mount
+  client reads.
 
-## 9. What's next (deferred — `docs/roadmap.md`)
+## 14. What's next (all optional — `docs/roadmap.md`)
 
-Capacitor mobile shell **shipped on iOS** (`mobile/`, #113) — the home-screen **widget** +
-daily **notifications** (#119) run on David's device (Phases 1–3 done). The post-V1 roadmap
-is essentially complete. Remaining/optional only: interactive widget check-off, medium/large
-widgets, Android, TestFlight/App Store · the agreed **move of the Supabase project** out of
-the Framewise Health work org (#086). *(Desktop signing + notarization + silent auto-update
-is **done** — v0.1.0 shipped, #118.)* The post-V1 backlog was triaged (#115): **declined** —
-mood, "on this day", weekly/non-daily items, fixed home-timezone, offline mode, custom domain.
-**Browse-by-date** shipped as date-aware Notes search (#116), not a calendar.
+The post-V1 roadmap is **essentially complete**. Remaining is opt-in:
+- **One action for David:** connect Spotify once (§9).
+- **Parked, David is interested (#121):** lock-screen widget · TestFlight/App Store ·
+  push server for exact-time notification counts · richer end-of-day summary.
+- **Agreed cleanup:** move the Supabase project off the Framewise Health work org (#086).
+- **Declined (#115/#121):** mood · "on this day" · weekly/non-daily items · fixed
+  home-timezone · offline mode · custom domain · interactive widget check-off · medium/large
+  widgets · Android.
 
-## 10. Verifying a change
+## 15. Verifying a change
 
-`pnpm build` (type-checks everything). For behavior, drive the real app with Python
-Playwright (sign in `david`/`notesdev`, exercise the slice, screenshot, watch console
-errors) — pattern in the `browser-verification` memory. Keep tests self-restoring against
-the shared local DB.
+`pnpm build` + `pnpm lint` (type-checks + lints everything; `desktop/` and `mobile/` are
+ignored). For behavior, drive the real app with **Python Playwright** (sign in
+`david`/`notesdev`, exercise the slice, watch console errors) — pattern in the
+`browser-verification` memory. Keep tests self-restoring against the shared local DB. The
+"why" behind any decision is in `docs/decisions.md`; if code and a FROZEN doc disagree, the
+FROZEN doc wins (fix the code, or amend via a new decision + David's sign-off).
