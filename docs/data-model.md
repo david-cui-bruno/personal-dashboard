@@ -86,6 +86,19 @@ signed URL. Table tracks attachments for lifecycle/cleanup (e.g. orphan purge).
 | `font` | text default `'lato'` | `'lato'` \| `'system'` |
 | `updated_at` | timestamptz default now() | |
 
+### `daily_song` — one logged song per day (#123)
+| column | type | notes |
+|---|---|---|
+| `day` | date pk | one song per day (local day) |
+| `url` | text not null | the pasted Spotify / Apple Music link |
+| `title` | text null | best-effort OpenGraph title (`/api/song`) |
+| `artist` | text null | best-effort parsed artist |
+| `art_url` | text null | best-effort cover-art image url |
+| `created_at` / `updated_at` | timestamptz default now() | |
+
+Added post-V1 (migration 0006). Shown atop the journal entry + on the Notes stream;
+metadata is fetched server-side from the link's OG tags, not a music API.
+
 ## search (#040)
 
 - Maintain a `tsvector` (generated column or trigger) over `title` + `content_text` on

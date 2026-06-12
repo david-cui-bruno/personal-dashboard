@@ -12,10 +12,12 @@ import {
   createNote,
   listJournals,
   listNotes,
+  listSongs,
   restoreNote,
   trashNote,
   type Journal,
   type Note,
+  type DailySong,
 } from "@/lib/data";
 import { eachDay, toDayString, today } from "@/lib/date";
 import { parseDate } from "@/components/search/parse-date";
@@ -63,6 +65,7 @@ export function NotesStream() {
   const router = useRouter();
   const [sb] = useState(createClient);
   const [entries, setEntries] = useState<StreamEntry[]>([]);
+  const [songsByDay, setSongsByDay] = useState<Map<string, DailySong>>(new Map());
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [creating, setCreating] = useState(false);
@@ -76,16 +79,18 @@ export function NotesStream() {
 
   useEffect(() => {
     let cancelled = false;
-    fetchStream().then((next) => {
+    // listSongs tolerates a missing daily_song table (deploy before migration 0006).
+    Promise.all([fetchStream(), listSongs(sb).catch(() => [])]).then(([next, songs]) => {
       if (cancelled) return;
       setEntries(next);
+      setSongsByDay(new Map(songs.map((s) => [s.day, s])));
       setLoading(false);
     });
     return () => {
       cancelled = true;
       if (undoTimer.current) clearTimeout(undoTimer.current);
     };
-  }, [fetchStream]);
+  }, [fetchStream, sb]);
 
   async function handleCreate() {
     if (creating) return;
@@ -178,7 +183,12 @@ export function NotesStream() {
         <ul className="-mx-2">
           {shown.map((e) =>
             e.kind === "journal" ? (
-              <JournalRow key={`j-${e.day}`} day={e.day} journal={e.journal} />
+              <JournalRow
+                key={`j-${e.day}`}
+                day={e.day}
+                journal={e.journal}
+                song={songsByDay.get(e.day)}
+              />
             ) : (
               <NoteRow key={`n-${e.note.id}`} note={e.note} onTrash={handleTrash} />
             ),
@@ -201,7 +211,15 @@ export function NotesStream() {
   );
 }
 
-function JournalRow({ day, journal }: { day: string; journal: Journal | null }) {
+function JournalRow({
+  day,
+  journal,
+  song,
+}: {
+  day: string;
+  journal: Journal | null;
+  song?: DailySong;
+}) {
   const text = snippet(journal?.content_text);
   return (
     <li>
@@ -216,6 +234,12 @@ function JournalRow({ day, journal }: { day: string; journal: Journal | null }) 
             <p className="line-clamp-2 text-[14px] leading-snug text-ink">{text}</p>
           ) : (
             <p className="text-[14px] text-ink-3">empty · tap to write</p>
+          )}
+          {song && (
+            <p className="mt-1 truncate text-[12.5px] font-bold lowercase text-ink-3">
+              ♪ {song.title || "song"}
+              {song.artist ? ` — ${song.artist}` : ""}
+            </p>
           )}
         </div>
       </Link>

@@ -16,6 +16,7 @@ import type {
   Note,
   Attachment,
   Settings,
+  DailySong,
 } from "./types";
 
 const BUCKET = "attachments"; // #103
@@ -32,12 +33,13 @@ export type ExportBundle = {
   notes: Note[]; // includes trashed (deleted_at set) so nothing is lost
   attachments: (Attachment & { public_url: string })[];
   settings: Settings | null;
+  daily_songs: DailySong[];
 };
 
 // Reads the whole dataset in parallel. Every table is readable by the
 // authenticated role (#108); the anon key alone returns nothing.
 export async function exportAll(sb: DB): Promise<ExportBundle> {
-  const [routine, completions, journals, notes, attachments, settings] =
+  const [routine, completions, journals, notes, attachments, settings, songs] =
     await Promise.all([
       sb.from("routine_item").select("*").order("sort_order", { ascending: true }),
       sb.from("completion").select("*").order("day", { ascending: true }),
@@ -45,6 +47,7 @@ export async function exportAll(sb: DB): Promise<ExportBundle> {
       sb.from("note").select("*").order("created_at", { ascending: true }),
       sb.from("attachment").select("*").order("created_at", { ascending: true }),
       sb.from("settings").select("*").eq("id", 1).maybeSingle(),
+      sb.from("daily_song").select("*").order("day", { ascending: true }),
     ]);
 
   const firstError =
@@ -55,6 +58,8 @@ export async function exportAll(sb: DB): Promise<ExportBundle> {
     attachments.error ||
     settings.error;
   if (firstError) throw firstError;
+  // daily_song is tolerated separately: if its table isn't deployed yet (#123/0006),
+  // export the rest rather than failing the whole download.
 
   const withUrls = (attachments.data ?? []).map((a) => ({
     ...a,
@@ -72,6 +77,7 @@ export async function exportAll(sb: DB): Promise<ExportBundle> {
     notes: notes.data ?? [],
     attachments: withUrls,
     settings: settings.data ?? null,
+    daily_songs: songs.error ? [] : (songs.data ?? []),
   };
 }
 

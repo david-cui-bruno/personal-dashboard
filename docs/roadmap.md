@@ -46,7 +46,8 @@ See `docs/architecture.md` for deploy details.
   best-effort), and a **richer end-of-day summary**.
 - **Performance:** collapse the per-screen data fetches into a single `today_summary` RPC +
   add a client cache (instant nav) + lazy-load TipTap (latency work, agreed).
-- **Song of the day** (per-day logged song, in design — placement mockups in `.context`).
+- ~~Song of the day~~ — **built** (#123): per-day logged song (paste a Spotify/Apple Music
+  link → cover art + title atop the journal + on the stream). Ships with the migration push.
 - ~~Code signing + notarization for the desktop `.dmg`~~ — **done** (#118): signed Developer
   ID build, notarized, released v0.1.0; silent auto-update enabled.
 - Move the Supabase project out of the paid Framewise Health **work** org to a personal
