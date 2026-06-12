@@ -523,3 +523,26 @@ degrades gracefully when the token's expired/offline. The web bridge is fully **
 web/desktop** (guarded on the native global; nothing imported there). The Next app gains
 `@capacitor/core` + `@capacitor/preferences` deps for this (loaded only in the native shell).
 Wiring runbook: `docs/widget-phase2-runbook.md`.
+
+**#127 — Song plays in-app via Spotify's inline embed, not an external tab (refines #123).**
+The song bar's green play button used to be an `<a href={song.url} target="_blank">` that
+bounced out to `open.spotify.com` (a new Chrome tab). It now toggles **Spotify's sanctioned
+inline embed player** (`https://open.spotify.com/embed/track/{id}`) rendered right under the
+song bar — playback stays inside the app. The iframe is **lazy-mounted only on the first
+play tap** (kept off the initial render so the Today/notes screens stay light) and unmounts
+on collapse (which stops audio). The track id is derived from the stored `daily_song.url`
+(no schema change); the album-art/title still links out to Spotify as a guaranteed
+full-track fallback, and a non-track/non-Spotify url falls back to the old open-in-tab
+button. **Why:** David wanted to hear the song without leaving the app. We use the **static
+embed** (not the iFrame API + a custom button) because it's the most reliable for real
+full-track playback and is honest about the preview fallback — a custom minimalist button
+that silently played a 30s clip would read as broken. **Caveat (hard Spotify limit, not ours
+to fix):** the embed only plays the **full track** when the viewer has a logged-in Spotify
+**Premium** session in that browser; otherwise it plays a **30-second preview**. In practice
+that means full playback on David's web browser (if logged into Spotify there) and
+**preview-only in the iOS Capacitor WebView and the Electron desktop shell** (no Spotify
+session cookie). The compliant full-playback path would be the Web Playback SDK, which itself
+requires a Premium OAuth login + active session — deferred as not worth the surface. Only the
+**song bar** got the inline player; the Notes-stream `♪` line stays a quiet marker (#124) to
+keep the stream calm/scannable. No API key needed (embeds are unauthenticated); no CSP change
+needed (the app sets none). `docs/spec.md` §2 + `docs/handoff.md` §9 updated.
