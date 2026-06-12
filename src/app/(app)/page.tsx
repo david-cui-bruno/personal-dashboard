@@ -32,7 +32,7 @@ export default function Today() {
 
   return (
     <div className="mx-auto max-w-[700px] px-10 pt-14 pb-40">
-      {day && (
+      {day ? (
         <>
           <h1 className="text-[33px] font-black lowercase tracking-tight">
             {formatDayTitle(day)}
@@ -44,7 +44,45 @@ export default function Today() {
           </section>
           <JournalSection day={day} />
         </>
+      ) : (
+        // Rendered on the server and shown during the JS download/hydrate window (and
+        // instantly from the SW shell cache, #129) so a cold start shows the app's
+        // structure immediately instead of a blank page. Replaced once `day` resolves.
+        <TodaySkeleton />
       )}
+    </div>
+  );
+}
+
+function TodaySkeleton() {
+  return (
+    <div aria-hidden className="animate-pulse">
+      {/* date title */}
+      <div className="h-9 w-3/5 rounded-md bg-field" />
+      {/* daily routine */}
+      <div className="mt-7">
+        <div className="h-5 w-32 rounded bg-field" />
+        <div className="mt-4 space-y-4">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex items-center gap-[14px] px-0.5">
+              <div className="h-[22px] w-[22px] shrink-0 rounded-[7px] bg-field" />
+              <div
+                className="h-4 rounded bg-field"
+                style={{ width: `${52 - i * 6}%` }}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* today's journal */}
+      <div className="mt-[46px]">
+        <div className="h-6 w-44 rounded bg-field" />
+        <div className="mt-4 space-y-2.5">
+          <div className="h-4 w-full rounded bg-field" />
+          <div className="h-4 w-11/12 rounded bg-field" />
+          <div className="h-4 w-2/3 rounded bg-field" />
+        </div>
+      </div>
     </div>
   );
 }

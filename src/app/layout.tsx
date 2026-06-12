@@ -7,7 +7,11 @@ import "./globals.css";
 const lato = Lato({
   variable: "--font-lato",
   subsets: ["latin"],
-  weight: ["300", "400", "700", "900"],
+  // 400/700/900 are the weights actually used (no font-light anywhere); dropping 300
+  // saves a webfont file. `swap` + `preload` keep text from blocking first paint (#129).
+  weight: ["400", "700", "900"],
+  display: "swap",
+  preload: true,
 });
 
 // PWA + metadata wiring (slice 5 · pwa). Manifest, icons, and the apple/standalone

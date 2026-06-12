@@ -565,3 +565,29 @@ purpose — HTML5 drag-to-reorder doesn't fire on touch, so showing it on mobile
 affordance (touch reorder is a separate, deferred feature). **Why:** the app is opened mostly
 on the phone; hidden-on-hover controls and a redundant play step made it feel broken there.
 Pure UI — no schema/RPC/contract change. `docs/spec.md` §2 + `docs/handoff.md` §9 updated.
+
+**#129 — Cold-start pack: SW shell cache + server-rendered Today skeleton + font/bundle trims.**
+David reported the app is slow to reach the first screen on his phone. Root cause: the
+iOS/desktop shells load the live site over the network on every launch, and the Today screen
+(`page.tsx`) rendered **nothing** until JS downloaded → hydrated → a `useEffect` resolved the
+local day → data round-trips returned (a long, blank, serial chain). Four pure-perf fixes (no
+schema/RPC/behavior-contract change):
+(1) **SW app-shell cache** — the service worker now serves top-level navigations
+**stale-while-revalidate**: the cached HTML shell paints instantly, then refreshes in the
+background (`public/sw.js`, `SHELL_CACHE` → `v2`). Only same-origin, non-redirected 200s are
+cached, so an expired-session redirect to `/sign-in` is never stored. This stays within the
+"no offline **data**" rule (#084) — we cache the user-agnostic client-rendered shell, never
+journals/notes.
+(2) **Server-rendered Today skeleton** — instead of blanking until the client effect sets the
+day, Today renders a skeleton (date bar + routine rows + journal lines) that ships in the SSR
+HTML and shows during the download/hydrate window (and instantly from the SW cache), replaced
+once the day resolves. No hydration mismatch (server and first client render both show it).
+(3) **Fonts** — Lato drops the unused weight `300` and adds `display:swap` + `preload`
+(`layout.tsx`) so text never blocks first paint.
+(4) **Bundle** — `next.config.ts` sets `experimental.optimizePackageImports` for `lucide-react`
++ the Supabase packages to guarantee barrel tree-shaking.
+**Why:** the app is opened mostly on the phone; perceived cold-start is what makes it feel
+heavy. These target perceived-paint first (1,2,3) and actual bytes second (4). Deferred from
+this pack (need contract/decisions entries): swapping the proxy's `getUser()` for `getSession()`
+(auth #070) and folding `daily_song` into the `today_summary` RPC (FROZEN data-model). Extends
+the #122 performance work. `docs/handoff.md` §11 updated.

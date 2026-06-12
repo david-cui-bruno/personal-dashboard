@@ -21,7 +21,7 @@ desktop (macOS), and iOS.**
   migrations `0001–0007` are all pushed (Local == Remote).
 - **Read first:** `docs/product.md` (why) → `docs/spec.md` (what, FROZEN) →
   `docs/data-model.md` (schema, FROZEN) → this file (how to run/ship). Full "why" log:
-  `docs/decisions.md` (#001–#128).
+  `docs/decisions.md` (#001–#129).
 - **One thing still pending on David:** connect Spotify once (web/iOS) to enable "song of
   the day → from your listening" (§9). Everything else is done.
 
@@ -80,7 +80,7 @@ AGENTS.md / CLAUDE.md      the 5 anti-drift rules + doc index (read first)
 docs/
   product / spec / data-model   FROZEN: goal / behavior / schema
   architecture / design         living: stack+deploy / tokens+screens
-  decisions.md                  append-only "why" log (#001–#128)
+  decisions.md                  append-only "why" log (#001–#129)
   roadmap.md / phase-1.md       status + parallel-slice briefs
   widget-and-notifications.md   the iOS widget + notifications design (#119)
   ship-desktop-and-ios.md       signing/notarize/release + iOS Xcode runbook
@@ -255,6 +255,17 @@ journal + chart data) instead of ~5 separate selects, behind a **30s in-memory p
 (`src/lib/data/today.ts`) that de-dupes the routine/journal/chart mounts and makes
 back-navigation instant; writes call `invalidateTodaySummary()`. TipTap is **lazy-loaded** off
 the initial bundle. Measured: Today dropped from ~26 mixed calls → 1 RPC / 0 legacy selects.
+
+**Cold start (#129):** the iOS/desktop shells load the live site over the network on every
+launch, so perceived first-paint was the pain point. (1) The **service worker** serves
+top-level navigations **stale-while-revalidate** (`public/sw.js`, `SHELL_CACHE` bumped on
+shell-logic changes) — cached HTML paints instantly, refreshes in the background; only
+same-origin non-redirected 200s are cached (an expired-session `/sign-in` redirect is never
+stored), and only the user-agnostic shell is cached, never data (#084). (2) **Today renders a
+server-rendered skeleton** (`app/(app)/page.tsx`) during the JS download/hydrate window instead
+of a blank page. (3) **Lato** drops weight 300 + uses `display:swap`/`preload`. (4)
+`next.config.ts` sets `optimizePackageImports`. Deferred (need a decision/contract change):
+proxy `getUser()`→`getSession()`, and folding `daily_song` into `today_summary`.
 
 ## 12. Operational gotchas (hit during this work — save yourself the time)
 
