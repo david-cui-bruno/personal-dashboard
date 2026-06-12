@@ -117,6 +117,30 @@ export type Database = {
         }
         Relationships: []
       }
+      spotify_auth: {
+        Row: {
+          access_token: string | null
+          expires_at: string | null
+          id: number
+          refresh_token: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_token?: string | null
+          expires_at?: string | null
+          id?: number
+          refresh_token?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string | null
+          expires_at?: string | null
+          id?: number
+          refresh_token?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       journal: {
         Row: {
           content: Json | null

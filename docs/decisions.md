@@ -492,6 +492,21 @@ Credentials avoids any OAuth/login for plain search. Verified end-to-end (query 
 w/ art → pick → save → persist). **B (pull from your Spotify listening, OAuth)** is the
 next build — needs the redirect URI + a one-time login.
 
+**#126 — Song of the day can pull from your Spotify listening (OAuth).**
+Beyond search (#125), the picker has a **"from your spotify"** option: it lists your
+**currently-playing + recently-played** tracks to tap. Implemented with Spotify
+**Authorization Code OAuth** — `/api/spotify/login` (CSRF `state` cookie) → consent →
+`/api/spotify/callback` (exchanges code, stores tokens in `spotify_auth`, one row) →
+`/api/spotify/recent` (refreshes the token if expired, returns recently-played +
+now-playing). Scopes: `user-read-recently-played`, `user-read-currently-playing`. Tokens
+are **server-side only** (never sent to the browser); `spotify_auth` is migration 0007,
+RLS `authenticated` (#108). Redirect URIs: the prod Vercel URL + `http://127.0.0.1:3000`
+(loopback, per Spotify's http rule) — set in the Spotify app + `SPOTIFY_REDIRECT_URI` env.
+**Why:** near-zero daily friction — David sees what he actually listened to and taps it.
+Needs a **one-time "connect" consent**; after that it just works. Verified: login redirect
++ not-connected state + UI; the consent round-trip is David's one click. `data-model.md`
+updated (spotify_auth).
+
 **#120 — Widget session bridge: App Group via Preferences; app owns tokens, widget fetches live.**
 The WidgetKit extension can't read the WebView's session, so the web app (only when running
 in the native shell) writes one JSON blob to a shared **App Group**

@@ -96,8 +96,20 @@ signed URL. Table tracks attachments for lifecycle/cleanup (e.g. orphan purge).
 | `art_url` | text null | best-effort cover-art image url |
 | `created_at` / `updated_at` | timestamptz default now() | |
 
-Added post-V1 (migration 0006). Shown atop the journal entry + on the Notes stream;
-metadata is fetched server-side from the link's OG tags, not a music API.
+Added post-V1 (migration 0006). Shown atop the journal entry + on the Notes stream; the
+song is picked via inline **Spotify search** (#125), so title/artist/art come from the
+chosen track, not link-paste.
+
+### `spotify_auth` — Spotify OAuth tokens (#126)
+| column | type | notes |
+|---|---|---|
+| `id` | int pk default 1 (check id=1) | single row (single-user) |
+| `access_token` / `refresh_token` | text null | server-read only; never sent to client |
+| `expires_at` | timestamptz null | access-token expiry; refreshed on demand |
+| `updated_at` | timestamptz default now() | |
+
+Migration 0007. Powers "song of the day → from your listening" (recently-played /
+now-playing). Authorization Code OAuth via `/api/spotify/{login,callback,recent}`.
 
 ## search (#040)
 
