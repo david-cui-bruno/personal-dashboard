@@ -117,6 +117,80 @@ export type Database = {
         }
         Relationships: []
       }
+      inspo_item: {
+        Row: {
+          board: string
+          created_at: string
+          height: number | null
+          id: string
+          kind: string
+          sort_order: number
+          storage_path: string
+          width: number | null
+        }
+        Insert: {
+          board: string
+          created_at?: string
+          height?: number | null
+          id?: string
+          kind?: string
+          sort_order?: number
+          storage_path: string
+          width?: number | null
+        }
+        Update: {
+          board?: string
+          created_at?: string
+          height?: number | null
+          id?: string
+          kind?: string
+          sort_order?: number
+          storage_path?: string
+          width?: number | null
+        }
+        Relationships: []
+      }
+      inspo_sticky: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          item_id: string
+          rotation: number
+          text: string
+          x: number
+          y: number
+        }
+        Insert: {
+          color: string
+          created_at?: string
+          id?: string
+          item_id: string
+          rotation?: number
+          text?: string
+          x: number
+          y: number
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          item_id?: string
+          rotation?: number
+          text?: string
+          x?: number
+          y?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspo_sticky_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inspo_item"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       journal: {
         Row: {
           content: Json | null

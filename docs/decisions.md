@@ -763,3 +763,18 @@ typing on a roomy canvas and works on mobile. **Scope/contract:** new tab **amen
 under `inspo/`. **Phase 1** = tab + boards + images + holder/stickies + reorder; **Phase 2** =
 video. Full build brief (data model, data layer, components, interactions, verification):
 **`docs/inspo.md`**. Spec/data-model (FROZEN) get the contract when the slice ships.
+
+**#141 — inspo Phase 1a shipped: the tab + image boards (stickies = Phase 1b).**
+Built the foundation from the #140 brief: the **`/inspo`** tab (web sidebar + a **third mobile
+bottom-nav tab** — the #064 amendment is now **live**), the **moodboard/people** segment, a
+**masonry** grid, and **add-by-paste / drag-drop / upload** of images to the `attachments`
+bucket under `inspo/` (downscaled, dims captured for layout). Tap a tile → a lightbox to view
++ delete. Tables `inspo_item` + `inspo_sticky` (migration `0010`, RLS authenticated,
+decouple-safe reads); data layer `src/lib/data/inspo.ts`; UI `src/components/inspo/`. **Scope
+split:** P1a = images + boards (this); **P1b** = the sticky holder + on-image stickies
+(place/type-to-grow/move/delete) into the same lightbox; **P2** = video. The sticky data layer
+(`addSticky` etc.) + the `inspo_sticky` table already landed (unused until P1b). **Why:** ship
+a usable image board first; layer the (harder) sticky interactions next. Verified end-to-end
+(upload → masonry tile + row w/ dims → lightbox → delete → row+object gone; separate boards; no
+errors), self-restoring. `docs/spec.md` §11 + `docs/data-model.md` updated; spec notes stickies
+in progress.

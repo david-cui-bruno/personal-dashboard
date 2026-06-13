@@ -8,6 +8,7 @@ export * from "./journal";
 export * from "./notes";
 export * from "./notes-cache";
 export * from "./pins";
+export * from "./inspo";
 export * from "./settings";
 export * from "./search";
 export * from "./attachments";
