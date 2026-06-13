@@ -653,3 +653,18 @@ then drops it and lets the rows below **glide up** (reuses the #132 FLIP).
 list:** the song-picker cross-fade — the component reuses one root element across states so a
 CSS animation wouldn't replay without a remount key, and the gain was marginal; not worth the
 focus-management risk. Pure UI, no contract change. `docs/handoff.md` updated.
+
+**#134 — Routine reorder drag rewritten to follow the finger (fixes the janky phone feel).**
+The #132 reorder only reordered when the pointer crossed a row midpoint, then FLIP-animated —
+so on touch the held row sat still while your finger moved, then everything jumped, and each
+cross caused a React `setItems` re-render (extra jank on a phone). David: "drag reordering on
+phone is a bit of a mess." Rewrote the gesture to **direct manipulation**: on `pointermove`
+the dragged row tracks the finger 1:1 (`translateY(delta)`, no transition) and the rows
+between source and target slide one slot to **open a gap** (smooth transition) — all via
+**imperative style writes, so there are zero re-renders during the drag**. State changes
+exactly once, on drop, which **FLIP-glides** the row home into its slot (reuses the #132/#133
+FLIP). Row height is read once on grab for the slot math (uniform rows). `touch-none` on the
+grip still prevents the page scrolling mid-drag. **Why:** finger-following is what makes a
+touch reorder feel solid; the old cross-then-jump model felt broken on the phone (David's
+primary device). Same drag primitive will back the pinned-notes reorder (next). Pure UI, no
+contract change. `docs/handoff.md` §3 note still accurate.
