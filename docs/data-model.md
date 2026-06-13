@@ -47,6 +47,7 @@ A row exists **iff** the item was checked that day. Unchecking deletes the row. 
 | `day` | date not null **unique** | |
 | `content` | jsonb | TipTap doc |
 | `content_text` | text | plaintext projection for search/snippets |
+| `pin_order` | int null | position in the Notes "pinned" view; NULL = not pinned (#135) |
 | `updated_at` | timestamptz default now() | |
 
 Materialized **only when first written** — the UI treats every day as having a journal
@@ -62,6 +63,7 @@ or delete the row; both fine) — never a user-facing delete (§5).
 | `content` | jsonb | TipTap doc |
 | `content_text` | text | plaintext projection |
 | `created_at` | timestamptz default now() | sorts the note into the stream |
+| `pin_order` | int null | position in the Notes "pinned" view; NULL = not pinned (#135) |
 | `updated_at` | timestamptz default now() | |
 | `deleted_at` | timestamptz null | soft-delete / trash (~30d, then purge — #034) |
 

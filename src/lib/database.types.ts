@@ -117,30 +117,6 @@ export type Database = {
         }
         Relationships: []
       }
-      spotify_auth: {
-        Row: {
-          access_token: string | null
-          expires_at: string | null
-          id: number
-          refresh_token: string | null
-          updated_at: string
-        }
-        Insert: {
-          access_token?: string | null
-          expires_at?: string | null
-          id?: number
-          refresh_token?: string | null
-          updated_at?: string
-        }
-        Update: {
-          access_token?: string | null
-          expires_at?: string | null
-          id?: number
-          refresh_token?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
       journal: {
         Row: {
           content: Json | null
@@ -148,6 +124,7 @@ export type Database = {
           day: string
           fts: unknown
           id: string
+          pin_order: number | null
           updated_at: string
         }
         Insert: {
@@ -156,6 +133,7 @@ export type Database = {
           day: string
           fts?: unknown
           id?: string
+          pin_order?: number | null
           updated_at?: string
         }
         Update: {
@@ -164,6 +142,7 @@ export type Database = {
           day?: string
           fts?: unknown
           id?: string
+          pin_order?: number | null
           updated_at?: string
         }
         Relationships: []
@@ -176,6 +155,7 @@ export type Database = {
           deleted_at: string | null
           fts: unknown
           id: string
+          pin_order: number | null
           title: string
           updated_at: string
         }
@@ -186,6 +166,7 @@ export type Database = {
           deleted_at?: string | null
           fts?: unknown
           id?: string
+          pin_order?: number | null
           title?: string
           updated_at?: string
         }
@@ -196,6 +177,7 @@ export type Database = {
           deleted_at?: string | null
           fts?: unknown
           id?: string
+          pin_order?: number | null
           title?: string
           updated_at?: string
         }
@@ -248,6 +230,30 @@ export type Database = {
           font?: string
           id?: number
           theme?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      spotify_auth: {
+        Row: {
+          access_token: string | null
+          expires_at: string | null
+          id: number
+          refresh_token: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_token?: string | null
+          expires_at?: string | null
+          id?: number
+          refresh_token?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string | null
+          expires_at?: string | null
+          id?: number
+          refresh_token?: string | null
           updated_at?: string
         }
         Relationships: []

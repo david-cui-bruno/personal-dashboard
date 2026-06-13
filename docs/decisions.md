@@ -668,3 +668,22 @@ grip still prevents the page scrolling mid-drag. **Why:** finger-following is wh
 touch reorder feel solid; the old cross-then-jump model felt broken on the phone (David's
 primary device). Same drag primitive will back the pinned-notes reorder (next). Pure UI, no
 contract change. `docs/handoff.md` §3 note still accurate.
+
+**#135 — Note + journal pinning via a separate "pinned" view (not a top block).**
+David wanted to pin notes but dislikes how Day One/Notion shove a pinned block on top of the
+timeline. Design (all his calls): a header **`all / pinned`** segment on `/notes`; `pinned` is
+a **separate** view of pinned journals **and** freeform notes in a **manual drag-reorderable**
+order; **pinned items stay in the main stream in their normal date position, unmarked** — so
+the timeline is never cluttered. **Pin/unpin lives in the entry header** (a pin toggle), which
+keeps the stream rows free of extra buttons/markers; the pinned view also has a per-row unpin.
+**Schema (migration 0009):** a `pin_order int null` on both `note` and `journal` (NULL =
+unpinned; the int is a single sequence shared across both tables so the view interleaves them).
+Pinning an empty journal day **materializes** its row (upsert sets only day + pin_order, never
+clobbering content). Data layer: `listPinned / pinNote / pinJournal / unpinNote / unpinJournal
+/ reorderPins` (`src/lib/data/pins.ts`); reads tolerate the column being absent
+(deploy-before-migration → empty list). The drag reorder is a reusable **`useDragReorder`**
+hook (`src/components/ui/use-drag-reorder.ts`) — the finger-following + FLIP primitive from
+#134, generalized for variable row heights (snapshots each row's resting center on grab); the
+routine reorder keeps its own inline copy for now (a later cleanup could fold it onto the hook).
+**Why:** pinning that respects the calm, uncluttered stream. Touches the FROZEN spec (§6) +
+data-model — David signed off. `docs/spec.md` §6 + `docs/data-model.md` updated.
