@@ -731,3 +731,17 @@ project is git-ignored, #113), so it isn't compiled in CI — **David builds it 
 accessory views were authored but not Xcode-verified here. The widget-extension deployment
 target must be **≥ iOS 16**. Was a parked-but-wanted item (#121). `mobile/widget/README.md` +
 `docs/widget-and-notifications.md` updated.
+
+**#139 — Connect Spotify from Settings (not just the song picker).**
+Connecting Spotify (#126) was only reachable by tapping "from your spotify" inside the
+song-of-the-day picker — undiscoverable. Added a **Settings → spotify** section (David's
+ask): shows connection status, a green **connect spotify** button, and **disconnect**. To
+land back on Settings after consent, `/api/spotify/login?return=<path>` stashes a same-origin
+return path in a cookie (validated: must start with a single `/` — guards open-redirect) and
+the callback redirects there with `?spotify=connected|error|config`; the section surfaces that
+then strips it from the URL. Two small routes added: **`/api/spotify/status`** (light
+`{connected}` from whether a token row exists — no Spotify API call, unlike `/recent`) and
+**`/api/spotify/disconnect`** (deletes the `spotify_auth` row). Tokens stay server-side; the
+client only ever sees the boolean. The old song-picker entry still works (it just omits
+`return`, defaulting to `/`). **Why:** David wanted to connect from Settings. Pure additive
+(no schema change; reuses `spotify_auth`). `docs/spec.md` §8 + `docs/handoff.md` §9 updated.

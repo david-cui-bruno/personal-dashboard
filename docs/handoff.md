@@ -21,7 +21,7 @@ desktop (macOS), and iOS.**
   migrations `0001–0007` are all pushed (Local == Remote).
 - **Read first:** `docs/product.md` (why) → `docs/spec.md` (what, FROZEN) →
   `docs/data-model.md` (schema, FROZEN) → this file (how to run/ship). Full "why" log:
-  `docs/decisions.md` (#001–#138).
+  `docs/decisions.md` (#001–#139).
 - **One thing still pending on David:** connect Spotify once (web/iOS) to enable "song of
   the day → from your listening" (§9). Everything else is done.
 
@@ -69,7 +69,7 @@ Lato · PWA. Plus two thin **hosted-URL native shells** that load the same web a
 - **Search (⌘K)** — full-text over journals/notes + jump-to-date / new note (#040).
 - **Settings (`/settings`)** — appearance (accent/theme/font, #063) · **data → export**
   (JSON, + a `.zip` with photo files when present, #109/#114) · **notifications**
-  (native-only: 8am/9pm toggle + times, #119).
+  (native-only: 8am/9pm toggle + times, #119) · **spotify connect** (#139).
 - **Consistency heatmap** — fixed ~3-month window, shaded by % done (#020/#102).
 - **Desktop app** — the web app in an Electron window (§7).
 - **iOS app** — the web app in a Capacitor WebView + a native **home-screen widget**
@@ -82,7 +82,7 @@ AGENTS.md / CLAUDE.md      the 5 anti-drift rules + doc index (read first)
 docs/
   product / spec / data-model   FROZEN: goal / behavior / schema
   architecture / design         living: stack+deploy / tokens+screens
-  decisions.md                  append-only "why" log (#001–#138)
+  decisions.md                  append-only "why" log (#001–#139)
   roadmap.md / phase-1.md       status + parallel-slice briefs
   widget-and-notifications.md   the iOS widget + notifications design (#119)
   ship-desktop-and-ios.md       signing/notarize/release + iOS Xcode runbook
@@ -116,7 +116,7 @@ src/
   app/(app)/               shell + / (today) · /notes · /notes/[id] · /settings
   app/sign-in/             outside the shell
   app/api/song/search/     Spotify search (Client Credentials, #125)
-  app/api/spotify/         login · callback · recent (OAuth "from your listening", #126)
+  app/api/spotify/         login · callback · recent · status · disconnect (OAuth + Settings connect, #126/#139)
   components/
     app-frame · consistency-chart · editor (TipTap) · theme-script · native-bridge
     song-of-day.tsx        the song bar (search + "from your spotify")
@@ -198,7 +198,7 @@ Xcode + an Apple account). Runbook: `docs/ship-desktop-and-ios.md`.
   title "your day") in `src/lib/native/notifications.ts`. Design:
   `docs/widget-and-notifications.md`; wiring: `docs/notifications-phase3-runbook.md`.
 
-## 9. Song of the day + Spotify (#123–#128)
+## 9. Song of the day + Spotify (#123–#128, #139)
 
 One logged song per day, shown atop the daily journal + as a `♪` line on the Notes stream.
 Two ways to set it (no link-pasting):
@@ -222,9 +222,10 @@ cookie). No API key / CSP change needed (embeds are unauthenticated; the app set
 are in Vercel env + `.env.local`; redirect URIs registered for both prod + `127.0.0.1:3000`.
 
 **⚠️ Pending + caveats:**
-- David must **connect once** (open the live app → a journal day → add today's song → "from
-  your spotify" → approve). This is also the only flow not yet end-to-end verified (it needs
-  a real Spotify login). If it returns `?spotify=error`, suspect a redirect-URI mismatch.
+- David must **connect once** — easiest path now is **Settings → spotify → connect spotify**
+  (#139); or the song picker's "from your spotify". Either runs the OAuth consent. This is the
+  only flow not yet end-to-end verified (it needs a real Spotify login). If it returns
+  `?spotify=error`, suspect a redirect-URI mismatch.
 - **Do the connect on web or iOS, not the desktop app** — the Electron shell opens off-site
   links (Spotify's consent page) in the system browser, which breaks the round-trip. The
   token is stored server-side, so connecting once anywhere enables it everywhere.

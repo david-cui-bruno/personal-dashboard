@@ -8,7 +8,10 @@ export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
   const state = req.nextUrl.searchParams.get("state");
   const stored = req.cookies.get("spotify_oauth_state")?.value;
-  const home = new URL("/", req.url);
+  // Return to where login started (default "/"); only a same-origin relative path (#139).
+  const ret = req.cookies.get("spotify_return")?.value;
+  const returnPath = ret && ret.startsWith("/") && !ret.startsWith("//") ? ret : "/";
+  const home = new URL(returnPath, req.url);
 
   if (!code || !state || state !== stored) {
     home.searchParams.set("spotify", "error");
@@ -60,5 +63,6 @@ export async function GET(req: NextRequest) {
   home.searchParams.set("spotify", "connected");
   const res = NextResponse.redirect(home);
   res.cookies.delete("spotify_oauth_state");
+  res.cookies.delete("spotify_return");
   return res;
 }

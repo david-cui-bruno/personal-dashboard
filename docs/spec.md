@@ -169,6 +169,9 @@ Today/Notes only (#064).
 
 - **appearance**: accent color (swatches) + light/dark theme + font (lato/system). All
   applied live via CSS variables; persisted in `settings`.
+- **spotify** (#139): connect/disconnect Spotify for "song of the day → from your
+  listening". Shows connection status; **connect** runs the OAuth (#126) and returns to
+  Settings; **disconnect** clears the stored tokens.
 - **account** (#070): username display, change password, sign out. A note that you stay
   signed in on this device.
 - No routine management here — routine is edited inline on Today (#013).
