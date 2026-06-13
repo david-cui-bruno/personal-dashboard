@@ -204,18 +204,17 @@ Today/Notes-only nav #064). A private visual board for collecting inspiration.
 - **Add media** by **paste** (⌘V an image), **drag-drop** files, or the **+** upload button.
   **Images/screenshots** (≤10 MB, downscaled) and **screen recordings / video** (≤50 MB) are
   both supported (#142); **paste is images-only** (clipboards rarely carry video).
-- **Masonry** grid (3 cols web / 2 mobile), newest first, **drag-reorderable** by each tile's
-  grip handle (#145). Tap a tile to **open** it (a lightbox); delete from there. **Video** tiles
-  show a generated **poster** still (#144) + a ▶ badge and **play with controls** in the lightbox;
-  stickies can be placed on a video just like an image.
-- **Sticky notes (Phase 1b, #142):** open an image and place colored stickies
-  (yellow/blue/orange/pink/green) **on it** from a fixed holder. **Drag** a color from the holder
-  onto the image to drop a sticky there; **tap** the sticky to edit (the text grows it
-  downward, saved debounced); **drag** the sticky to reposition (saved on drop); a **✕**
-  deletes it. A sticky left **empty** on blur is discarded, so stray drops don't litter.
-  The holder is docked on the **right (web)** beside the board and the image; **on mobile** it's
-  a strip in the lightbox (the board has no rail — you add stickies inside the opened image).
-  Dragging a holder color onto a **board tile** opens that item with a fresh sticky ready to
-  type. On the board, an item's stickies show as small non-interactive **peeks**. Sticky
-  positions are stored as **x/y fractions** of the image, so they hold at any render size. Full
-  design: `docs/inspo.md` + `mockups/index.html` ("inspo" / "item open").
+- **Masonry** grid (3 cols web / 2 mobile), newest first, **drag-reorderable** (#145/#147):
+  **press-and-hold a tile anywhere and drag** (no handle — long-press on touch so a swipe still
+  scrolls; press-and-move on a mouse); the other tiles ease out of the way. A plain **tap** opens
+  a larger view. **Video** tiles show a generated **poster** still (#144) + a ▶ badge and **play
+  with controls** in the larger view.
+- **Sticky notes (#142, reworked #147):** place colored stickies (yellow/blue/orange/pink/green)
+  **directly on a board tile** — **drag** a color from the holder onto a tile and the note lands
+  there (no zoom). **Click** the note to edit (text grows it downward, saved debounced); **drag**
+  it to reposition (saved on drop); a **✕** deletes it; an **empty** note is discarded on blur.
+  The holder is a fixed rail on the **right (web)**. The larger view (tap a tile) is an optional
+  bigger canvas — and the only place to add stickies **on mobile**, where the board has no rail
+  (its holder is a bottom strip there). Stickies render in both places from the same data; their
+  positions are **x/y fractions** of the media, so they hold at any size. Full design:
+  `docs/inspo.md` + `mockups/index.html`.

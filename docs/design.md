@@ -52,9 +52,13 @@ deliberately "busy" surface; the rest of the app stays calm.
 
 - **Masonry** — 3 columns on web / 2 on mobile, ~14px gap, tiles rounded `14px`, newest-first.
   **JS-positioned** (#146): each tile is packed into the shortest column from its stored aspect
-  ratio and placed absolutely, so reorder is a smooth `transition: transform` glide (drag a tile by
-  its always-visible grip handle; the others ease out of the way). Dimensions come from the stored
+  ratio and placed absolutely, so reorder is a smooth `transition: transform` glide. **Reorder by
+  pressing-and-holding a tile anywhere** and dragging — no handle (#147; long-press on touch,
+  press-and-move on mouse); a plain tap opens the larger view. Dimensions come from stored
   width/height, so columns don't jump as images load.
+- **Stickies on tiles** (#147) — colored notes sit **directly on the tile** in a non-clipped overlay
+  (placed by dragging a holder color onto the tile; click to edit, drag to move, ✕ to delete). No
+  more decorative "peeks"; the tile shows the real notes.
 - **Sticky paper palette** — five fixed hues (paper + ink), **identical in light & dark**
   (paper, not chrome), kept as constants in `src/components/inspo/sticky-colors.ts`:
 
@@ -69,11 +73,11 @@ deliberately "busy" surface; the rest of the app stays calm.
   A note is ~12.5px/700, `border-radius: 3px`, soft drop shadow, a small ±3° tilt; fixed
   ~150px wide and **grows downward** as the text wraps.
 - **The holder / dispenser** — a translucent, blurred dock (`bg-bg/70` + `backdrop-blur`,
-  rounded `16px`) of the 5 colors. Each tab `44×30px`; **hover pops it out**
+  rounded `16px`) of the 5 colors (no label — #147). Each tab `44×30px`; **hover pops it out**
   (`translateX(-13px) scale(1.12) rotate(-4deg)`) to say "grab me". It's **fixed** on the
-  right while the board scrolls (web only); in the lightbox it docks beside the image (a
-  bottom strip on mobile). Drag a color → a `pointer-events:none` ghost follows; drop on the
-  image to place a sticky.
+  right while the board scrolls (web only); in the larger view it docks beside the image (a
+  bottom strip on mobile). Drag a color → a `pointer-events:none` ghost follows; drop on a tile
+  (or the enlarged image) to place a sticky there.
 
 ## chosen variants (from the comparison labs)
 

@@ -881,3 +881,26 @@ fall back to a square ratio). This **changes the mechanism of #145**, not the da
 (JS masonry lays out in 3 balanced columns; drag the last tile to the front → others glide live →
 `sort_order` persists; no console errors) with board + mid-drag screenshots, self-restoring.
 `docs/design.md`, `docs/handoff.md`, `docs/inspo.md` updated.
+
+**#147 — inspo: stickies live on the board tile; hold-to-drag reorder; no handle; no "drag" label.**
+David's feedback after using it: (a) dislikes the little grip icon — wants to grab a tile **anywhere**
+to reorder; (b) the reorder felt too fast / jumpy; (c) remove the word "drag"; (d) doesn't want to
+**zoom into the lightbox to place a sticky** — wants to put it on the image directly. Changes:
+- **Stickies are placed/edited directly on the board tile** (supersedes #140/#142's "stickies live in
+  the lightbox; the board shows non-interactive peeks"). Dropping a holder color on a tile creates the
+  note on that tile at the drop point and focuses it; click-to-edit, drag-to-move, ✕-to-delete all
+  happen in place. The notes render in a **non-clipped overlay** over the tile that's pointer-transparent
+  except for the notes. The **board now owns all sticky state** (single source of truth); the enlarged
+  view is a thin **controlled** consumer of it. **Peeks are gone** — tiles show the real stickies.
+- **Reorder by pressing-and-holding the tile anywhere** and dragging — the grip handle is removed
+  (supersedes #146's handle). Gestures: **mouse** = press-and-move (a click without moving = a tap →
+  opens the larger view); **touch** = a ~220 ms **long-press** arms the drag (a quick swipe still
+  scrolls; `touch-action` locks only once armed). Calmer feel: flips only when the pointer crosses the
+  **mid-line** of another tile (hysteresis); glide eased to ~300 ms `cubic-bezier(0.2,0,0,1)`.
+- **The "drag →" label** on the holder is removed.
+- **The lightbox stays** as an optional larger view (tap a tile) and the **mobile** way to add stickies
+  (the holder rail is web-only); it's now controlled by board state. **Why:** the board is the canvas,
+  not a gateway to a modal. No schema change. Verified (no handle / no "drag"; holder-drop lands a note
+  on the tile with no lightbox; typing persists; press-and-drag a tile reorders → `sort_order` persists;
+  no console errors) with a board screenshot, self-restoring. `docs/spec.md` §11, `docs/design.md`,
+  `docs/handoff.md`, `docs/inspo.md` updated.

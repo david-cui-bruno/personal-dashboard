@@ -86,6 +86,7 @@ export function Sticky({
   }
 
   function onPointerDown(e: React.PointerEvent) {
+    e.stopPropagation(); // a sticky owns this press — never start a tile reorder
     onActivate();
     if (editing) return; // editing → let the textarea handle caret/selection
     e.preventDefault();
@@ -134,7 +135,7 @@ export function Sticky({
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
-      className="group absolute touch-none select-none"
+      className="group pointer-events-auto absolute touch-none select-none"
       style={{
         left: `${pos.x * 100}%`,
         top: `${pos.y * 100}%`,

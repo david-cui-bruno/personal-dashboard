@@ -1,13 +1,14 @@
 "use client";
 
-// Inspo board (#140) — moodboard | people boards of images & video in a masonry grid.
-// Add via the + button, paste (⌘V an image), or drag-drop files. Open a tile for the
-// lightbox, where colored stickies get placed on the media (Phase 1b).
+// Inspo board (#140, #147) — moodboard | people boards of images & video in a masonry
+// grid. Add via the + button, paste (⌘V an image), or drag-drop files.
 //
-// The holder is docked on the right (web only — mobile adds stickies from inside the
-// lightbox). Dragging a color onto a tile opens that tile's lightbox with a fresh
-// sticky of that color, so the dispenser "works" from the board too. Tiles drag-reorder
-// by their grip handle (#144). Build brief: docs/inspo.md.
+// Stickies live directly on the tiles: drag a color from the holder (right rail, web)
+// onto a tile to drop a note there, then type/move/delete it in place — no zoom needed.
+// Tapping a tile opens a larger view (and is where mobile adds stickies, since the rail
+// is web-only). Reorder by pressing-and-holding a tile and dragging (no handle). The
+// board owns all sticky state so the tile and the enlarged view stay in sync. Brief:
+// docs/inspo.md.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ImagePlus, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -17,9 +18,11 @@ import {
   addInspoItem,
   deleteInspoItem,
   reorderInspoItems,
+  addSticky,
+  updateSticky,
+  deleteSticky,
   type InspoBoard as Board,
   type InspoItemWithStickies,
-  type InspoSticky,
   type StickyColor,
 } from "@/lib/data";
 import { InspoTile } from "./inspo-tile";
@@ -28,6 +31,7 @@ import { StickyHolder } from "./sticky-holder";
 import { useMasonryReorder } from "./use-masonry-reorder";
 
 const BOARDS = ["moodboard", "people"] as const;
+const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
 
 export function InspoBoard() {
   const [sb] = useState(createClient);
@@ -36,7 +40,8 @@ export function InspoBoard() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
-  const [pendingColor, setPendingColor] = useState<StickyColor | null>(null);
+  const [activeStickyId, setActiveStickyId] = useState<string | null>(null);
+  const [newStickyId, setNewStickyId] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [gridWidth, setGridWidth] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -78,8 +83,8 @@ export function InspoBoard() {
       try {
         for (const file of media) {
           try {
-            const media = await uploadInspoMedia(sb, file);
-            const item = await addInspoItem(sb, board, media);
+            const uploaded = await uploadInspoMedia(sb, file);
+            const item = await addInspoItem(sb, board, uploaded);
             setItems((prev) => [item, ...prev]);
           } catch (e) {
             console.error("inspo upload failed", e);
@@ -108,23 +113,49 @@ export function InspoBoard() {
     return () => window.removeEventListener("paste", onPaste);
   }, [addFiles]);
 
-  function closeLightbox() {
-    setOpenId(null);
-    setPendingColor(null);
-  }
-
-  function syncStickies(itemId: string, stickies: InspoSticky[]) {
-    setItems((prev) => prev.map((i) => (i.id === itemId ? { ...i, stickies } : i)));
-  }
-
   async function remove(item: InspoItemWithStickies) {
     setItems((prev) => prev.filter((i) => i.id !== item.id));
-    closeLightbox();
+    setOpenId(null);
     try {
       await deleteInspoItem(sb, item.id, item.storage_path, item.poster_path);
     } catch {
       listInspo(sb, board).then(setItems);
     }
+  }
+
+  // --- stickies (board owns the state; tiles + the enlarged view both use these) ---
+  async function addStickyTo(itemId: string, color: StickyColor, x: number, y: number) {
+    const rotation = Math.round((Math.random() * 6 - 3) * 10) / 10; // ±3° paper tilt
+    try {
+      const created = await addSticky(sb, itemId, { color, x: clamp01(x), y: clamp01(y), rotation });
+      setItems((prev) =>
+        prev.map((i) => (i.id === itemId ? { ...i, stickies: [...(i.stickies ?? []), created] } : i)),
+      );
+      setActiveStickyId(created.id);
+      setNewStickyId(created.id);
+    } catch (e) {
+      console.error("inspo: add sticky failed", e);
+    }
+  }
+
+  function patchSticky(itemId: string, stickyId: string, patch: { text?: string; x?: number; y?: number }) {
+    setItems((prev) =>
+      prev.map((i) =>
+        i.id === itemId
+          ? { ...i, stickies: (i.stickies ?? []).map((s) => (s.id === stickyId ? { ...s, ...patch } : s)) }
+          : i,
+      ),
+    );
+    void updateSticky(sb, stickyId, patch).catch((e) => console.error("inspo: sticky save failed", e));
+  }
+
+  function removeSticky(itemId: string, stickyId: string) {
+    setItems((prev) =>
+      prev.map((i) =>
+        i.id === itemId ? { ...i, stickies: (i.stickies ?? []).filter((s) => s.id !== stickyId) } : i,
+      ),
+    );
+    void deleteSticky(sb, stickyId).catch(() => {});
   }
 
   // Persist a manual tile order — optimistic, revert from the server on failure.
@@ -143,17 +174,18 @@ export function InspoBoard() {
     width: gridWidth,
     containerRef: gridRef,
     onReorder,
+    onTap: setOpenId, // a plain click on a tile opens the larger view
   });
 
-  // Drop a color onto a board tile → open that tile with a fresh sticky of that color.
+  // Drop a color from the holder onto a board tile → place a sticky right there.
   function onBoardHolderPick(color: StickyColor, point: { x: number; y: number } | null) {
-    if (!point) return; // a tap on the board is ambiguous (which tile?) — drag only
-    const el = document.elementFromPoint(point.x, point.y);
-    const tile = el?.closest<HTMLElement>("[data-inspo-item]");
-    const id = tile?.dataset.inspoItem;
+    if (!point) return; // a tap on the rail is ambiguous (which tile?) — drag onto a tile
+    const tile = document.elementFromPoint(point.x, point.y)?.closest<HTMLElement>("[data-inspo-item]");
+    if (!tile) return;
+    const id = tile.dataset.inspoItem;
     if (!id || !items.some((i) => i.id === id)) return;
-    setPendingColor(color);
-    setOpenId(id);
+    const r = tile.getBoundingClientRect();
+    void addStickyTo(id, color, (point.x - r.left) / r.width, (point.y - r.top) / r.height);
   }
 
   return (
@@ -243,7 +275,7 @@ export function InspoBoard() {
                 className={`absolute left-0 top-0 ${
                   isDrag
                     ? "z-40 transition-none pointer-events-none"
-                    : "transition-transform duration-200 ease-out"
+                    : "transition-transform duration-300 ease-[cubic-bezier(0.2,0,0,1)]"
                 }`}
                 style={{
                   width: p?.w,
@@ -253,9 +285,13 @@ export function InspoBoard() {
                 <InspoTile
                   sb={sb}
                   item={item}
-                  onOpen={() => setOpenId(item.id)}
                   dragging={isDrag}
                   handleProps={reorder.handleProps(item.id)}
+                  activeStickyId={activeStickyId}
+                  newStickyId={newStickyId}
+                  onActivateSticky={setActiveStickyId}
+                  onPatchSticky={(sid, patch) => patchSticky(item.id, sid, patch)}
+                  onRemoveSticky={(sid) => removeSticky(item.id, sid)}
                 />
               </div>
             );
@@ -263,7 +299,7 @@ export function InspoBoard() {
         </div>
       )}
 
-      {/* board-level dispenser — web only; on mobile you add stickies in the lightbox */}
+      {/* board-level dispenser — web only; on mobile you add stickies in the enlarged view */}
       <StickyHolder
         onPick={onBoardHolderPick}
         orientation="vertical"
@@ -275,10 +311,14 @@ export function InspoBoard() {
           key={open.id}
           sb={sb}
           item={open}
-          pendingColor={pendingColor}
-          onClose={closeLightbox}
+          activeStickyId={activeStickyId}
+          newStickyId={newStickyId}
+          onActivateSticky={setActiveStickyId}
+          onAddSticky={(color, x, y) => addStickyTo(open.id, color, x, y)}
+          onPatchSticky={(sid, patch) => patchSticky(open.id, sid, patch)}
+          onRemoveSticky={(sid) => removeSticky(open.id, sid)}
+          onClose={() => setOpenId(null)}
           onDelete={() => remove(open)}
-          onStickiesChange={syncStickies}
         />
       )}
     </div>
