@@ -704,3 +704,30 @@ entry's flush-on-unmount **always re-saved the title even when nothing changed**
 write on every view that also busted the cache; now gated behind a `dirty` flag, so viewing an
 entry writes nothing and back-nav stays cached (an edit still saves + invalidates). Pure
 client/UI perf, no schema/contract change. Extends #122. `docs/handoff.md` §11 updated.
+
+**#137 — Richer end-of-day notification (the evening becomes a day recap).**
+The 9pm notification was a single "wind down — N left" nudge (#119). It's now a **recap**:
+title "your day", body = routine progress + whether you journaled + the day's song, e.g.
+`4/6 done · journaled ✓ · ♪ Bohemian Rhapsody` (or `✓ all 6 done · journal your day?`).
+`composeEveningBody()` is a pure function (unit-testable) fed by `widget_summary` + today's
+journal (`content_text` non-empty?) + today's `daily_song`, fetched in parallel on
+reschedule. Same local-notification model as #119 — text is fixed at schedule time and
+**rescheduled on launch/foreground**, so the recap is best-effort-current (no server; the
+parked push-server #121 would make it exact-time). Ships via the normal web deploy (the iOS
+shell loads the live app and reschedules on open). Was the agreed "end-of-day summary as a
+notification, not a new screen" (#115/#121). Pure UI. `docs/widget-and-notifications.md`
+updated.
+
+**#138 — Lock-screen widget (iOS 16+ accessory families).**
+Added the three **accessory** families to the existing WidgetKit widget
+(`mobile/widget/NotesWidget.swift`): `accessoryCircular` (a done/total gauge),
+`accessoryRectangular` ("X/N done" + focus), `accessoryInline` ("N left"). They reuse the
+**same** payload + live `widget_summary` fetch + states as the home-screen widget — no new
+data, App Group, or RPC. Rendered monochrome/system-tinted (lock-screen requirement), so no
+custom colors; `widgetAccentable()` marks the tinted bits. Families are gated `if #available
+(iOS 16, *)` so the widget still compiles for the app's lower deployment target (home-screen
+only on <16). **Caveat:** the Swift is source-of-truth in `mobile/widget/` (the `ios/` Xcode
+project is git-ignored, #113), so it isn't compiled in CI — **David builds it in Xcode**; the
+accessory views were authored but not Xcode-verified here. The widget-extension deployment
+target must be **≥ iOS 16**. Was a parked-but-wanted item (#121). `mobile/widget/README.md` +
+`docs/widget-and-notifications.md` updated.
