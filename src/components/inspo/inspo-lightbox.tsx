@@ -14,7 +14,7 @@ import {
   type InspoItemWithStickies,
   type StickyColor,
 } from "@/lib/data";
-import { Sticky } from "./sticky";
+import { Sticky, clampStickyPlacement } from "./sticky";
 import { StickyHolder } from "./sticky-holder";
 
 const CENTER = { x: 0.5, y: 0.42 }; // where a tap / out-of-bounds drop lands
@@ -53,8 +53,12 @@ export function InspoLightbox({
       const within =
         point.x >= box.left && point.x <= box.right && point.y >= box.top && point.y <= box.bottom;
       if (within) {
-        x = (point.x - box.left) / box.width;
-        y = (point.y - box.top) / box.height;
+        ({ x, y } = clampStickyPlacement(
+          (point.x - box.left) / box.width,
+          (point.y - box.top) / box.height,
+          box.width,
+          box.height,
+        ));
       }
     }
     onAddSticky(color, x, y);

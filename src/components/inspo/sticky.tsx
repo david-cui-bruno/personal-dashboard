@@ -16,11 +16,18 @@ import { X } from "lucide-react";
 import type { InspoSticky, StickyColor } from "@/lib/data";
 import { STICKY_STYLE } from "./sticky-colors";
 
-const WIDTH = 150; // px — fixed width; the sticky grows DOWNWARD as the text wraps
+export const STICKY_WIDTH = 150; // px — fixed width; the sticky grows DOWNWARD as text wraps
+const NOMINAL_H = 56; // px — assumed height for clamping a freshly-placed (short) note
 const SAVE_DEBOUNCE = 450;
 const MOVE_THRESHOLD = 5;
 
-const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
+// Clamp a placement fraction so the whole note stays inside a bounds-sized box. Used at
+// creation (board / enlarged view) with a nominal height; dragging clamps by real size.
+export function clampStickyPlacement(x: number, y: number, boundsW: number, boundsH: number) {
+  const maxX = boundsW > STICKY_WIDTH ? (boundsW - STICKY_WIDTH) / boundsW : 0;
+  const maxY = boundsH > NOMINAL_H ? (boundsH - NOMINAL_H) / boundsH : 0;
+  return { x: Math.max(0, Math.min(maxX, x)), y: Math.max(0, Math.min(maxY, y)) };
+}
 
 export function Sticky({
   sticky,
@@ -95,17 +102,23 @@ export function Sticky({
     e.currentTarget.setPointerCapture(e.pointerId);
   }
 
+  // Drop point → fraction, clamped so the *whole* note (its real size) stays in bounds.
+  function placeFrom(e: React.PointerEvent, d: { ox: number; oy: number }) {
+    const box = boundsRef.current?.getBoundingClientRect();
+    if (!box) return null;
+    const el = e.currentTarget as HTMLElement;
+    const left = Math.min(Math.max(0, e.clientX - d.ox - box.left), Math.max(0, box.width - el.offsetWidth));
+    const top = Math.min(Math.max(0, e.clientY - d.oy - box.top), Math.max(0, box.height - el.offsetHeight));
+    return { x: box.width ? left / box.width : 0, y: box.height ? top / box.height : 0 };
+  }
+
   function onPointerMove(e: React.PointerEvent) {
     const d = drag.current;
     if (!d) return;
     if (!d.moved && Math.hypot(e.clientX - d.sx, e.clientY - d.sy) < MOVE_THRESHOLD) return;
     d.moved = true;
-    const box = boundsRef.current?.getBoundingClientRect();
-    if (!box) return;
-    setPos({
-      x: clamp01((e.clientX - d.ox - box.left) / box.width),
-      y: clamp01((e.clientY - d.oy - box.top) / box.height),
-    });
+    const next = placeFrom(e, d);
+    if (next) setPos(next);
   }
 
   function onPointerUp(e: React.PointerEvent) {
@@ -119,12 +132,8 @@ export function Sticky({
       setEditing(true); // a tap → edit
       return;
     }
-    const box = boundsRef.current?.getBoundingClientRect();
-    if (!box) return;
-    const next = {
-      x: clamp01((e.clientX - d.ox - box.left) / box.width),
-      y: clamp01((e.clientY - d.oy - box.top) / box.height),
-    };
+    const next = placeFrom(e, d);
+    if (!next) return;
     setPos(next);
     onChange(next);
   }
@@ -139,7 +148,7 @@ export function Sticky({
       style={{
         left: `${pos.x * 100}%`,
         top: `${pos.y * 100}%`,
-        width: WIDTH,
+        width: STICKY_WIDTH,
         transform: `rotate(${sticky.rotation}deg)`,
         zIndex: active ? 20 : 10,
         cursor: editing ? "text" : "grab",
