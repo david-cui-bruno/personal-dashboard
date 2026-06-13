@@ -745,3 +745,21 @@ then strips it from the URL. Two small routes added: **`/api/spotify/status`** (
 client only ever sees the boolean. The old song-picker entry still works (it just omits
 `return`, defaulting to `/`). **Why:** David wanted to connect from Settings. Pure additive
 (no schema change; reuses `spotify_auth`). `docs/spec.md` §8 + `docs/handoff.md` §9 updated.
+
+**#140 — New "inspo" mood/inspiration board tab (design settled; build brief in `docs/inspo.md`).**
+A new top-level **inspo** tab: a private visual board. Settled design (David, this session +
+`mockups/index.html` → "inspo"/"item open"): **two boards** via a notes-style segment —
+**moodboard** + **people** (same item model, different category); **masonry** grid;
+**images/screenshots first, screen recordings (video) a fast-follow**; **paste / drag-in /
+upload**. **Stickies are placed & edited on the *opened* image** (placement "A"): open an item
+→ a **fixed holder/dispenser** of **5 colors** (yellow/blue/orange/pink/green) sits alongside →
+**hover a color pops it out → drag it onto the image → click & type (it grows) → drag to
+move**; on the **board**, tiles show sticky **peeks**, and dragging a color onto a tile **opens**
+that item with a fresh sticky. The holder stays **fixed** while scrolling. **Why:** David wanted
+a calm place to collect inspiration + people, with playful in-place annotation; placement A keeps
+typing on a roomy canvas and works on mobile. **Scope/contract:** new tab **amends #064**
+(mobile nav was Today/Notes only — now adds inspo); new tables `inspo_item` + `inspo_sticky`
+(migration `0010`, RLS authenticated, decouple-safe) reusing the public `attachments` bucket
+under `inspo/`. **Phase 1** = tab + boards + images + holder/stickies + reorder; **Phase 2** =
+video. Full build brief (data model, data layer, components, interactions, verification):
+**`docs/inspo.md`**. Spec/data-model (FROZEN) get the contract when the slice ships.

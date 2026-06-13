@@ -28,11 +28,12 @@
   .switch button.active { background: #fff; color: #1c1c1e; }
 
   .panel { position: fixed; inset: 0; display: none; }
-  body[data-view="charts"] #charts, body[data-view="notes-lab"] #notes-lab { display: block; }
+  body[data-view="charts"] #charts, body[data-view="notes-lab"] #notes-lab, body[data-view="inspo-lab"] #inspo-lab { display: block; }
   body[data-view="web-today"]    #web-today    { display: grid; grid-template-columns: 256px 1fr; }
   body[data-view="web-notes"]    #web-notes    { display: grid; grid-template-columns: 256px 1fr; }
   body[data-view="web-settings"] #web-settings { display: grid; grid-template-columns: 256px 1fr; }
-  body[data-view="m-today"] #m-today, body[data-view="m-notes"] #m-notes, body[data-view="signin"] #signin { display: flex; align-items: center; justify-content: center; }
+  body[data-view="web-inspo"]    #web-inspo    { display: grid; grid-template-columns: 256px 1fr; }
+  body[data-view="m-today"] #m-today, body[data-view="m-notes"] #m-notes, body[data-view="m-inspo"] #m-inspo, body[data-view="signin"] #signin { display: flex; align-items: center; justify-content: center; }
 
   /* ---------- comparison labs ---------- */
   .lab { height: 100vh; overflow-y: auto; padding: 54px 24px 120px; background: var(--bg); }
@@ -170,6 +171,71 @@
   .si-btn { width: 100%; font: inherit; font-size: 15px; font-weight: 800; color: #fff; background: var(--accent); border: 0; border-radius: 11px; padding: 14px; cursor: pointer; margin-top: 6px; }
   .si-stay { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; color: var(--ink-2); font-weight: 700; margin-top: 18px; }
   .si-stay .chk { width: 18px; height: 18px; border-radius: 5px; background: var(--accent); display: grid; place-items: center; color: #fff; font-size: 11px; font-weight: 900; }
+
+  /* ---------- inspo board ---------- */
+  .inspo-main { height: 100vh; overflow-y: auto; }
+  .inspo-inner { max-width: 900px; margin: 0 auto; padding: 60px 40px 160px; }
+  .inspo-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .inspo-head h1 { font-size: 33px; font-weight: 900; letter-spacing: -.03em; }
+  .inspo-seg { display: flex; background: var(--field); border-radius: 10px; padding: 3px; margin-bottom: 8px; width: fit-content; }
+  .inspo-seg button { font: inherit; font-size: 13px; font-weight: 800; border: 0; background: transparent; color: var(--ink-2); padding: 7px 18px; border-radius: 7px; cursor: pointer; }
+  .inspo-seg button.active { background: var(--bg); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+  .inspo-hint { font-size: 12.5px; font-weight: 700; color: var(--ink-3); margin: 0 0 18px; }
+  .masonry { columns: 3; column-gap: 14px; }
+  .masonry.m2 { columns: 2; column-gap: 11px; }
+  .tile { break-inside: avoid; margin-bottom: 14px; position: relative; border-radius: 14px; overflow: hidden; background: var(--field); cursor: pointer; box-shadow: 0 1px 5px rgba(0,0,0,.07); }
+  .tile img { width: 100%; display: block; }
+  .tile .vbadge { position: absolute; top: 8px; right: 8px; width: 26px; height: 26px; border-radius: 50%; background: rgba(0,0,0,.55); color: #fff; display: grid; place-items: center; }
+  .tile .vbadge svg.lucide { width: 14px; height: 14px; }
+  .tile .peek { position: absolute; left: 9px; bottom: 9px; transform: rotate(-3deg); }
+  .addtile { break-inside: avoid; margin-bottom: 14px; border: 2px dashed var(--line); border-radius: 14px; padding: 30px 10px; text-align: center; color: var(--ink-3); font-weight: 800; font-size: 13.5px; cursor: pointer; }
+  .addtile svg.lucide { width: 22px; height: 22px; display: block; margin: 0 auto 7px; }
+
+  /* sticky notes */
+  .sticky { font-family: inherit; font-size: 12.5px; font-weight: 700; line-height: 1.35; padding: 9px 11px; border-radius: 3px; box-shadow: 0 3px 10px rgba(0,0,0,.18); max-width: 160px; }
+  .sticky.strip { padding: 5px 10px; font-size: 12px; max-width: 200px; }
+  .sticky.s-yellow { background: #fdec8b; color: #4a4220; }
+  .sticky.s-blue   { background: #bcd8ff; color: #233049; }
+  .sticky.s-orange { background: #ffd29b; color: #4a3318; }
+  .sticky.s-pink   { background: #ffc6dd; color: #4a2236; }
+  .sticky.s-green  { background: #bdf0c4; color: #1f4028; }
+
+  /* lightbox (item open) */
+  .lb-wrap { position: absolute; inset: 0; background: rgba(14,14,20,.64); display: flex; align-items: center; justify-content: center; padding: 28px; }
+  .lb { background: var(--bg); border-radius: 18px; overflow: hidden; display: flex; max-width: 840px; box-shadow: 0 30px 90px rgba(0,0,0,.45); }
+  .lb-img { position: relative; background: #000; display: grid; place-items: center; }
+  .lb-img img { display: block; max-height: 560px; max-width: 540px; }
+  .lb-onimg .sticky { position: absolute; }
+  .lb-side { width: 264px; padding: 20px 18px; display: flex; flex-direction: column; gap: 11px; }
+  .lb-side h3 { font-size: 11px; font-weight: 900; color: var(--ink-3); }
+  .lb-addsticky { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 800; color: var(--accent); cursor: pointer; margin-top: 4px; }
+  .lb-addsticky svg.lucide { width: 15px; height: 15px; }
+  .lb-close { position: absolute; top: 14px; right: 16px; width: 30px; height: 30px; border-radius: 50%; background: rgba(0,0,0,.5); color: #fff; display: grid; place-items: center; cursor: pointer; z-index: 3; }
+
+  /* fixed sticky holder / dispenser */
+  .holder { position: absolute; right: 22px; top: 50%; transform: translateY(-50%); z-index: 60;
+            display: flex; flex-direction: column; gap: 9px; padding: 12px 10px;
+            background: rgba(255,255,255,.72); backdrop-filter: blur(10px);
+            border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 12px 32px rgba(0,0,0,.16); }
+  [data-theme="dark"] .holder { background: rgba(38,38,42,.74); }
+  .holder .hlabel { font-size: 8.5px; font-weight: 900; color: var(--ink-3); text-align: center; letter-spacing: .05em; }
+  .htab { width: 44px; height: 30px; border-radius: 5px; box-shadow: 0 3px 9px rgba(0,0,0,.22); cursor: grab;
+          transition: transform .16s cubic-bezier(.2,0,0,1); }
+  .htab:hover { transform: translateX(-13px) scale(1.12) rotate(-4deg); box-shadow: 0 8px 18px rgba(0,0,0,.26); }
+
+  /* item-open stage */
+  .open-stage { position: relative; max-width: 720px; margin: 0 auto; }
+  .open-card { position: relative; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 70px rgba(0,0,0,.28); background:#000; display:grid; place-items:center; }
+  .open-card img { display: block; max-width: 100%; max-height: 600px; }
+  .open-card .sticky { position: absolute; }
+  .editsticky { outline: 2px solid rgba(0,0,0,.12); }
+
+  /* sticky-styles lab */
+  .palette { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-bottom: 44px; }
+  .pal-pick { display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; }
+  .pal-pick .nm { font-size: 12px; font-weight: 800; color: var(--ink-2); }
+  .variant-row { display: flex; gap: 34px; justify-content: center; flex-wrap: wrap; align-items: flex-start; }
+  .variant { width: 360px; }
 </style>
 </head>
 <body data-view="charts">
@@ -180,8 +246,11 @@
     <button data-go="web-today">today</button>
     <button data-go="web-notes">notes</button>
     <button data-go="web-settings">settings</button>
+    <button data-go="web-inspo">inspo</button>
+    <button data-go="inspo-lab">item open</button>
     <button data-go="m-today">mobile today</button>
     <button data-go="m-notes">mobile notes</button>
+    <button data-go="m-inspo">mobile inspo</button>
     <button data-go="signin">sign in</button>
   </div>
 
@@ -408,6 +477,119 @@
     </div></div>
   </section>
 
+  <!-- ============ WEB · INSPO ============ -->
+  <section class="panel" id="web-inspo">
+    <aside class="sidebar">
+      <div class="logo"><span class="blob"></span> notes</div>
+      <div class="nav-item"><i data-lucide="calendar-check"></i> today</div>
+      <div class="nav-item"><i data-lucide="notebook-pen"></i> notes</div>
+      <div class="nav-item active"><i data-lucide="layout-grid"></i> inspo</div>
+      <div class="consistency"><div class="vchart2" data-v="a"></div></div>
+      <div class="side-foot">
+        <div class="nav-item"><i data-lucide="settings"></i> settings</div>
+        <div class="user-chip"><span class="avatar">d</span><span class="nm">david</span></div>
+      </div>
+    </aside>
+    <div class="main inspo-main"><div class="inspo-inner">
+      <div class="inspo-head"><h1>inspo</h1><button class="iconbtn"><i data-lucide="plus"></i></button></div>
+      <div class="inspo-seg">
+        <button class="active" data-board="moodboard">moodboard</button>
+        <button data-board="people">people</button>
+      </div>
+      <p class="inspo-hint">paste, drag in, or upload — images &amp; screenshots now, screen recordings soon</p>
+
+      <div class="masonry" data-board-grid="moodboard">
+        <div class="tile"><img src="https://picsum.photos/seed/mb1/600/800" alt=""><div class="sticky s-yellow strip peek">the light here ✨</div></div>
+        <div class="tile"><img src="https://picsum.photos/seed/mb2/600/420" alt=""><div class="vbadge"><i data-lucide="play"></i></div></div>
+        <div class="tile"><img src="https://picsum.photos/seed/mb3/600/600" alt=""></div>
+        <div class="tile"><img src="https://picsum.photos/seed/mb4/600/760" alt=""><div class="sticky s-pink strip peek">this layout</div></div>
+        <div class="tile"><img src="https://picsum.photos/seed/mb5/600/440" alt=""></div>
+        <div class="tile"><img src="https://picsum.photos/seed/mb6/600/700" alt=""></div>
+        <div class="tile"><img src="https://picsum.photos/seed/mb7/600/520" alt=""><div class="sticky s-green strip peek">colorway</div></div>
+        <div class="tile"><img src="https://picsum.photos/seed/mb8/600/900" alt=""></div>
+        <div class="addtile"><i data-lucide="plus"></i>paste or drop here</div>
+      </div>
+
+      <div class="masonry" data-board-grid="people" style="display:none;">
+        <div class="tile"><img src="https://picsum.photos/seed/pp1/600/780" alt=""><div class="sticky s-blue strip peek">his essays</div></div>
+        <div class="tile"><img src="https://picsum.photos/seed/pp2/600/720" alt=""></div>
+        <div class="tile"><img src="https://picsum.photos/seed/pp3/600/820" alt=""><div class="sticky s-orange strip peek">studio shots</div></div>
+        <div class="tile"><img src="https://picsum.photos/seed/pp4/600/700" alt=""></div>
+        <div class="tile"><img src="https://picsum.photos/seed/pp5/600/760" alt=""></div>
+        <div class="tile"><img src="https://picsum.photos/seed/pp6/600/680" alt=""></div>
+        <div class="addtile"><i data-lucide="plus"></i>paste or drop here</div>
+      </div>
+    </div></div>
+    <div class="holder">
+      <span class="hlabel">drag →</span>
+      <div class="htab s-yellow"></div>
+      <div class="htab s-blue"></div>
+      <div class="htab s-orange"></div>
+      <div class="htab s-pink"></div>
+      <div class="htab s-green"></div>
+    </div>
+  </section>
+
+  <!-- ============ MOBILE · INSPO ============ -->
+  <section class="panel" id="m-inspo">
+    <div class="stage-bg"></div>
+    <div class="phone"><div class="notch"></div><div class="screen">
+      <div class="statusbar"><span>9:41</span><span>5g &nbsp;100%</span></div>
+      <div class="m-scroll">
+        <div class="sec-h" style="padding-top:10px;"><span class="m-title" style="padding:0;">inspo</span><button class="iconbtn"><i data-lucide="plus"></i></button></div>
+        <div class="inspo-seg" style="margin-top:12px;">
+          <button class="active" data-board="moodboard">moodboard</button>
+          <button data-board="people">people</button>
+        </div>
+        <div class="masonry m2" data-board-grid="moodboard" style="margin-top:14px;">
+          <div class="tile"><img src="https://picsum.photos/seed/mb1/600/800" alt=""><div class="sticky s-yellow strip peek">the light ✨</div></div>
+          <div class="tile"><img src="https://picsum.photos/seed/mb3/600/600" alt=""></div>
+          <div class="tile"><img src="https://picsum.photos/seed/mb2/600/420" alt=""><div class="vbadge"><i data-lucide="play"></i></div></div>
+          <div class="tile"><img src="https://picsum.photos/seed/mb4/600/760" alt=""><div class="sticky s-pink strip peek">this layout</div></div>
+          <div class="tile"><img src="https://picsum.photos/seed/mb6/600/700" alt=""></div>
+          <div class="tile"><img src="https://picsum.photos/seed/mb5/600/440" alt=""></div>
+        </div>
+        <div class="masonry m2" data-board-grid="people" style="display:none;margin-top:14px;">
+          <div class="tile"><img src="https://picsum.photos/seed/pp1/600/780" alt=""><div class="sticky s-blue strip peek">his essays</div></div>
+          <div class="tile"><img src="https://picsum.photos/seed/pp2/600/720" alt=""></div>
+          <div class="tile"><img src="https://picsum.photos/seed/pp3/600/820" alt=""></div>
+          <div class="tile"><img src="https://picsum.photos/seed/pp4/600/700" alt=""></div>
+        </div>
+      </div>
+      <div class="m-tabbar">
+        <div class="m-tab"><i data-lucide="calendar-check"></i>today</div>
+        <div class="m-tab"><i data-lucide="notebook-pen"></i>notes</div>
+        <div class="m-tab active"><i data-lucide="layout-grid"></i>inspo</div>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- ============ INSPO · ITEM OPEN (sticky holder mechanic) ============ -->
+  <section class="panel" id="inspo-lab">
+    <div class="lab">
+      <div class="lab-title">inspo — item open</div>
+      <div class="lab-sub">open an image → <b>drag a sticky from the holder onto it</b> → click &amp; type (it grows). hover a color in the holder →</div>
+
+      <div class="open-stage">
+        <div class="open-card lb-onimg">
+          <img src="https://picsum.photos/seed/openbig/720/540" alt="">
+          <div class="sticky s-yellow" style="top:22px;left:24px;transform:rotate(-3deg);">love this color palette</div>
+          <div class="sticky s-pink" style="top:120px;right:40px;transform:rotate(2.5deg);">use this crop for the hero</div>
+          <div class="sticky s-blue editsticky" style="bottom:90px;left:60px;transform:rotate(-1.5deg);max-width:190px;">the negative space here is what makes it — try to keep that breathing room|</div>
+          <div class="sticky s-green strip" style="bottom:24px;right:32px;transform:rotate(1.5deg);">moodier grade</div>
+        </div>
+        <div class="holder">
+          <span class="hlabel">drag →</span>
+          <div class="htab s-yellow"></div>
+          <div class="htab s-blue"></div>
+          <div class="htab s-orange"></div>
+          <div class="htab s-pink"></div>
+          <div class="htab s-green"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ============ SIGN IN ============ -->
   <section class="panel" id="signin">
     <div class="stage-bg"></div>
@@ -473,6 +655,16 @@
     b.classList.add('active');
     if(b.dataset.t==='dark') document.documentElement.setAttribute('data-theme','dark'); else document.documentElement.removeAttribute('data-theme');
   }));
+
+  // inspo board segment: moodboard ↔ people (scoped per panel)
+  document.querySelectorAll('.inspo-seg').forEach(seg => {
+    seg.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => {
+      seg.querySelectorAll('button').forEach(x => x.classList.toggle('active', x === btn));
+      seg.parentElement.querySelectorAll('[data-board-grid]').forEach(g => {
+        g.style.display = g.dataset.boardGrid === btn.dataset.board ? '' : 'none';
+      });
+    }));
+  });
 
   if (window.lucide) lucide.createIcons();
 </script>
