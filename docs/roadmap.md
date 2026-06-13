@@ -38,6 +38,11 @@ See `docs/architecture.md` for deploy details.
 
 ## explicitly deferred (post-V1)
 
+- **inspo board (#140) — design settled, build pending.** A new `inspo` tab: moodboard +
+  people boards, masonry, paste/drag/upload images (video fast-follow), and colored sticky
+  notes placed on opened images via a fixed holder. Full build brief: `docs/inspo.md`; mockup
+  in `mockups/index.html`. Phase 1 = boards + images + stickies; Phase 2 = video.
+
 - Native **mobile** shell via **Capacitor** (#113): **shipped on iOS** — the home-screen
   **widget** + daily **notifications** (#119, `docs/widget-and-notifications.md`) are
   running on David's device (Phases 1–3 all done). *(Desktop is covered by Electron, #110.)*
