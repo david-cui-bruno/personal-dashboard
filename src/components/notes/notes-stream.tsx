@@ -13,10 +13,8 @@ import { GripVertical, Pin, Plus, Trash2, Undo2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
   createNote,
-  listJournals,
-  listNotes,
-  listPinned,
-  listSongs,
+  getNotesStreamCached,
+  invalidateNotesCache,
   reorderPins,
   restoreNote,
   trashNote,
@@ -86,38 +84,40 @@ export function NotesStream() {
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const songsRef = useRef<DailySong[]>([]);
 
-  const fetchStream = useCallback(async () => {
-    const [journals, notes] = await Promise.all([listJournals(sb), listNotes(sb)]);
-    return buildStream(journals, notes, songsRef.current);
-  }, [sb]);
+  // One cached fetch (#136): instant on back-navigation; writes invalidate it.
+  const apply = useCallback(
+    (d: Awaited<ReturnType<typeof getNotesStreamCached>>) => {
+      songsRef.current = d.songs;
+      setSongsByDay(new Map(d.songs.map((s) => [s.day, s])));
+      setPinned(d.pinned);
+      setEntries(buildStream(d.journals, d.notes, d.songs));
+      setLoading(false);
+    },
+    [],
+  );
+  const refresh = useCallback(async () => {
+    invalidateNotesCache();
+    apply(await getNotesStreamCached(sb));
+  }, [apply, sb]);
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      const [songs, pins] = await Promise.all([
-        listSongs(sb).catch(() => [] as DailySong[]),
-        listPinned(sb),
-      ]);
-      if (cancelled) return;
-      songsRef.current = songs;
-      setSongsByDay(new Map(songs.map((s) => [s.day, s])));
-      setPinned(pins);
-      const next = await fetchStream();
-      if (cancelled) return;
-      setEntries(next);
-      setLoading(false);
-    })();
+    getNotesStreamCached(sb).then((d) => {
+      if (!cancelled) apply(d);
+    });
+    void import("@/components/editor"); // warm the TipTap chunk before a note is opened
     return () => {
       cancelled = true;
       if (undoTimer.current) clearTimeout(undoTimer.current);
     };
-  }, [fetchStream, sb]);
+  }, [apply, sb]);
 
   async function handleCreate() {
     if (creating) return;
     setCreating(true);
     try {
       const note = await createNote(sb);
+      invalidateNotesCache(); // new note must show on back-nav
       router.push(`/notes/${note.id}`);
     } catch {
       setCreating(false);
@@ -129,12 +129,13 @@ export function NotesStream() {
       prev.filter((e) => !(e.kind === "note" && e.note.id === note.id)),
     );
     setTrashed({ id: note.id, title: note.title || "untitled" });
+    invalidateNotesCache(); // don't let the cache resurrect it on back-nav
     if (undoTimer.current) clearTimeout(undoTimer.current);
     undoTimer.current = setTimeout(() => setTrashed(null), 6000);
     try {
       await trashNote(sb, note.id);
     } catch {
-      setEntries(await fetchStream());
+      await refresh();
       setTrashed(null);
     }
   }
@@ -145,12 +146,13 @@ export function NotesStream() {
     const { id } = trashed;
     setTrashed(null);
     await restoreNote(sb, id);
-    setEntries(await fetchStream());
+    await refresh();
   }
 
   // --- pinned view actions (#135) ---
   function unpin(entry: PinnedEntry) {
     setPinned((prev) => prev.filter((p) => p.key !== entry.key));
+    invalidateNotesCache();
     if (entry.kind === "note") void unpinNote(sb, entry.note.id);
     else void unpinJournal(sb, entry.journal.day);
   }
@@ -159,6 +161,7 @@ export function NotesStream() {
     const byKey = new Map(pinned.map((p) => [p.key, p]));
     const next = orderedKeys.map((k) => byKey.get(k)!).filter(Boolean);
     setPinned(next);
+    invalidateNotesCache();
     void reorderPins(
       sb,
       next.map((p) => ({

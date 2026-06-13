@@ -687,3 +687,20 @@ hook (`src/components/ui/use-drag-reorder.ts`) — the finger-following + FLIP p
 routine reorder keeps its own inline copy for now (a later cleanup could fold it onto the hook).
 **Why:** pinning that respects the calm, uncluttered stream. Touches the FROZEN spec (§6) +
 data-model — David signed off. `docs/spec.md` §6 + `docs/data-model.md` updated.
+
+**#136 — Notes nav latency: cache the stream + serve entries from it + warm the editor.**
+David: opening a note and going back both felt slow. Causes: (1) the `/notes` stream had **no
+cache** — every visit re-fetched journals + notes + songs + pinned (the Today screen avoids
+this via #122); (2) opening an entry did a fresh `getNote`/`getJournal` round-trip **and then**
+lazily downloaded the TipTap chunk — a waterfall, every time. Fixes (`src/lib/data/notes-cache.ts`,
+mirroring #122): a 30s in-memory cache of the stream (`getNotesStreamCached`) → **back-nav is
+instant**; the full rows already include `content`, so each entry is **primed by id/day** and
+the entry renders its body **from cache with no round-trip** (`cachedNote`/`cachedJournal`,
+seeded via `useState` initializers since `<Entry>` is keyed per id/day); the Notes screen
+**preloads the editor chunk** (`import("@/components/editor")`) so the first open isn't waiting
+on it. Any write (`create/trash/restore/pin/unpin/reorder/save`) calls `invalidateNotesCache()`
+so the next read is fresh. **Also fixed a pre-existing bug surfaced by the cache:** the note
+entry's flush-on-unmount **always re-saved the title even when nothing changed** — a no-op
+write on every view that also busted the cache; now gated behind a `dirty` flag, so viewing an
+entry writes nothing and back-nav stays cached (an edit still saves + invalidates). Pure
+client/UI perf, no schema/contract change. Extends #122. `docs/handoff.md` §11 updated.

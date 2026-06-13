@@ -6,6 +6,7 @@ export * from "./routine";
 export * from "./consistency";
 export * from "./journal";
 export * from "./notes";
+export * from "./notes-cache";
 export * from "./pins";
 export * from "./settings";
 export * from "./search";

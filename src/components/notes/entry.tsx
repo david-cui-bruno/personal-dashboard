@@ -11,8 +11,11 @@ import { ChevronLeft, Pin, Trash2 } from "lucide-react";
 import type { JSONContent } from "@tiptap/react";
 import { createClient } from "@/lib/supabase/client";
 import {
+  cachedJournal,
+  cachedNote,
   getJournal,
   getNote,
+  invalidateNotesCache,
   pinJournal,
   pinNote,
   saveJournal,
@@ -21,6 +24,8 @@ import {
   unpinJournal,
   unpinNote,
   uploadImage,
+  type Journal,
+  type Note,
 } from "@/lib/data";
 import dynamic from "next/dynamic";
 import type { EditorValue } from "@/components/editor";
@@ -51,22 +56,35 @@ export function Entry(props: EntryProps) {
   const day = props.kind === "journal" ? props.day : "";
   const id = props.kind === "note" ? props.id : "";
 
-  const [ready, setReady] = useState(false);
+  // Instant open (#136): if the stream just loaded this entry, seed state from the
+  // cache (no round-trip, no editor-gating flicker). Entry is keyed per id/day, so
+  // these lazy initializers run once per entry. A cache miss fetches in the effect.
+  const [initial] = useState(() =>
+    props.kind === "journal" ? cachedJournal(props.day) : cachedNote(props.id),
+  );
+  const initialNote = kind === "note" ? (initial as Note | undefined) : undefined;
+  const initialJournal = kind === "journal" ? (initial as Journal | undefined) : undefined;
+
+  const [ready, setReady] = useState(!!initial);
   const [missing, setMissing] = useState(false);
-  const [content, setContent] = useState<JSONContent | null>(null);
-  const [title, setTitle] = useState("");
-  const [pinned, setPinned] = useState(false); // pin to the Notes "pinned" view (#135)
+  const [content, setContent] = useState<JSONContent | null>(
+    (initial?.content as JSONContent) ?? null,
+  );
+  const [title, setTitle] = useState(initialNote?.title ?? "");
+  const [pinned, setPinned] = useState(initial?.pin_order != null);
 
   // Latest editor value, the note's latest title, and the journal row id once
   // materialized — all read only inside callbacks, never during render.
   const latest = useRef<EditorValue | null>(null);
-  const titleRef = useRef("");
-  const journalId = useRef<string | null>(null);
+  const titleRef = useRef(initialNote?.title ?? "");
+  const journalId = useRef<string | null>(initialJournal?.id ?? null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dirty = useRef(false); // a real edit happened → flush should save (#136)
 
-  // Load the entry once; the editor mounts only after this so its initial
-  // content is correct (TipTap reads `content` once, at creation).
+  // Cache miss only: fetch the entry, then mount the editor (TipTap reads its
+  // initial content once, at creation).
   useEffect(() => {
+    if (initial) return;
     let cancelled = false;
     (async () => {
       if (kind === "journal") {
@@ -92,16 +110,25 @@ export function Entry(props: EntryProps) {
     return () => {
       cancelled = true;
     };
-  }, [kind, day, id, sb]);
+  }, [initial, kind, day, id, sb]);
 
   const flush = useCallback(async () => {
     if (saveTimer.current) {
       clearTimeout(saveTimer.current);
       saveTimer.current = null;
     }
+    // Only write when something actually changed — viewing an entry (incl. just
+    // opening then leaving) must not save, or it would needlessly write and bust
+    // the notes cache, making back-nav refetch (#136).
+    if (!dirty.current) return;
+    dirty.current = false;
     if (kind === "journal") {
-      if (!latest.current) return;
-      await saveJournal(sb, day, latest.current.json, latest.current.text);
+      await saveJournal(
+        sb,
+        day,
+        latest.current?.json ?? EMPTY_DOC,
+        latest.current?.text ?? "",
+      );
     } else {
       await saveNote(sb, id, {
         title: titleRef.current,
@@ -110,6 +137,7 @@ export function Entry(props: EntryProps) {
           : {}),
       });
     }
+    invalidateNotesCache(); // back-nav should reflect the edit
   }, [kind, day, id, sb]);
 
   // Flush any pending edit when leaving the entry.
@@ -122,12 +150,14 @@ export function Entry(props: EntryProps) {
 
   function onChange(value: EditorValue) {
     latest.current = value;
+    dirty.current = true;
     scheduleSave();
   }
 
   function onTitleChange(value: string) {
     setTitle(value);
     titleRef.current = value;
+    dirty.current = true;
     scheduleSave();
   }
 
@@ -155,6 +185,7 @@ export function Entry(props: EntryProps) {
     if (kind !== "note") return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     await trashNote(sb, id);
+    invalidateNotesCache();
     router.push("/notes");
   }
 
@@ -167,6 +198,7 @@ export function Entry(props: EntryProps) {
       } else {
         await (next ? pinNote(sb, id) : unpinNote(sb, id));
       }
+      invalidateNotesCache(); // pinned view + entry pin-state must refresh
     } catch {
       setPinned(!next); // revert on failure
     }
