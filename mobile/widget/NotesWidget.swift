@@ -13,10 +13,10 @@ import WidgetKit
 import SwiftUI
 import Foundation
 
-// MARK: - Shared App Group payload (written by the web app via @capacitor/preferences)
+// MARK: - Shared App Group payload (written by the app bridge)
 
 private let appGroup = "group.health.framewise.notes"
-// Capacitor Preferences prefixes stored keys with "_capacitor_".
+// NotesWidgetBridgePlugin writes this exact key into the App Group suite.
 private let payloadKey = "_capacitor_widget.payload"
 
 private struct WidgetPayload: Decodable {

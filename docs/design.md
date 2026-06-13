@@ -40,8 +40,9 @@ accent-tinted levels over `--heat-0`.
   title, no tile (#032). ⌘K search palette (#040).
 - **Settings** — accent swatches + light/dark + font (#063); account (#070).
 - **Sign in** — minimal; "keep me signed in on this device."
-- **Mobile** — bottom nav with **Today** and **Notes** only (#064); the consistency
-  chart is a **horizontal** section on Today (vertical only fits the web sidebar).
+- **Mobile** — bottom nav with **Today**, **Notes**, and **Settings** (#064); the
+  consistency chart is a **horizontal** section on Today (vertical only fits the web
+  sidebar).
 
 ## chosen variants (from the comparison labs)
 

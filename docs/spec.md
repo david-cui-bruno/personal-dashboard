@@ -47,7 +47,7 @@ The home screen and the pinned tab (#064). Top to bottom:
 
 Web: routine + journal in the ~700px reading column; consistency chart in the sidebar.
 Mobile: routine, then consistency as a section, then today's journal; bottom nav
-Today/Notes only (#064).
+Today/Notes/Settings (#064).
 
 ## 3. daily routine
 

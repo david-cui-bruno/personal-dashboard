@@ -52,16 +52,16 @@ server-side so the widget makes **one** call (next section).
 The widget is a native **WidgetKit** extension — a separate process from the Capacitor
 WebView, so it can't read the web app's state. Instead:
 
-1. **Session sharing:** the app writes its Supabase session (access + refresh token) to a
-   shared **App Group** (`group.health.framewise.notes`) keychain entry on sign-in /
+1. **Session sharing:** the app writes the widget payload (Supabase access token + cached
+   summary) to shared **App Group** defaults (`group.health.framewise.notes`) on sign-in /
    refresh. The widget reads it to authenticate as David (RLS still applies, #108).
 2. **One round-trip:** a Postgres function **`widget_summary()`** returns
    `{ done, total, focus_label, focus_item_id }` for today in a single PostgREST/RPC call,
    so the widget doesn't reimplement the consistency math in Swift.
-3. **Freshness:** the app calls `WidgetCenter.reloadAllTimelines()` whenever routine state
-   changes (instant while the app is used). When the app is closed, WidgetKit refreshes the
-   widget on its own timeline (iOS budget → ~every 15–30 min). That's what "live" means
-   here: current-when-you-use-the-app, near-current otherwise.
+3. **Freshness:** the app calls `WidgetCenter.reloadAllTimelines()` whenever the native
+   bridge rewrites the shared payload (launch, auth change, foreground). When the app is
+   closed, WidgetKit refreshes the widget on its own timeline (iOS budget → ~every 15–30
+   min). That's what "live" means here: current when the app syncs, near-current otherwise.
 
 ---
 
@@ -102,7 +102,7 @@ no API. Used by the widget's all-done state (and available to the app if we ever
 | `widget_summary()` Postgres function | Supabase migration | no |
 | notification scheduling + Settings UI | web/Capacitor (`@capacitor/local-notifications`) | runs natively; UI is web |
 | WidgetKit small widget (Swift) | `mobile/ios` extension | **yes** |
-| App Group + session sharing | native iOS + a small app hook | **yes** |
+| App Group + session sharing | native iOS + `NotesWidgetBridge` app hook | **yes** |
 | deep link `notes://today` | Capacitor config + app routing | partial |
 
 ---
@@ -113,37 +113,39 @@ no API. Used by the widget's all-done state (and available to the app if we ever
 - [x] `src/lib/quotes.ts` + `quoteForDay()`.
 - [x] `widget_summary(p_day)` Postgres function (migration `0004`) + `getWidgetSummary()`
       in the data layer; DB types regenerated. Verified: authenticated call returns
-      `{done,total,focus}`; anon execute revoked (#108). **Still to do before the widget
-      ships: `supabase db push` this migration to the cloud (Phase 2 deploy step).**
+      `{done,total,focus}`; anon execute revoked (#108). Remote migration `0004` was pushed
+      during Phase 2 go-live.
 - [x] `src/lib/notif-prefs.ts` — device-local notification prefs (enabled + morning/evening
-      times) with safe defaults/validation. *The Settings **UI** for these moves to Phase 3*
-      (it's native-only — times are device-local and only act in the iOS shell, so the
-      control is gated to the native app where it can be tested with the scheduler).
+      times) with safe defaults/validation. The Settings UI is native-only because times
+      are device-local and only act in the iOS shell.
 
-**Phase 2 — native widget (needs Xcode + the iOS project, #113).** *prep done; Xcode wiring pending*
+**Phase 2 — native widget (needs Xcode + the iOS project, #113).** ✅ done
 - [x] WidgetKit small widget written: `mobile/widget/NotesWidget.swift` (ring + X/N + focus,
       all-done/quote, empty, needs-open states; live fetch + cached fallback; `notes://today`).
 - [x] Web→widget **session bridge** (#120): `src/lib/native/widget-bridge.ts` +
       `<NativeBridge>` (mounted in the app layout, native-only) write the App Group payload
-      via `@capacitor/preferences`.
-- [ ] **Xcode wiring** (assistant): generate `mobile/ios`, add the App Group + Widget
+      via the native `NotesWidgetBridge` plugin, which writes App Group defaults directly
+      and reloads WidgetKit timelines.
+- [x] **Xcode wiring** (assistant): generate `mobile/ios`, add the App Group + Widget
       Extension target, drop in the Swift, sign, run — see `docs/widget-phase2-runbook.md`.
-- [ ] **Go-live deploys**: `supabase db push` (migration `0004`) + `vercel --prod` (bridge).
-- [ ] Later: instant in-app refresh via a tiny `reloadAllTimelines()` plugin (#120).
+- [x] **Go-live deploys**: `supabase db push` (migration `0004`) + `vercel --prod` (bridge).
 
-**Phase 3 — notifications (Capacitor).** *prep done; Xcode wiring pending*
+**Phase 3 — notifications (Capacitor).** ✅ done
 - [x] `@capacitor/local-notifications` added (web + mobile, v8); permission requested on
       first reschedule.
 - [x] `src/lib/native/notifications.ts` — cancel + (re)schedule morning/evening from prefs;
       evening body reflects today's `{left, focus}`/all-done. Rescheduled on launch, auth
       change, and **foreground** (via `initNative()` in `src/lib/native/index.ts`).
 - [x] `src/components/settings/notifications-section.tsx` — native-only Settings section
-      (toggle + morning/evening time pickers) on `notif-prefs.ts`; reschedules on change.
-- [ ] **Xcode wiring** (assistant): `@capacitor/local-notifications` pod via `npm run sync`
-      after the iOS project exists — see `docs/notifications-phase3-runbook.md`.
+      (toggle + morning/evening time pickers + test action) on `notif-prefs.ts`;
+      reschedules on change.
+- [x] **Xcode wiring**: `@capacitor/local-notifications` pod synced into the generated iOS
+      project.
+- [x] **Delivery verification**: permission prompt + test notification fire — see
+      `docs/notifications-phase3-runbook.md`.
 
-Phases 2–3 are real **native** work and will be packaged as an assistant/Xcode runbook
-(like `docs/ship-desktop-and-ios.md`) when we reach them. Phase 1 lands in the repo now.
+Phase 2 native widget wiring is done. Phase 3 notification delivery is verified in the
+iOS Simulator.
 
 ## done since v1
 

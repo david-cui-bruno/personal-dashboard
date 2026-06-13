@@ -1,9 +1,8 @@
 "use client";
 
-// The app shell (#064): sidebar on web, bottom nav on mobile (today / notes
-// only). The seam every Phase 1 page renders into. The viewport is fixed height
-// (h-dvh) and only the content scrolls, so the sidebar stays put and settings is
-// always reachable without scrolling.
+// The app shell (#064): sidebar on web, bottom nav on mobile. The seam every Phase 1
+// page renders into. The viewport is fixed height (h-dvh) and only the content scrolls,
+// so the sidebar stays put and settings is always reachable without scrolling.
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -14,6 +13,11 @@ import { ConsistencyChart } from "@/components/consistency-chart";
 const NAV = [
   { href: "/", label: "today", icon: CalendarCheck },
   { href: "/notes", label: "notes", icon: NotebookPen },
+] as const;
+
+const MOBILE_NAV = [
+  ...NAV,
+  { href: "/settings", label: "settings", icon: Settings },
 ] as const;
 
 export function AppFrame({ children }: { children: ReactNode }) {
@@ -74,7 +78,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
 
         {/* bottom nav — mobile */}
         <nav className="fixed inset-x-0 bottom-0 z-10 flex border-t border-line bg-bg pb-7 pt-2 md:hidden">
-          {NAV.map(({ href, label, icon: Icon }) => (
+          {MOBILE_NAV.map(({ href, label, icon: Icon }) => (
             <Link
               key={href}
               href={href}

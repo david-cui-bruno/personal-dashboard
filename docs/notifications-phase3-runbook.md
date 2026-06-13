@@ -27,8 +27,9 @@ native plugin present.
    notification permission — **Allow**.
 4. **Verify in the app:** Settings → **notifications**. Toggle on, set the morning/evening
    times. (This section is invisible on web/desktop by design.)
-5. **Verify delivery:** set a time a minute or two ahead, lock the phone, wait — the
-   notification should fire. Tapping it opens the app. Reset the times to 8:00 / 21:00.
+5. **Verify delivery:** tap **send test**, return to the Home Screen, and wait ~10 seconds.
+   The test notification should fire. Tapping it opens the app. For the daily reminders,
+   set a time a minute or two ahead, wait, then reset the times to 8:00 / 21:00.
 
 ## notes / troubleshooting
 
