@@ -778,3 +778,106 @@ a usable image board first; layer the (harder) sticky interactions next. Verifie
 (upload → masonry tile + row w/ dims → lightbox → delete → row+object gone; separate boards; no
 errors), self-restoring. `docs/spec.md` §11 + `docs/data-model.md` updated; spec notes stickies
 in progress.
+
+**#142 — inspo Phase 1b shipped: the sticky holder + on-image stickies.**
+The signature interaction from the #140 brief, all into the existing lightbox (no schema or
+data-layer change — `addSticky`/`updateSticky`/`deleteSticky` + `inspo_sticky` landed in #141).
+New components under `src/components/inspo/`: `sticky-holder` (the fixed 5-color dispenser,
+hover-pop, pointer drag-source with a ghost), `sticky` (a placed, tilted, auto-growing editable
+note), `inspo-lightbox` + `inspo-tile` (extracted from the board). Shared paper palette in
+`sticky-colors.ts`. **Build decisions:** (a) **drag a color from the holder onto the image** →
+new sticky at the drop point (center for a tap / out-of-bounds); dropping onto a **board tile**
+opens that item with a fresh sticky — the board holder is **drag-only** (a tap is ambiguous) and
+**web-only** (`hidden md:flex`), while the lightbox holder is a **bottom strip on mobile**, so a
+phone adds stickies inside the opened image (matches the mockup — the mobile board has no rail).
+(b) A sticky is **tap-to-edit / drag-to-move**, disambiguated by a 5px move threshold; the
+textarea is inert until editing so the press lands on the paper for dragging. (c) The note has a
+**fixed width (~150px) and grows downward** as text wraps (true width-growth wasn't worth the
+complexity); text saves **debounced**, position **on drop**. (d) A sticky left **empty on blur is
+deleted**, so accidental drops don't litter. (e) Tile **peeks** = up to **2** decorative,
+non-interactive notes, bottom-left (cheap; the real ones live in the lightbox). (f) Positions are
+**x/y fractions** of the image; all gestures use **pointer events** (mouse + touch, #134). (g)
+The 5 sticky colors are **fixed paper hues** (same in light/dark), kept as TS constants in
+`sticky-colors.ts` rather than themed tokens; documented in `docs/design.md`. **Not in this
+slice:** tile **reorder** — the board stays **newest-first** (`created_at` desc) and `sort_order`
+stays reserved (a later refinement, per `docs/data-model.md`), so the #140 brief's "reorder under
+Phase 1" is deferred; **video** stays Phase 2. **Why:** deliver the calm, tactile "stick a note on
+the thing you love" feel David signed off on, and keep the board itself the only busy surface.
+Verified end-to-end (seed item → open → holder-drag creates a sticky w/ sensible x/y → type
+persists → move changes x/y → delete removes the row → close + segment toggle; no console
+errors), self-restoring against the shared DB. `docs/spec.md` §11, `docs/data-model.md`,
+`docs/design.md`, `docs/handoff.md`, `docs/roadmap.md`, `docs/inspo.md` updated.
+
+**#143 — inspo Phase 2 shipped: screen recordings / video.**
+The fast-follow from #140 §9, completing the inspo board. Video flows through the same path as
+images — **drag-in / upload** (the file input now takes `image/*,video/*`); **paste stays
+images-only** (clipboards rarely carry video). `uploadInspoMedia` branches on MIME: video uploads
+**as-is** (no client transcode) with a **~50 MB cap**, and dimensions are read off-DOM via a
+hidden `<video>` so masonry reserves the aspect ratio. Tiles render the **first frame**
+(`<video …#t=0.1>`) + the ▶ badge; the lightbox plays `<video controls>`; **stickies work on a
+video** exactly as on an image (the media box generalized from `imgWrapRef` → `mediaRef`).
+**Decisions:** (a) **~50 MB** video cap — matches the local Supabase global `file_size_limit`
+("50MiB"); the `attachments` bucket itself has no per-bucket size/MIME limit, so nothing else
+gates it. *Confirm the prod plan's upload limit before relying on the full 50 MB* (free tier is
+~50 MB). (b) **No poster column / no client-side poster generation** — the first-frame `<video>`
+tile is the brief's sanctioned "plain video tile" v1; it needs **no schema change** (`kind` already
+allowed `'video'`) and avoids codec-dependent canvas extraction. A generated poster (+ optional
+nullable `poster_path` on `inspo_item`) is a clean **later refinement**. (c) Video bytes are not
+downscaled (no in-browser transcode); the cap is the only guard. **Why:** let David drop screen
+recordings onto the board with the least machinery, keeping the calm aesthetic and the existing
+deploy-before-migration safety (no new migration). Verified end-to-end (upload a tiny WebM via the
+file input → row `kind=video` + 320×240 dims captured → tile is a `<video>` + ▶ badge → lightbox
+plays it → drag a sticky onto the video → row persists; no console errors), self-restoring.
+`docs/spec.md` §11, `docs/data-model.md`, `docs/handoff.md`, `docs/roadmap.md`, `docs/inspo.md`
+updated.
+
+**#144 — inspo video poster thumbnails (supersedes #143's poster-deferral).**
+David asked for the two deferred refinements, so video tiles now show a **generated first-frame
+poster** instead of a live `<video>`. On upload, `videoMeta` loads metadata off-DOM, **seeks to
+~0.1s, draws the frame to a `<canvas>`** (downscaled to the same `MAX_DIM` as images) and encodes a
+**JPEG**, uploaded to `inspo/<id>.poster.jpg`. New nullable **`poster_path`** column on `inspo_item`
+(**migration `0011`**, additive + idempotent, RLS unchanged) holds it; the tile renders the poster
+`<img>` and **falls back to the live first frame** if generation failed (codec/canvas), and the
+lightbox uses it as the `<video poster>`. Poster generation is **best-effort** (any failed step →
+null → fallback), so it never blocks an upload. `deleteInspoItem` removes the poster object too.
+**Why:** a still poster is lighter than N `<video>` elements in a masonry and renders reliably
+across browsers (the `#t=0.1` live-frame trick is the fallback). This **reverses the #143 decision**
+to defer posters / skip the column — David opted in. Verified end-to-end (upload a WebM → `poster_path`
+set + object present in Storage → tile is a poster `<img>` (no live `<video>`) + ▶ badge), self-restoring.
+
+**#145 — inspo tile drag-reorder (supersedes the #142 reorder-deferral).**
+The board's masonry is now **drag-reorderable**, closing the last #140 Phase-1 gap. The list reorder
+hook (#134/#135) is a 1-D vertical model that doesn't fit a CSS-`columns` grid, so reorder uses a
+**drop-on-target** gesture (`use-tile-reorder.ts`): grab a tile by its **grip handle** → a ghost
+follows the pointer → the tile under the pointer highlights (found via `elementFromPoint` +
+`data-inspo-item`, the same hit-test the board holder uses) → on release the dragged tile is inserted
+**before** that target and the new order persists. Order is now **`sort_order` asc** (`listInspo`
+orders by it, tie-broken by `created_at` desc); `reorderInspoItems(orderedIds)` renumbers 0..n
+(mirrors `reorderPins`/`routine.reorderItems`); the update is **optimistic**, reverting from the
+server on failure. Un-reordered boards keep **newest-first** (all `sort_order` 0 → `created_at`
+tie-break), and new items still prepend. Pointer events → mouse + touch. **Why:** complete the board
+per the brief while accepting that true live-gap animation isn't worth it on a column-balanced
+masonry — lift + ghost + target-ring + reflow reads clearly. This **reverses the #142 decision** to
+defer reorder. Verified (seed two ordered tiles → drag the 2nd's handle onto the 1st → `sort_order`
+swaps in the DB; no console errors), self-restoring. `docs/spec.md` §11, `docs/data-model.md`,
+`docs/handoff.md`, `docs/roadmap.md`, `docs/inspo.md` updated.
+
+**#146 — inspo reorder, take two: a smooth JS-positioned masonry (supersedes #145's mechanism).**
+David found #145's reorder hard to discover and not smooth, so the board's layout moved from CSS
+`columns` to a **JS-positioned masonry** and the gesture became a live glide. `use-masonry-reorder.ts`
+(replaces `use-tile-reorder.ts`): the board measures its width (a ResizeObserver behind a callback
+ref, since the grid only mounts after items load), packs each tile into the **shortest column** using
+its stored aspect ratio, and positions every tile **absolutely** via `transform: translate(...)` with
+a `transition`. Reorder is then trivial and smooth — while you drag a tile by its grip handle, the
+dragged tile tracks the pointer **1:1** (driven imperatively, re-pinned in a `useLayoutEffect` so a
+re-render never snaps it), and as it crosses another tile the working order updates so **every other
+tile eases to its new slot**; on release it glides home and the order persists (same `sort_order` +
+`reorderInspoItems`, optimistic, as #145). The grip handle is now **always visible** (was hover-only —
+the discoverability complaint). **Why:** a column-balanced CSS-`columns` grid can't animate reorder
+cleanly (#145 settled for drop-on-target + instant reflow); explicit JS positions make
+`transition: transform` do the smooth work for free, in 2-D, on mouse + touch. **Trade-off:** the board
+now needs item dimensions to lay out (we already capture them on upload; dimensionless legacy items
+fall back to a square ratio). This **changes the mechanism of #145**, not the data model. Verified
+(JS masonry lays out in 3 balanced columns; drag the last tile to the front → others glide live →
+`sort_order` persists; no console errors) with board + mid-drag screenshots, self-restoring.
+`docs/design.md`, `docs/handoff.md`, `docs/inspo.md` updated.

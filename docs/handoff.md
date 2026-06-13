@@ -21,7 +21,7 @@ desktop (macOS), and iOS.**
   migrations `0001–0007` are all pushed (Local == Remote).
 - **Read first:** `docs/product.md` (why) → `docs/spec.md` (what, FROZEN) →
   `docs/data-model.md` (schema, FROZEN) → this file (how to run/ship). Full "why" log:
-  `docs/decisions.md` (#001–#141).
+  `docs/decisions.md` (#001–#146).
 - **One thing still pending on David:** connect Spotify once (web/iOS) to enable "song of
   the day → from your listening" (§9). Everything else is done.
 
@@ -66,9 +66,13 @@ Lato · PWA. Plus two thin **hosted-URL native shells** that load the same web a
   editor with inline **photos** (#050); a song day shows a `♪ title — artist` line. In-list
   search also **jumps to a date** (type "june 3", #116). An `all / pinned` segment shows a
   **drag-reorderable pinned view** (pin from the entry header; stream stays unmarked, #135).
-- **Inspo (`/inspo`, #140/#141)** — mood/inspiration board tab: **moodboard / people**
-  boards, **masonry** grid, add images by paste/drag/upload. P1a (images) shipped; **stickies
-  (P1b) + video (P2)** pending. Brief: `docs/inspo.md`.
+- **Inspo (`/inspo`, #140–#146)** — mood/inspiration board tab: **moodboard / people**
+  boards, **smooth drag-reorderable masonry** (grip handle, JS-positioned, #146), add **images &
+  video** by paste
+  (images)/drag/upload. Open a tile → place colored **stickies** on the image/video from a fixed
+  **holder** (drag to drop, tap to type-and-grow, drag to move, ✕ to delete); tiles show sticky
+  **peeks**, and video tiles a generated **poster** + ▶ badge (#144). Fully built — Phase 1 + 2 +
+  both refinements. Brief: `docs/inspo.md`.
 - **Search (⌘K)** — full-text over journals/notes + jump-to-date / new note (#040).
 - **Settings (`/settings`)** — appearance (accent/theme/font, #063) · **data → export**
   (JSON, + a `.zip` with photo files when present, #109/#114) · **notifications**
@@ -85,16 +89,16 @@ AGENTS.md / CLAUDE.md      the 5 anti-drift rules + doc index (read first)
 docs/
   product / spec / data-model   FROZEN: goal / behavior / schema
   architecture / design         living: stack+deploy / tokens+screens
-  decisions.md                  append-only "why" log (#001–#141)
+  decisions.md                  append-only "why" log (#001–#146)
   roadmap.md / phase-1.md       status + parallel-slice briefs
   widget-and-notifications.md   the iOS widget + notifications design (#119)
   ship-desktop-and-ios.md       signing/notarize/release + iOS Xcode runbook
   notifications-phase3-runbook.md   iOS notifications wiring
-  inspo.md                      **inspo board** build brief (#140); P1a built — images+boards (#141)
+  inspo.md                      **inspo board** build brief (#140); boards/images (#141) · stickies (#142) · video (#143) · posters (#144) · reorder (#145) — all built
   handoff.md                    this file
 mockups/index.html         interactive visual reference
 supabase/migrations/       0001_init · 0002_storage · 0003_rls · 0004_widget_summary
-                           · 0005_today_summary · 0006_daily_song · 0007_spotify_auth · 0008_today_summary_song · 0009_pinning · 0010_inspo
+                           · 0005_today_summary · 0006_daily_song · 0007_spotify_auth · 0008_today_summary_song · 0009_pinning · 0010_inspo · 0011_inspo_poster
 desktop/                   Electron shell (#110) — self-contained, npm not pnpm.
                            main.js (hosted-URL window) · updater.js (auto-update, #112)
                            · build/{icon.png, entitlements.mac.plist} · README.md
@@ -109,7 +113,7 @@ src/
                            these only — never hits tables directly:
                            routine · consistency · journal · notes · settings · search
                            · attachments · export · today (today_summary RPC + cache)
-                           · song (daily_song) · widget (widget_summary RPC) · types
+                           · song (daily_song) · widget (widget_summary RPC) · inspo · types
   lib/native/              native-shell glue (runs only in Capacitor): index.ts (initNative)
                            · widget-bridge.ts (App Group payload) · notifications.ts (local)
   lib/notif-prefs.ts       device-local notification prefs
@@ -124,6 +128,7 @@ src/
   components/
     app-frame · consistency-chart · editor (TipTap) · theme-script · native-bridge
     song-of-day.tsx        the song bar (search + "from your spotify")
+    inspo/                 board · tile · lightbox · sticky · sticky-holder · sticky-colors · use-masonry-reorder (#140–#146)
     ui/ today/ notes/ settings/ search/   per-slice UIs
 public/                    manifest.webmanifest, icons (folded-page mark #117), sw.js
 ```

@@ -202,10 +202,20 @@ Today/Notes-only nav #064). A private visual board for collecting inspiration.
 - **Two boards** via an `all/pinned`-style segment: **moodboard** (anything you like) and
   **people** (people who inspire you). Same item model; the board is just a category.
 - **Add media** by **paste** (⌘V an image), **drag-drop** files, or the **+** upload button.
-  **Images/screenshots** in Phase 1; **screen recordings (video)** are a fast-follow (Phase 2).
-- **Masonry** grid (3 cols web / 2 mobile), newest first. Tap a tile to **open** it (a
-  lightbox); delete from there.
-- **Sticky notes (in progress, Phase 1b):** open an image and place colored stickies
-  (yellow/blue/orange/pink/green) **on it** from a fixed holder — drag a color onto the image,
-  click & type (it grows), drag to move. On the board, an item's stickies show as peeks. Full
+  **Images/screenshots** (≤10 MB, downscaled) and **screen recordings / video** (≤50 MB) are
+  both supported (#142); **paste is images-only** (clipboards rarely carry video).
+- **Masonry** grid (3 cols web / 2 mobile), newest first, **drag-reorderable** by each tile's
+  grip handle (#145). Tap a tile to **open** it (a lightbox); delete from there. **Video** tiles
+  show a generated **poster** still (#144) + a ▶ badge and **play with controls** in the lightbox;
+  stickies can be placed on a video just like an image.
+- **Sticky notes (Phase 1b, #142):** open an image and place colored stickies
+  (yellow/blue/orange/pink/green) **on it** from a fixed holder. **Drag** a color from the holder
+  onto the image to drop a sticky there; **tap** the sticky to edit (the text grows it
+  downward, saved debounced); **drag** the sticky to reposition (saved on drop); a **✕**
+  deletes it. A sticky left **empty** on blur is discarded, so stray drops don't litter.
+  The holder is docked on the **right (web)** beside the board and the image; **on mobile** it's
+  a strip in the lightbox (the board has no rail — you add stickies inside the opened image).
+  Dragging a holder color onto a **board tile** opens that item with a fresh sticky ready to
+  type. On the board, an item's stickies show as small non-interactive **peeks**. Sticky
+  positions are stored as **x/y fractions** of the image, so they hold at any render size. Full
   design: `docs/inspo.md` + `mockups/index.html` ("inspo" / "item open").

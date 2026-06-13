@@ -38,10 +38,11 @@ See `docs/architecture.md` for deploy details.
 
 ## explicitly deferred (post-V1)
 
-- **inspo board (#140) — design settled, build pending.** A new `inspo` tab: moodboard +
-  people boards, masonry, paste/drag/upload images (video fast-follow), and colored sticky
-  notes placed on opened images via a fixed holder. Full build brief: `docs/inspo.md`; mockup
-  in `mockups/index.html`. Phase 1 = boards + images + stickies; Phase 2 = video.
+- ~~**inspo board (#140)**~~ — **fully built**: a new `inspo` tab with moodboard + people
+  boards, **drag-reorderable masonry** (#145), paste/drag/upload of **images & video** (#141/#143),
+  and colored sticky notes placed on opened media via a fixed holder (#142). Video tiles show a
+  generated **poster** + ▶ badge and play in the lightbox (#144). Nothing outstanding. Full brief:
+  `docs/inspo.md`; mockup in `mockups/index.html`.
 
 - Native **mobile** shell via **Capacitor** (#113): **shipped on iOS** — the home-screen
   **widget** + daily **notifications** (#119, `docs/widget-and-notifications.md`) are
