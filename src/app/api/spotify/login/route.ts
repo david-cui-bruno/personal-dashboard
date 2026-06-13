@@ -11,6 +11,11 @@ export async function GET(req: Request) {
   if (!clientId || !redirectUri) {
     return NextResponse.redirect(new URL("/?spotify=config", req.url));
   }
+  // Where to land after the round-trip (e.g. /settings when connecting from there).
+  // Only same-origin relative paths — guards against an open redirect (#139).
+  const ret = new URL(req.url).searchParams.get("return");
+  const returnTo = ret && ret.startsWith("/") && !ret.startsWith("//") ? ret : "/";
+
   const state = crypto.randomUUID();
   const params = new URLSearchParams({
     client_id: clientId,
@@ -22,12 +27,14 @@ export async function GET(req: Request) {
   const res = NextResponse.redirect(
     `https://accounts.spotify.com/authorize?${params.toString()}`,
   );
-  res.cookies.set("spotify_oauth_state", state, {
+  const cookie = {
     httpOnly: true,
-    sameSite: "lax", // survives the top-level redirect back from Spotify
+    sameSite: "lax" as const, // survives the top-level redirect back from Spotify
     secure: process.env.NODE_ENV === "production", // local dev is http://127.0.0.1
     path: "/",
     maxAge: 600,
-  });
+  };
+  res.cookies.set("spotify_oauth_state", state, cookie);
+  res.cookies.set("spotify_return", returnTo, cookie);
   return res;
 }
