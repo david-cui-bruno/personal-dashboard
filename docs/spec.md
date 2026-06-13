@@ -193,3 +193,19 @@ Today/Notes only (#064).
   editing in V1.
 - **PWA**: installable (manifest, icon, name `notes`, theme-color, service worker for
   install/caching of the shell — not for offline data).
+
+## 11. inspo (`/inspo`, #140) — mood / inspiration board
+
+A third top-level tab (sidebar on web; **third bottom-nav tab** on mobile — amends the
+Today/Notes-only nav #064). A private visual board for collecting inspiration.
+
+- **Two boards** via an `all/pinned`-style segment: **moodboard** (anything you like) and
+  **people** (people who inspire you). Same item model; the board is just a category.
+- **Add media** by **paste** (⌘V an image), **drag-drop** files, or the **+** upload button.
+  **Images/screenshots** in Phase 1; **screen recordings (video)** are a fast-follow (Phase 2).
+- **Masonry** grid (3 cols web / 2 mobile), newest first. Tap a tile to **open** it (a
+  lightbox); delete from there.
+- **Sticky notes (in progress, Phase 1b):** open an image and place colored stickies
+  (yellow/blue/orange/pink/green) **on it** from a fixed holder — drag a color onto the image,
+  click & type (it grows), drag to move. On the board, an item's stickies show as peeks. Full
+  design: `docs/inspo.md` + `mockups/index.html` ("inspo" / "item open").

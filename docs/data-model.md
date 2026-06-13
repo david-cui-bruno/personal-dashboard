@@ -113,6 +113,31 @@ chosen track, not link-paste.
 Migration 0007. Powers "song of the day → from your listening" (recently-played /
 now-playing). Authorization Code OAuth via `/api/spotify/{login,callback,recent}`.
 
+### `inspo_item` — a board item (#140)
+| column | type | notes |
+|---|---|---|
+| `id` | uuid pk | |
+| `board` | text not null | `check in ('moodboard','people')` |
+| `kind` | text not null default `'image'` | `check in ('image','video')` — `video` is Phase 2 |
+| `storage_path` | text not null | path in the public `attachments` bucket under `inspo/` |
+| `width` / `height` | int null | intrinsic px — masonry reserves aspect ratio |
+| `sort_order` | int not null default 0 | reserved for manual order (reorder is a later refinement) |
+| `created_at` | timestamptz default now() | board is newest-first |
+
+### `inspo_sticky` — a colored sticky placed on an item's image (#140)
+| column | type | notes |
+|---|---|---|
+| `id` | uuid pk | |
+| `item_id` | uuid not null | `references inspo_item(id) on delete cascade` |
+| `color` | text not null | `check in ('yellow','blue','orange','pink','green')` |
+| `text` | text not null default `''` | |
+| `x` / `y` | real not null | **fraction 0..1** of the image box — scales across screens |
+| `rotation` | real not null default 0 | small paper tilt |
+
+Migration 0010. RLS `authenticated` (#108). Media reuses the public `attachments` bucket
+(#103). Reads tolerate the tables being absent (deploy-before-migration → `[]`). Phase 1b
+adds the sticky placement UI; full brief in `docs/inspo.md`.
+
 ## search (#040)
 
 - Maintain a `tsvector` (generated column or trigger) over `title` + `content_text` on
@@ -153,5 +178,9 @@ Post-V1 additions (read-only, additive):
   round-trip for the whole Today screen: `{routine_items, completions, journal,
   song}` — `song` is today's `daily_song` row, folded in by migration `0008` (#131).
   `security invoker` (RLS applies), `authenticated`-only like `widget_summary`.
+- inspo (#140, `src/lib/data/inspo.ts`): `listInspo(board)` (items + embedded stickies),
+  `uploadInspoMedia(file)` (→ `attachments` bucket `inspo/`, captures dims), `addInspoItem`,
+  `deleteInspoItem` (+ Storage object), `addSticky` / `updateSticky` / `deleteSticky`,
+  `inspoUrl(path)`. Tolerant reads.
 
 Exact signatures finalize with `spec.md` at freeze.

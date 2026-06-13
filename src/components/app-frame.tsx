@@ -7,13 +7,15 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { CalendarCheck, NotebookPen, Settings, LogOut } from "lucide-react";
+import { CalendarCheck, NotebookPen, LayoutGrid, Settings, LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ConsistencyChart } from "@/components/consistency-chart";
 
+// today / notes / inspo — the inspo tab amends the old today+notes-only nav (#064 → #140).
 const NAV = [
   { href: "/", label: "today", icon: CalendarCheck },
   { href: "/notes", label: "notes", icon: NotebookPen },
+  { href: "/inspo", label: "inspo", icon: LayoutGrid },
 ] as const;
 
 export function AppFrame({ children }: { children: ReactNode }) {
