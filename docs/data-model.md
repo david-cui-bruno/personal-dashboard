@@ -135,8 +135,8 @@ now-playing). Authorization Code OAuth via `/api/spotify/{login,callback,recent}
 | `rotation` | real not null default 0 | small paper tilt |
 
 Migration 0010. RLS `authenticated` (#108). Media reuses the public `attachments` bucket
-(#103). Reads tolerate the tables being absent (deploy-before-migration → `[]`). Phase 1b
-adds the sticky placement UI; full brief in `docs/inspo.md`.
+(#103). Reads tolerate the tables being absent (deploy-before-migration → `[]`). The sticky
+placement UI shipped in Phase 1b (#142); full brief in `docs/inspo.md`.
 
 ## search (#040)
 

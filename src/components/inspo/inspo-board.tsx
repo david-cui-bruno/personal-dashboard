@@ -1,21 +1,29 @@
 "use client";
 
-// Inspo board (#140, Phase 1a) — moodboard | people boards of images in a masonry
-// grid. Add via the + button, paste (⌘V an image), or drag-drop files. Open a tile
-// to view it; delete from there. The sticky holder + on-image stickies land in
-// Phase 1b (this lightbox is where they'll live). Build brief: docs/inspo.md.
+// Inspo board (#140) — moodboard | people boards of images in a masonry grid. Add via
+// the + button, paste (⌘V an image), or drag-drop files. Open a tile for the lightbox,
+// where colored stickies get placed on the image (Phase 1b).
+//
+// The holder is docked on the right (web only — mobile adds stickies from inside the
+// lightbox). Dragging a color onto a tile opens that tile's lightbox with a fresh
+// sticky of that color, so the dispenser "works" from the board too. Build brief:
+// docs/inspo.md.
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ImagePlus, Plus, Trash2, X } from "lucide-react";
+import { ImagePlus, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
   listInspo,
   uploadInspoMedia,
   addInspoItem,
   deleteInspoItem,
-  inspoUrl,
   type InspoBoard as Board,
   type InspoItemWithStickies,
+  type InspoSticky,
+  type StickyColor,
 } from "@/lib/data";
+import { InspoTile } from "./inspo-tile";
+import { InspoLightbox } from "./inspo-lightbox";
+import { StickyHolder } from "./sticky-holder";
 
 const BOARDS = ["moodboard", "people"] as const;
 
@@ -25,9 +33,12 @@ export function InspoBoard() {
   const [items, setItems] = useState<InspoItemWithStickies[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [open, setOpen] = useState<InspoItemWithStickies | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [pendingColor, setPendingColor] = useState<StickyColor | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const open = items.find((i) => i.id === openId) ?? null;
 
   useEffect(() => {
     let active = true;
@@ -79,14 +90,34 @@ export function InspoBoard() {
     return () => window.removeEventListener("paste", onPaste);
   }, [addFiles]);
 
+  function closeLightbox() {
+    setOpenId(null);
+    setPendingColor(null);
+  }
+
+  function syncStickies(itemId: string, stickies: InspoSticky[]) {
+    setItems((prev) => prev.map((i) => (i.id === itemId ? { ...i, stickies } : i)));
+  }
+
   async function remove(item: InspoItemWithStickies) {
     setItems((prev) => prev.filter((i) => i.id !== item.id));
-    setOpen(null);
+    closeLightbox();
     try {
       await deleteInspoItem(sb, item.id, item.storage_path);
     } catch {
       listInspo(sb, board).then(setItems);
     }
+  }
+
+  // Drop a color onto a board tile → open that tile with a fresh sticky of that color.
+  function onBoardHolderPick(color: StickyColor, point: { x: number; y: number } | null) {
+    if (!point) return; // a tap on the board is ambiguous (which tile?) — drag only
+    const el = document.elementFromPoint(point.x, point.y);
+    const tile = el?.closest<HTMLElement>("[data-inspo-item]");
+    const id = tile?.dataset.inspoItem;
+    if (!id || !items.some((i) => i.id === id)) return;
+    setPendingColor(color);
+    setOpenId(id);
   }
 
   return (
@@ -146,9 +177,7 @@ export function InspoBoard() {
         ))}
       </div>
 
-      {busy && (
-        <p className="mb-3 text-[13px] font-bold lowercase text-ink-3">uploading…</p>
-      )}
+      {busy && <p className="mb-3 text-[13px] font-bold lowercase text-ink-3">uploading…</p>}
 
       {loading ? (
         <p className="mt-8 text-[15px] font-bold lowercase text-ink-3">loading…</p>
@@ -165,54 +194,28 @@ export function InspoBoard() {
       ) : (
         <div className="columns-2 [column-gap:14px] md:columns-3">
           {items.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setOpen(item)}
-              className="mb-3.5 block w-full break-inside-avoid overflow-hidden rounded-xl bg-field shadow-sm"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={inspoUrl(sb, item.storage_path)}
-                alt=""
-                loading="lazy"
-                className="block w-full"
-              />
-            </button>
+            <InspoTile key={item.id} sb={sb} item={item} onOpen={() => setOpenId(item.id)} />
           ))}
         </div>
       )}
 
+      {/* board-level dispenser — web only; on mobile you add stickies in the lightbox */}
+      <StickyHolder
+        onPick={onBoardHolderPick}
+        orientation="vertical"
+        className="fixed right-5 top-1/2 z-20 hidden -translate-y-1/2 md:flex"
+      />
+
       {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/70 p-6"
-          onMouseDown={() => setOpen(null)}
-        >
-          <div
-            className="relative max-h-[88vh] max-w-[90vw]"
-            onMouseDown={(e) => e.stopPropagation()}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={inspoUrl(sb, open.storage_path)}
-              alt=""
-              className="max-h-[88vh] max-w-[90vw] rounded-xl"
-            />
-            <button
-              onClick={() => setOpen(null)}
-              aria-label="close"
-              className="absolute -right-3 -top-3 grid h-9 w-9 place-items-center rounded-full bg-bg text-ink shadow-lg"
-            >
-              <X size={18} />
-            </button>
-            <button
-              onClick={() => remove(open)}
-              aria-label="delete image"
-              className="absolute bottom-3 right-3 grid h-10 w-10 place-items-center rounded-full bg-bg/90 text-ink-3 shadow-lg hover:text-red-500"
-            >
-              <Trash2 size={18} />
-            </button>
-          </div>
-        </div>
+        <InspoLightbox
+          key={open.id}
+          sb={sb}
+          item={open}
+          pendingColor={pendingColor}
+          onClose={closeLightbox}
+          onDelete={() => remove(open)}
+          onStickiesChange={syncStickies}
+        />
       )}
     </div>
   );

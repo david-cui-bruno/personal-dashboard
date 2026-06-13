@@ -40,8 +40,38 @@ accent-tinted levels over `--heat-0`.
   title, no tile (#032). ⌘K search palette (#040).
 - **Settings** — accent swatches + light/dark + font (#063); account (#070).
 - **Sign in** — minimal; "keep me signed in on this device."
-- **Mobile** — bottom nav with **Today** and **Notes** only (#064); the consistency
-  chart is a **horizontal** section on Today (vertical only fits the web sidebar).
+- **Mobile** — bottom nav with **Today**, **Notes**, and **Inspo** (#064 → amended by
+  #140/#142); the consistency chart is a **horizontal** section on Today (vertical only fits
+  the web sidebar).
+- **Inspo** — see the dedicated section below.
+
+## inspo board (#140/#142)
+
+Anchored to `mockups/index.html` → "inspo" / "item open". The board is the one
+deliberately "busy" surface; the rest of the app stays calm.
+
+- **Masonry** via CSS `columns` — 3 on web / 2 on mobile, `column-gap` ~14px, tiles
+  `break-inside: avoid`, rounded `14px`, newest-first. Each tile reserves its image's
+  `aspect-ratio` (from stored width/height) so the column doesn't jump on load.
+- **Sticky paper palette** — five fixed hues (paper + ink), **identical in light & dark**
+  (paper, not chrome), kept as constants in `src/components/inspo/sticky-colors.ts`:
+
+  | color | paper | ink |
+  |---|---|---|
+  | yellow | `#fdec8b` | `#4a4220` |
+  | blue | `#bcd8ff` | `#233049` |
+  | orange | `#ffd29b` | `#4a3318` |
+  | pink | `#ffc6dd` | `#4a2236` |
+  | green | `#bdf0c4` | `#1f4028` |
+
+  A note is ~12.5px/700, `border-radius: 3px`, soft drop shadow, a small ±3° tilt; fixed
+  ~150px wide and **grows downward** as the text wraps.
+- **The holder / dispenser** — a translucent, blurred dock (`bg-bg/70` + `backdrop-blur`,
+  rounded `16px`) of the 5 colors. Each tab `44×30px`; **hover pops it out**
+  (`translateX(-13px) scale(1.12) rotate(-4deg)`) to say "grab me". It's **fixed** on the
+  right while the board scrolls (web only); in the lightbox it docks beside the image (a
+  bottom strip on mobile). Drag a color → a `pointer-events:none` ghost follows; drop on the
+  image to place a sticky.
 
 ## chosen variants (from the comparison labs)
 

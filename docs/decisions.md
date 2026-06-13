@@ -778,3 +778,32 @@ a usable image board first; layer the (harder) sticky interactions next. Verifie
 (upload → masonry tile + row w/ dims → lightbox → delete → row+object gone; separate boards; no
 errors), self-restoring. `docs/spec.md` §11 + `docs/data-model.md` updated; spec notes stickies
 in progress.
+
+**#142 — inspo Phase 1b shipped: the sticky holder + on-image stickies.**
+The signature interaction from the #140 brief, all into the existing lightbox (no schema or
+data-layer change — `addSticky`/`updateSticky`/`deleteSticky` + `inspo_sticky` landed in #141).
+New components under `src/components/inspo/`: `sticky-holder` (the fixed 5-color dispenser,
+hover-pop, pointer drag-source with a ghost), `sticky` (a placed, tilted, auto-growing editable
+note), `inspo-lightbox` + `inspo-tile` (extracted from the board). Shared paper palette in
+`sticky-colors.ts`. **Build decisions:** (a) **drag a color from the holder onto the image** →
+new sticky at the drop point (center for a tap / out-of-bounds); dropping onto a **board tile**
+opens that item with a fresh sticky — the board holder is **drag-only** (a tap is ambiguous) and
+**web-only** (`hidden md:flex`), while the lightbox holder is a **bottom strip on mobile**, so a
+phone adds stickies inside the opened image (matches the mockup — the mobile board has no rail).
+(b) A sticky is **tap-to-edit / drag-to-move**, disambiguated by a 5px move threshold; the
+textarea is inert until editing so the press lands on the paper for dragging. (c) The note has a
+**fixed width (~150px) and grows downward** as text wraps (true width-growth wasn't worth the
+complexity); text saves **debounced**, position **on drop**. (d) A sticky left **empty on blur is
+deleted**, so accidental drops don't litter. (e) Tile **peeks** = up to **2** decorative,
+non-interactive notes, bottom-left (cheap; the real ones live in the lightbox). (f) Positions are
+**x/y fractions** of the image; all gestures use **pointer events** (mouse + touch, #134). (g)
+The 5 sticky colors are **fixed paper hues** (same in light/dark), kept as TS constants in
+`sticky-colors.ts` rather than themed tokens; documented in `docs/design.md`. **Not in this
+slice:** tile **reorder** — the board stays **newest-first** (`created_at` desc) and `sort_order`
+stays reserved (a later refinement, per `docs/data-model.md`), so the #140 brief's "reorder under
+Phase 1" is deferred; **video** stays Phase 2. **Why:** deliver the calm, tactile "stick a note on
+the thing you love" feel David signed off on, and keep the board itself the only busy surface.
+Verified end-to-end (seed item → open → holder-drag creates a sticky w/ sensible x/y → type
+persists → move changes x/y → delete removes the row → close + segment toggle; no console
+errors), self-restoring against the shared DB. `docs/spec.md` §11, `docs/data-model.md`,
+`docs/design.md`, `docs/handoff.md`, `docs/roadmap.md`, `docs/inspo.md` updated.

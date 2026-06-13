@@ -205,7 +205,14 @@ Today/Notes-only nav #064). A private visual board for collecting inspiration.
   **Images/screenshots** in Phase 1; **screen recordings (video)** are a fast-follow (Phase 2).
 - **Masonry** grid (3 cols web / 2 mobile), newest first. Tap a tile to **open** it (a
   lightbox); delete from there.
-- **Sticky notes (in progress, Phase 1b):** open an image and place colored stickies
-  (yellow/blue/orange/pink/green) **on it** from a fixed holder — drag a color onto the image,
-  click & type (it grows), drag to move. On the board, an item's stickies show as peeks. Full
+- **Sticky notes (Phase 1b, #142):** open an image and place colored stickies
+  (yellow/blue/orange/pink/green) **on it** from a fixed holder. **Drag** a color from the holder
+  onto the image to drop a sticky there; **tap** the sticky to edit (the text grows it
+  downward, saved debounced); **drag** the sticky to reposition (saved on drop); a **✕**
+  deletes it. A sticky left **empty** on blur is discarded, so stray drops don't litter.
+  The holder is docked on the **right (web)** beside the board and the image; **on mobile** it's
+  a strip in the lightbox (the board has no rail — you add stickies inside the opened image).
+  Dragging a holder color onto a **board tile** opens that item with a fresh sticky ready to
+  type. On the board, an item's stickies show as small non-interactive **peeks**. Sticky
+  positions are stored as **x/y fractions** of the image, so they hold at any render size. Full
   design: `docs/inspo.md` + `mockups/index.html` ("inspo" / "item open").

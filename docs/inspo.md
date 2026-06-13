@@ -191,10 +191,16 @@ Mirror the existing data-layer style (typed, throws on error, tolerant reads). I
 
 ## 9. phasing
 
-- **Phase 1 (this slice):** the `inspo` tab + nav + the two boards (segment) + **image**
-  paste/drag/upload + masonry + tile peeks + open-lightbox + the **holder** (place / drag /
-  type-to-grow / move / delete stickies) + tile **reorder** + delete item. Data model + storage
-  + data layer + docs.
+> **status:** Phase 1 **shipped** — **P1a** = tab + nav + boards + image paste/drag/upload +
+> masonry + open-lightbox + delete (#141); **P1b** = tile peeks + the **holder** + on-image
+> stickies (drag-to-drop / tap-to-type-and-grow / move / delete) (#142). **Tile reorder was
+> deferred** — the board is newest-first and `sort_order` stays reserved (see #142 /
+> `docs/data-model.md`). Phase 2 (video) is the open fast-follow.
+
+- **Phase 1 (shipped, #141 + #142):** the `inspo` tab + nav + the two boards (segment) +
+  **image** paste/drag/upload + masonry + tile peeks + open-lightbox + the **holder** (place /
+  drag / type-to-grow / move / delete stickies) + delete item. Data model + storage + data layer
+  + docs. *(Tile **reorder** deferred — see status note above.)*
 - **Phase 2 (fast-follow):** **screen recordings / video** — drag/upload (size-capped),
   `<video>` playback in the lightbox, ▶ tile badge, poster thumbnails. Flip `kind='video'`.
 
