@@ -34,6 +34,12 @@ The home screen and the pinned tab (#064). Top to bottom:
 - **date title** — lowercase, e.g. `thursday, june 11` (#061). No eyebrow, no
   "x of y done" counter (#065 / removed by David).
 - **daily routine section** (see §3).
+- **song of the day** — one logged song per day (#123), set via inline Spotify
+  search or "from your spotify" (#125/#126). Once set, the bar **is Spotify's inline embed
+  player** (#127/#128) — playback in-app (full track if signed into Spotify Premium in that
+  browser, else a 30s preview), with a minimal grey × to clear. A non-Spotify-track url
+  falls back to a link-out row. Also shown on the `/notes/[date]` entry; a quiet `♪` line
+  marks it on the stream (§6).
 - **today's journal section** — a larger section header `today's journal`, then the
   journal body inline. Empty state shows a gray, non-italic placeholder
   `do your journal today`. Typing autosaves (§5). This edits the *same* journal object
@@ -56,6 +62,9 @@ Today/Notes/Settings (#064).
 - **Hold-drag** a row to reorder (updates `sort_order`).
 - **`+`** at the top-right of the section header adds a new empty row at the bottom;
   focus lands in it to type the label.
+- **Enter** while editing any row — a rename *or* the add row — commits it and opens a
+  fresh empty row at the bottom to type the next item, so several can be added in a row
+  without reaching for `+` (#120). Empty Enter is a no-op; Escape cancels.
 - Deleting an item: a per-row delete (e.g. swipe on mobile / hover affordance on web).
   Deleting **archives** the item (see snapshot rules) — it does not erase history.
 
@@ -105,8 +114,9 @@ Today/Notes/Settings (#064).
 ### stream
 - One reverse-chronological stream combining **every day's journal** (#030) and
   **freeform notes** (#032), newest first. The range is **today back to the earliest day
-  with a journal or note** (#100 as amended by #111); empty days *inside* that range show
-  `empty · tap to write`, but days before any content ever existed are not listed.
+  with a journal, note, or logged song** (#100 as amended by #111/#124); empty days *inside*
+  that range show `empty · tap to write` (plus a `♪` line if that day has a song, #123), but
+  days before any content ever existed are not listed.
 - **Journal item**: filled day-number tile (note option C, #031) + title `journal` +
   snippet.
 - **Freeform note**: its own title + snippet, **no** date tile (#032).
@@ -116,6 +126,14 @@ Today/Notes/Settings (#064).
   The box also accepts a **date** ("june 3", "6/3", "2026-06-03") and surfaces that day's
   journal at the top, linking to `/notes/[YYYY-MM-DD]` even if the day is empty or older
   than first use — this is "browse by date" without a calendar (#116).
+
+### pinned (#135)
+- A header **`all / pinned`** segment. `all` is the stream above; `pinned` is a separate
+  view listing **pinned journals + freeform notes** in a **manual, drag-reorderable** order.
+- **Pinning never changes the main stream** — pinned items stay in their normal date
+  position there, **unmarked** (David's call: no pinned block cluttering the timeline).
+- **Pin/unpin happens in the entry** (a pin toggle in the journal/note header); the pinned
+  view also has a per-row unpin. Pinning an empty journal day materializes its row.
 
 ### editor (#033)
 - TipTap WYSIWYG, **no formatting toolbar on any platform** (#101) — formatting via

@@ -7,7 +7,11 @@ import "./globals.css";
 const lato = Lato({
   variable: "--font-lato",
   subsets: ["latin"],
-  weight: ["300", "400", "700", "900"],
+  // 400/700/900 are the weights actually used (no font-light anywhere); dropping 300
+  // saves a webfont file. `swap` + `preload` keep text from blocking first paint (#129).
+  weight: ["400", "700", "900"],
+  display: "swap",
+  preload: true,
 });
 
 // PWA + metadata wiring (slice 5 · pwa). Manifest, icons, and the apple/standalone
@@ -60,9 +64,15 @@ export default function RootLayout({
         {children}
         <Script id="sw-register" strategy="afterInteractive">
           {`if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function () {
+            var swReg = function () {
               navigator.serviceWorker.register('/sw.js').catch(function () {});
-            });
+            };
+            // This script runs afterInteractive, which can be *after* window 'load'
+            // has already fired — in which case an addEventListener('load') never
+            // runs and the SW never registers (#130). Register now if the page is
+            // already loaded, else wait for load.
+            if (document.readyState === 'complete') swReg();
+            else window.addEventListener('load', swReg);
           }`}
         </Script>
       </body>

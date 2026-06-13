@@ -47,6 +47,7 @@ A row exists **iff** the item was checked that day. Unchecking deletes the row. 
 | `day` | date not null **unique** | |
 | `content` | jsonb | TipTap doc |
 | `content_text` | text | plaintext projection for search/snippets |
+| `pin_order` | int null | position in the Notes "pinned" view; NULL = not pinned (#135) |
 | `updated_at` | timestamptz default now() | |
 
 Materialized **only when first written** — the UI treats every day as having a journal
@@ -62,6 +63,7 @@ or delete the row; both fine) — never a user-facing delete (§5).
 | `content` | jsonb | TipTap doc |
 | `content_text` | text | plaintext projection |
 | `created_at` | timestamptz default now() | sorts the note into the stream |
+| `pin_order` | int null | position in the Notes "pinned" view; NULL = not pinned (#135) |
 | `updated_at` | timestamptz default now() | |
 | `deleted_at` | timestamptz null | soft-delete / trash (~30d, then purge — #034) |
 
@@ -85,6 +87,31 @@ signed URL. Table tracks attachments for lifecycle/cleanup (e.g. orphan purge).
 | `theme` | text default `'light'` | `'light'` \| `'dark'` \| `'system'` |
 | `font` | text default `'lato'` | `'lato'` \| `'system'` |
 | `updated_at` | timestamptz default now() | |
+
+### `daily_song` — one logged song per day (#123)
+| column | type | notes |
+|---|---|---|
+| `day` | date pk | one song per day (local day) |
+| `url` | text not null | the pasted Spotify / Apple Music link |
+| `title` | text null | best-effort OpenGraph title (`/api/song`) |
+| `artist` | text null | best-effort parsed artist |
+| `art_url` | text null | best-effort cover-art image url |
+| `created_at` / `updated_at` | timestamptz default now() | |
+
+Added post-V1 (migration 0006). Shown atop the journal entry + on the Notes stream; the
+song is picked via inline **Spotify search** (#125), so title/artist/art come from the
+chosen track, not link-paste.
+
+### `spotify_auth` — Spotify OAuth tokens (#126)
+| column | type | notes |
+|---|---|---|
+| `id` | int pk default 1 (check id=1) | single row (single-user) |
+| `access_token` / `refresh_token` | text null | server-read only; never sent to client |
+| `expires_at` | timestamptz null | access-token expiry; refreshed on demand |
+| `updated_at` | timestamptz default now() | |
+
+Migration 0007. Powers "song of the day → from your listening" (recently-played /
+now-playing). Authorization Code OAuth via `/api/spotify/{login,callback,recent}`.
 
 ## search (#040)
 
@@ -122,5 +149,9 @@ Post-V1 additions (read-only, additive):
 - widget: `getWidgetSummary(day)` → `{done, total, focusLabel, focusItemId}` via the
   `widget_summary(p_day)` Postgres function (migration `0004`, #119). Locked to the
   `authenticated` role (anon execute revoked), like every table (#108).
+- today: `today_summary(p_from, p_to)` Postgres function (migration `0005`) → one
+  round-trip for the whole Today screen: `{routine_items, completions, journal,
+  song}` — `song` is today's `daily_song` row, folded in by migration `0008` (#131).
+  `security invoker` (RLS applies), `authenticated`-only like `widget_summary`.
 
 Exact signatures finalize with `spec.md` at freeze.

@@ -38,12 +38,16 @@ See `docs/architecture.md` for deploy details.
 
 ## explicitly deferred (post-V1)
 
-- Native **mobile** shell via **Capacitor** (#113): **scaffolded** in `mobile/`
-  (hosted-URL); **iOS verified in the simulator**. The home-screen **widget** + daily
-  **notifications** are now **designed** (#119, `docs/widget-and-notifications.md`):
-  Phase 1 (web/data foundations) in progress — `quotes.ts` done; Phases 2–3 (WidgetKit +
-  Capacitor local-notifications) are native (need Xcode). Plus optional TestFlight/App Store.
-  *(Desktop is covered by Electron, #110.)*
+- Native **mobile** shell via **Capacitor** (#113): **shipped on iOS** — the home-screen
+  **widget** + daily **notifications** (#119, `docs/widget-and-notifications.md`) are
+  running on David's device (Phases 1–3 all done). *(Desktop is covered by Electron, #110.)*
+- **Active candidates** (David's interest, #121): a **lock-screen widget**, **TestFlight/
+  App Store** distribution, a **push server** for exact-time notification counts (vs today's
+  best-effort), and a **richer end-of-day summary**.
+- **Performance:** collapse the per-screen data fetches into a single `today_summary` RPC +
+  add a client cache (instant nav) + lazy-load TipTap (latency work, agreed).
+- ~~Song of the day~~ — **built** (#123): per-day logged song (paste a Spotify/Apple Music
+  link → cover art + title atop the journal + on the stream). Ships with the migration push.
 - ~~Code signing + notarization for the desktop `.dmg`~~ — **done** (#118): signed Developer
   ID build, notarized, released v0.1.0; silent auto-update enabled.
 - Move the Supabase project out of the paid Framewise Health **work** org to a personal
@@ -53,8 +57,9 @@ See `docs/architecture.md` for deploy details.
 - **End-of-day summary** — only as a **notification**, so it rides on the Capacitor
   rich-notifications work above (#082/#090/#115).
 
-### declined (#115)
+### declined (#115, #121)
 
+Also declined (#121): interactive widget check-off, medium/large home-screen widgets, Android.
 Pruned to keep the app simple: **mood**, **"on this day"**, **weekly/non-daily routine
 items**, **fixed home-timezone** (device-local stays — #011/#083), **offline mode**
 (#084), **custom domain**.

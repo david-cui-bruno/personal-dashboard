@@ -87,6 +87,36 @@ export type Database = {
           },
         ]
       }
+      daily_song: {
+        Row: {
+          art_url: string | null
+          artist: string | null
+          created_at: string
+          day: string
+          title: string | null
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          art_url?: string | null
+          artist?: string | null
+          created_at?: string
+          day: string
+          title?: string | null
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          art_url?: string | null
+          artist?: string | null
+          created_at?: string
+          day?: string
+          title?: string | null
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
       journal: {
         Row: {
           content: Json | null
@@ -94,6 +124,7 @@ export type Database = {
           day: string
           fts: unknown
           id: string
+          pin_order: number | null
           updated_at: string
         }
         Insert: {
@@ -102,6 +133,7 @@ export type Database = {
           day: string
           fts?: unknown
           id?: string
+          pin_order?: number | null
           updated_at?: string
         }
         Update: {
@@ -110,6 +142,7 @@ export type Database = {
           day?: string
           fts?: unknown
           id?: string
+          pin_order?: number | null
           updated_at?: string
         }
         Relationships: []
@@ -122,6 +155,7 @@ export type Database = {
           deleted_at: string | null
           fts: unknown
           id: string
+          pin_order: number | null
           title: string
           updated_at: string
         }
@@ -132,6 +166,7 @@ export type Database = {
           deleted_at?: string | null
           fts?: unknown
           id?: string
+          pin_order?: number | null
           title?: string
           updated_at?: string
         }
@@ -142,6 +177,7 @@ export type Database = {
           deleted_at?: string | null
           fts?: unknown
           id?: string
+          pin_order?: number | null
           title?: string
           updated_at?: string
         }
@@ -198,6 +234,30 @@ export type Database = {
         }
         Relationships: []
       }
+      spotify_auth: {
+        Row: {
+          access_token: string | null
+          expires_at: string | null
+          id: number
+          refresh_token: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_token?: string | null
+          expires_at?: string | null
+          id?: number
+          refresh_token?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string | null
+          expires_at?: string | null
+          id?: number
+          refresh_token?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -205,6 +265,7 @@ export type Database = {
     Functions: {
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      today_summary: { Args: { p_from: string; p_to: string }; Returns: Json }
       widget_summary: {
         Args: { p_day: string }
         Returns: {

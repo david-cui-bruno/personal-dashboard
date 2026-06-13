@@ -7,8 +7,12 @@
 // - horizontal: weeks left→right, days stacked, months on top — for mobile.
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { getConsistency, type DayConsistency } from "@/lib/data";
-import { today, daysBefore } from "@/lib/date";
+import {
+  getTodaySummaryCached,
+  computeConsistency,
+  todayWindow,
+  type DayConsistency,
+} from "@/lib/data";
 
 const WD = ["m", "t", "w", "t", "f", "s", "s"];
 const CELL = ["bg-heat-0", "bg-[#cfe0fb]", "bg-[#9dc0f6]", "bg-[#5e93f1]", "bg-accent"];
@@ -76,10 +80,9 @@ export function ConsistencyChart({
 
   useEffect(() => {
     const sb = createClient();
-    const to = today();
-    const from = daysBefore(to, 7 * 12 - 1); // ~12 weeks
-    getConsistency(sb, from, to)
-      .then(setDays)
+    const { from, to } = todayWindow(); // ~12 weeks, shared cache key (#122)
+    getTodaySummaryCached(sb, from, to)
+      .then((s) => setDays(computeConsistency(s.items, s.completions, from, to)))
       .catch(() => setDays([]));
   }, []);
 
@@ -104,7 +107,11 @@ export function ConsistencyChart({
                 <span
                   key={ci}
                   title={tip(c)}
-                  className={`aspect-square rounded-[3px] ${c ? CELL[level(c.pct)] : "opacity-0"}`}
+                  className={`aspect-square rounded-[3px] ${
+                    c
+                      ? CELL[level(c.pct)] + " transition-transform duration-150 hover:scale-150"
+                      : "opacity-0"
+                  }`}
                 />
               ))}
             </div>
@@ -134,7 +141,11 @@ export function ConsistencyChart({
               <span
                 key={ci}
                 title={tip(c)}
-                className={`h-[17px] w-[17px] rounded ${c ? CELL[level(c.pct)] : "opacity-0"}`}
+                className={`h-[17px] w-[17px] rounded ${
+                  c
+                    ? CELL[level(c.pct)] + " transition-transform duration-150 hover:scale-150"
+                    : "opacity-0"
+                }`}
               />
             ))}
           </div>

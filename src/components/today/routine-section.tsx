@@ -4,24 +4,34 @@
 // the day's active items in sort_order: tap the box to check, tap the label to
 // rename inline, hold-drag the grip to reorder, "+" in the header adds a row,
 // hover delete = archive. No box around the section, no row dividers (#065).
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Check, GripVertical, Plus, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
-  listActiveItems,
-  listCompletions,
   addItem,
   renameItem,
   reorderItems,
   archiveItem,
   setCompletion,
+  getTodaySummaryCached,
+  invalidateTodaySummary,
+  activeItemsOn,
+  completedOn,
+  todayWindow,
   type RoutineItem,
 } from "@/lib/data";
 import { SectionHeader } from "@/components/ui/section-header";
 
 // Unchecked box border — a soft gray with a dark-theme override (matches the mockup).
 const BOX_BASE =
-  "grid h-[23px] w-[23px] shrink-0 place-items-center rounded-[7px] border-2 transition-colors";
+  "grid h-[23px] w-[23px] shrink-0 place-items-center rounded-[7px] border-2 transition duration-150";
 const BOX_EMPTY =
   "border-[#d0d0d4] [[data-theme=dark]_&]:border-[#45454c]";
 const LABEL_BASE = "min-w-0 flex-1 text-[16.5px] font-bold leading-snug";
@@ -31,6 +41,13 @@ export function RoutineSection({ day }: { day: string }) {
 
   // null = loading; the active items for `day`, in sort_order.
   const [items, setItems] = useState<RoutineItem[] | null>(null);
+  // Mirror of `items` for the drag handlers: pointer events can fire faster than React
+  // commits re-renders, so reading the state closure mid-drag goes stale (#132). The
+  // ref is synced after every render and also written synchronously during a drag.
+  const itemsRef = useRef<RoutineItem[] | null>(null);
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
   // ids of items checked on `day`.
   const [completed, setCompleted] = useState<Set<string>>(new Set());
 
@@ -44,26 +61,44 @@ export function RoutineSection({ day }: { day: string }) {
   const renameInput = useRef<HTMLInputElement>(null);
   const addInput = useRef<HTMLInputElement>(null);
 
-  // drag-reorder bookkeeping
-  const dragIndex = useRef<number | null>(null);
+  // drag-reorder bookkeeping (pointer-based; finger-following, #132/#134)
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  // id → row element (for live transforms + FLIP measurement).
+  const rowEls = useRef<Map<string, HTMLElement>>(new Map());
+  // id → row top before a reorder, so the rows can glide to their new slots (FLIP).
+  const prevTops = useRef<Map<string, number>>(new Map());
+  const shouldFlip = useRef(false);
+  // live drag state (refs only — the drag mutates styles imperatively, no re-render)
+  const dragFrom = useRef<number | null>(null); // index grabbed
+  const dragTarget = useRef<number | null>(null); // index it would drop at
+  const dragStartY = useRef(0);
+  const dragPitch = useRef(44); // row height (uniform rows)
+  // Entrance/exit fades for add & delete (#133).
+  const [enteringId, setEnteringId] = useState<string | null>(null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
   // Re-sync from the server after a write fails (event-handler context only).
   const reload = useCallback(() => {
-    Promise.all([listActiveItems(sb, day), listCompletions(sb, day)])
-      .then(([its, comps]) => {
-        setItems(its);
-        setCompleted(new Set(comps));
+    invalidateTodaySummary();
+    const { from, to } = todayWindow();
+    getTodaySummaryCached(sb, from, to)
+      .then((s) => {
+        setItems(activeItemsOn(s.items, day));
+        setCompleted(completedOn(s.completions, day));
       })
       .catch(() => {});
   }, [sb, day]);
 
   useEffect(() => {
     let active = true;
-    Promise.all([listActiveItems(sb, day), listCompletions(sb, day)])
-      .then(([its, comps]) => {
+    // Routine + completions come from the shared Today payload (#122) — one
+    // round-trip for the whole screen, de-duped + cached across components.
+    const { from, to } = todayWindow();
+    getTodaySummaryCached(sb, from, to)
+      .then((s) => {
         if (!active) return;
-        setItems(its);
-        setCompleted(new Set(comps));
+        setItems(activeItemsOn(s.items, day));
+        setCompleted(completedOn(s.completions, day));
       })
       .catch(() => {
         if (!active) return;
@@ -95,6 +130,7 @@ export function RoutineSection({ day }: { day: string }) {
       else next.delete(item.id);
       return next;
     });
+    invalidateTodaySummary(); // today's % changed → refresh the chart on next read
     setCompletion(sb, item.id, day, done).catch(() => {
       // revert on failure
       setCompleted((prev) => {
@@ -120,6 +156,7 @@ export function RoutineSection({ day }: { day: string }) {
     setItems((prev) =>
       (prev ?? []).map((i) => (i.id === item.id ? { ...i, label } : i)),
     );
+    invalidateTodaySummary();
     renameItem(sb, item.id, label).catch(() => reload());
   }
 
@@ -145,6 +182,9 @@ export function RoutineSection({ day }: { day: string }) {
       created_at: new Date().toISOString(),
     } as RoutineItem;
     setItems((prev) => [...(prev ?? []), optimistic]);
+    setEnteringId(tempId); // fade the new row in (#133)
+    window.setTimeout(() => setEnteringId((id) => (id === tempId ? null : id)), 300);
+    invalidateTodaySummary();
     return addItem(sb, label, sortOrder, day)
       .then((item) =>
         setItems((prev) => (prev ?? []).map((i) => (i.id === tempId ? item : i))),
@@ -162,34 +202,124 @@ export function RoutineSection({ day }: { day: string }) {
   }
 
   // --- delete = archive (#016) ------------------------------------------
+  // Fade the row out, then drop it and let the rows below glide up (FLIP, #133).
   function remove(item: RoutineItem) {
-    setItems((prev) => (prev ?? []).filter((i) => i.id !== item.id));
-    setCompleted((prev) => {
-      const next = new Set(prev);
-      next.delete(item.id);
-      return next;
-    });
-    archiveItem(sb, item.id, day).catch(() => reload());
+    if (removingId) return; // ignore re-taps mid-exit
+    setRemovingId(item.id);
+    window.setTimeout(() => {
+      captureTops();
+      shouldFlip.current = true;
+      setItems((prev) => (prev ?? []).filter((i) => i.id !== item.id));
+      setCompleted((prev) => {
+        const next = new Set(prev);
+        next.delete(item.id);
+        return next;
+      });
+      setRemovingId(null);
+      invalidateTodaySummary();
+      archiveItem(sb, item.id, day).catch(() => reload());
+    }, 180);
   }
 
-  // --- hold-drag reorder (#013) -----------------------------------------
-  function onDragEnter(index: number) {
-    const from = dragIndex.current;
-    if (from === null || from === index) return;
-    setItems((prev) => {
-      if (!prev) return prev;
-      const next = [...prev];
-      const [moved] = next.splice(from, 1);
-      next.splice(index, 0, moved);
-      return next;
-    });
-    dragIndex.current = index;
+  // --- hold-drag reorder (#013), pointer-based for touch + smooth (#132) ---
+  // Snapshot every row's current top so the next render can animate rows from
+  // their old positions to their new ones (the "Invert"+"Play" of FLIP).
+  function captureTops() {
+    const m = new Map<string, number>();
+    rowEls.current.forEach((el, id) => m.set(id, el.getBoundingClientRect().top));
+    prevTops.current = m;
   }
-  function endDrag() {
-    dragIndex.current = null;
-    if (!items) return;
-    const renumbered = items.map((it, i) => ({ ...it, sort_order: i }));
+
+  // After a reorder, glide each row from where it was to where it now is.
+  useLayoutEffect(() => {
+    if (!shouldFlip.current) return;
+    shouldFlip.current = false;
+    rowEls.current.forEach((el, id) => {
+      const prev = prevTops.current.get(id);
+      if (prev === undefined) return;
+      const dy = prev - el.getBoundingClientRect().top;
+      if (Math.abs(dy) < 1) return;
+      el.style.transition = "none";
+      el.style.transform = `translateY(${dy}px)`;
+      requestAnimationFrame(() => {
+        el.style.transition = "transform 200ms cubic-bezier(0.2, 0, 0, 1)";
+        el.style.transform = "";
+      });
+    });
+  });
+
+  // The drag follows the finger and shifts the other rows to open a gap — all via
+  // direct style writes, so there are NO re-renders during the gesture (smooth on
+  // touch, the #132 problem). State only changes once, on drop. (#134)
+  function startDrag(e: React.PointerEvent, index: number) {
+    const list = itemsRef.current ?? [];
+    const el = rowEls.current.get(list[index]?.id);
+    if (!el) return;
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragFrom.current = index;
+    dragTarget.current = index;
+    dragStartY.current = e.clientY;
+    dragPitch.current = el.offsetHeight || 44;
+    setDraggingId(list[index].id); // lift styling (shadow/z) via render
+  }
+  function moveDrag(e: React.PointerEvent) {
+    const from = dragFrom.current;
+    if (from === null) return;
+    const list = itemsRef.current ?? [];
+    const pitch = dragPitch.current;
+    const delta = e.clientY - dragStartY.current;
+    const target = Math.max(0, Math.min(list.length - 1, from + Math.round(delta / pitch)));
+    dragTarget.current = target;
+    list.forEach((it, i) => {
+      const el = rowEls.current.get(it.id);
+      if (!el) return;
+      if (i === from) {
+        el.style.transition = "none"; // 1:1 with the finger
+        el.style.transform = `translateY(${delta}px)`;
+      } else {
+        // rows between the source and the target slide one slot to open the gap
+        const shift =
+          from < target && i > from && i <= target
+            ? -pitch
+            : from > target && i >= target && i < from
+              ? pitch
+              : 0;
+        el.style.transition = "transform 180ms cubic-bezier(0.2, 0, 0, 1)";
+        el.style.transform = shift ? `translateY(${shift}px)` : "";
+      }
+    });
+  }
+  function endDrag(e: React.PointerEvent) {
+    const from = dragFrom.current;
+    if (from === null) return;
+    const target = dragTarget.current ?? from;
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {}
+    dragFrom.current = null;
+    dragTarget.current = null;
+    setDraggingId(null);
+    const cur = itemsRef.current;
+    if (!cur) {
+      return;
+    }
+    // FLIP the drop: capture the current (transformed) positions, clear the inline
+    // transforms, commit the new order — the layout effect glides everything home.
+    captureTops();
+    rowEls.current.forEach((el) => {
+      el.style.transition = "";
+      el.style.transform = "";
+    });
+    if (target === from) return; // no-op drag: just snap back (transforms cleared)
+    shouldFlip.current = true;
+    const next = [...cur];
+    const [moved] = next.splice(from, 1);
+    next.splice(target, 0, moved);
+    const renumbered = next.map((it, i) => ({ ...it, sort_order: i }));
+    itemsRef.current = renumbered;
     setItems(renumbered);
+    invalidateTodaySummary();
     reorderItems(
       sb,
       renumbered.map((it) => ({ id: it.id, sortOrder: it.sort_order })),
@@ -227,15 +357,25 @@ export function RoutineSection({ day }: { day: string }) {
           <div
             key={item.id}
             data-row
-            onDragOver={(e) => e.preventDefault()}
-            onDragEnter={() => onDragEnter(index)}
-            className="group flex items-center gap-[14px] px-0.5 py-1.5"
+            ref={(el) => {
+              if (el) rowEls.current.set(item.id, el);
+              else rowEls.current.delete(item.id);
+            }}
+            className={`group flex items-center gap-[14px] rounded-lg px-0.5 py-1.5 ${
+              draggingId === item.id
+                ? "relative z-10 bg-bg shadow-[0_6px_20px_rgba(0,0,0,0.12)]"
+                : ""
+            } ${enteringId === item.id ? "anim-row-in" : ""} ${
+              removingId === item.id
+                ? "pointer-events-none opacity-0 transition-opacity duration-200 ease-out"
+                : ""
+            }`}
           >
             <button
               type="button"
               onClick={() => toggle(item)}
               aria-label={done ? "uncheck" : "check"}
-              className={`${BOX_BASE} cursor-pointer text-white ${
+              className={`${BOX_BASE} cursor-pointer text-white active:scale-90 ${
                 done ? "border-accent bg-accent" : BOX_EMPTY
               }`}
             >
@@ -251,7 +391,8 @@ export function RoutineSection({ day }: { day: string }) {
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
-                    e.currentTarget.blur();
+                    e.currentTarget.blur(); // commit this rename (via onBlur)
+                    startAdd(); // then open a fresh line — Enter on any row = new line
                   } else if (e.key === "Escape") {
                     renameCancel.current = true;
                     e.currentTarget.blur();
@@ -275,24 +416,21 @@ export function RoutineSection({ day }: { day: string }) {
                 type="button"
                 onClick={() => remove(item)}
                 aria-label="delete item"
-                className="grid h-7 w-7 place-items-center rounded-md text-ink-3 opacity-0 transition hover:bg-field hover:text-ink group-hover:opacity-60"
+                // Visible on touch (no hover); hover-reveal only on desktop (#128).
+                className="grid h-8 w-8 place-items-center rounded-md text-ink-3 opacity-60 transition hover:bg-field hover:text-ink md:opacity-0 md:group-hover:opacity-60"
               >
                 <Trash2 size={15} />
               </button>
               <span
-                draggable
-                onDragStart={(e) => {
-                  dragIndex.current = index;
-                  const row = e.currentTarget.closest(
-                    "[data-row]",
-                  ) as HTMLElement | null;
-                  if (row)
-                    e.dataTransfer.setDragImage(row, 24, row.offsetHeight / 2);
-                  e.dataTransfer.effectAllowed = "move";
-                }}
-                onDragEnd={endDrag}
-                aria-hidden
-                className="grid h-7 w-7 cursor-grab place-items-center text-ink-3 opacity-0 transition group-hover:opacity-40"
+                role="button"
+                aria-label="reorder item"
+                onPointerDown={(e) => startDrag(e, index)}
+                onPointerMove={moveDrag}
+                onPointerUp={endDrag}
+                onPointerCancel={endDrag}
+                // Visible + draggable on touch; hover-reveal only on desktop (#132).
+                // touch-none stops the page scrolling while you drag a row on mobile.
+                className="grid h-8 w-8 shrink-0 cursor-grab touch-none select-none place-items-center text-ink-3 opacity-40 transition hover:text-ink md:opacity-0 md:group-hover:opacity-40"
               >
                 <GripVertical size={17} />
               </span>

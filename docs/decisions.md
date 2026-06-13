@@ -419,6 +419,95 @@ around David's "show me what I've been slipping on" goal while staying calm and 
 design; #090 explicitly deferred reminders to here) — these two gentle, configurable
 reminders are opt-in and minimal, consistent with #002/#003's anti-nag intent.
 
+**#120 — Enter on any routine row opens a new row (refines #013).**
+Pressing **Enter** while editing a routine item — whether renaming an existing row or in
+the `+` add row — commits it and opens a fresh empty row at the bottom, focused, to type
+the next item. Empty Enter is a no-op; Escape cancels. **Why:** "cursor at the end of a
+line → Enter → new line" is the intuitive list-editor behavior David expected. Previously
+Enter only chain-added in the dedicated `+` flow; renaming an existing row just committed
+and exited, so editing-then-Enter did nothing — the reported bug. New rows always append at
+the bottom (consistent with `+` and the forward-only add model #017), not inserted mid-list.
+Verified end-to-end. `docs/spec.md` §3 updated (FROZEN change via this entry + David's ask).
+
+**#121 — Second triage of the optional backlog (David).**
+Of the not-yet-built optional items, David **keeps interest** in: **lock-screen widget**,
+**TestFlight/App Store** distribution, a **push server for exact-time notification counts**
+(replacing today's best-effort reschedule, #119), and a **richer end-of-day summary**
+(beyond the current "N left" evening notif). **Declined:** interactive widget check-off,
+**medium/large** home-screen widgets, and **Android**. **Why:** focus future effort on the
+few things David actually wants; keep scope tight (#002/#003). Adds to the firm declines in
+#115. None are scheduled yet — this just prunes the candidate list. *(Separately,
+**song-of-the-day** — a per-day logged song, #119-adjacent — is in design; placement TBD.)*
+
+**#122 — Today screen loads via one `today_summary` RPC + a shared cache (latency).**
+The Today screen used to fire ~5 separate browser→Supabase selects (routine, completions,
+journal, + the chart's 2), and the consistency chart fetched **twice** (it mounts in both
+the sidebar and the CSS-hidden mobile section), all *after* hydrate — plus a full refetch on
+every navigation. Now: a `today_summary(p_from, p_to)` Postgres function (migration 0005)
+returns the routine template + completions-in-window + today's journal in **one** call; a
+short-lived (30s) in-memory promise cache (`data/today.ts`) **de-dupes** the routine/journal/
+chart mounts into a single request and makes back-navigation instant; writes call
+`invalidateTodaySummary()`. TipTap is now **lazy-loaded** (`next/dynamic`) so it's off the
+initial Today bundle. **Why:** the latency David asked to reduce was mostly N serial round-
+trips to us-east-1 + refetch-on-nav. Verified: Today dropped from ~26 mixed calls (dev) to
+**1 RPC / 0 legacy selects** (prod; 2 in dev StrictMode), routine/journal/chart all render
+from the one payload, nav reuses cache. `getTodaySummary` **falls back** to plain selects if
+the RPC is unreachable, so a Vercel deploy that lands before `supabase db push` (the cloud
+migration, which needs the DB password) degrades gracefully instead of breaking.
+
+**#123 — Song of the day: one logged song per day, atop the journal.**
+David logs one song per day. UI: a calm horizontal **bar at the top of the daily journal**
+(both Today's journal section and the `/notes/[date]` entry, placement "A" from the
+mockups) — empty state invites "add today's song", paste a **Spotify/Apple Music link**,
+and it shows the **cover art + title (+ artist)**, tappable to open the track. It also
+appears as a `♪ title — artist` line on the Notes-stream day row. Data: a new `daily_song`
+table (day PK, url, title, artist, art_url) — migration 0006, RLS like 0003 (#108). Metadata
+is fetched **server-side** by `/api/song` (host-allowlisted to Spotify/Apple to avoid SSRF),
+scraping OpenGraph `title`/`image` + parsing artist — no music-API auth, no browser CORS.
+**Why:** the Day-One-style "soundtrack to your day" David wanted; link-paste keeps it
+zero-friction and provider-agnostic; server-side OG scraping gets art reliably.
+**Notes:** (1) a song shows on the **stream** only for days already in range (today back to
+earliest journal/note, #111) — a song alone doesn't extend the range; revisit if David wants
+song-only days to appear. (2) Like the RPC (#122), reads tolerate a missing `daily_song`
+table so a deploy before the cloud migration degrades gracefully. `daily_song` added to the
+data export (#109/#114) and to the FROZEN `docs/data-model.md` via this entry + David's ask.
+Verified end-to-end (add → OG fetch title/artist/art → persist → stream line).
+
+**#124 — A logged song anchors the Notes stream too (refines #111/#123).**
+A `daily_song` now counts as day "content" for the stream range: the stream runs from today
+back to the earliest of {earliest journal, earliest note, **earliest song**}, so a day with
+only a song (no journal/note) still renders as a row (empty journal + the `♪` line). **Why:**
+David logs a song every day but doesn't journal every day — without this, song-only days
+wouldn't appear in the stream (the open question flagged in #123). Updates #123's note and
+extends the #111 anchor. `docs/spec.md` §6 updated.
+
+**#125 — Song input is inline Spotify search, not link-pasting (replaces #123's input).**
+Pasting a Spotify/Apple Music link was too much friction (David). The song bar now opens an
+inline **search box → tap a Spotify result** (with album art) — `/api/song/search` calls
+Spotify's search with an app-level **Client Credentials** token (server-side; the Client
+Secret never reaches the browser, and David never logs into Spotify). The picked track's
+name/artist/cover fill `daily_song` (same schema). The old OG-scraping `/api/song` paste
+route is removed. Creds (`SPOTIFY_CLIENT_ID`/`SECRET`) live in Vercel env + `.env.local`
+(never committed). **Why:** search-and-tap is the low-friction flow David wanted; Client
+Credentials avoids any OAuth/login for plain search. Verified end-to-end (query → 8 results
+w/ art → pick → save → persist). **B (pull from your Spotify listening, OAuth)** is the
+next build — needs the redirect URI + a one-time login.
+
+**#126 — Song of the day can pull from your Spotify listening (OAuth).**
+Beyond search (#125), the picker has a **"from your spotify"** option: it lists your
+**currently-playing + recently-played** tracks to tap. Implemented with Spotify
+**Authorization Code OAuth** — `/api/spotify/login` (CSRF `state` cookie) → consent →
+`/api/spotify/callback` (exchanges code, stores tokens in `spotify_auth`, one row) →
+`/api/spotify/recent` (refreshes the token if expired, returns recently-played +
+now-playing). Scopes: `user-read-recently-played`, `user-read-currently-playing`. Tokens
+are **server-side only** (never sent to the browser); `spotify_auth` is migration 0007,
+RLS `authenticated` (#108). Redirect URIs: the prod Vercel URL + `http://127.0.0.1:3000`
+(loopback, per Spotify's http rule) — set in the Spotify app + `SPOTIFY_REDIRECT_URI` env.
+**Why:** near-zero daily friction — David sees what he actually listened to and taps it.
+Needs a **one-time "connect" consent**; after that it just works. Verified: login redirect
++ not-connected state + UI; the consent round-trip is David's one click. `data-model.md`
+updated (spotify_auth).
+
 **#120 — Widget session bridge: native App Group writer; app owns tokens, widget fetches live.**
 The WidgetKit extension can't read the WebView's session, so the web app (only when running
 in the native shell) writes one JSON blob to a shared **App Group**
@@ -436,3 +525,211 @@ one shared key, and graceful fallback when the token's expired/offline. The web 
 fully **inert on web/desktop** (guarded on Capacitor's native-platform check; the widget
 bridge is loaded only there). The Next app gains `@capacitor/core` for this.
 Wiring runbook: `docs/widget-phase2-runbook.md`.
+
+**#127 — Song plays in-app via Spotify's inline embed, not an external tab (refines #123).**
+The song bar's green play button used to be an `<a href={song.url} target="_blank">` that
+bounced out to `open.spotify.com` (a new Chrome tab). It now toggles **Spotify's sanctioned
+inline embed player** (`https://open.spotify.com/embed/track/{id}`) rendered right under the
+song bar — playback stays inside the app. The iframe is **lazy-mounted only on the first
+play tap** (kept off the initial render so the Today/notes screens stay light) and unmounts
+on collapse (which stops audio). The track id is derived from the stored `daily_song.url`
+(no schema change); the album-art/title still links out to Spotify as a guaranteed
+full-track fallback, and a non-track/non-Spotify url falls back to the old open-in-tab
+button. **Why:** David wanted to hear the song without leaving the app. We use the **static
+embed** (not the iFrame API + a custom button) because it's the most reliable for real
+full-track playback and is honest about the preview fallback — a custom minimalist button
+that silently played a 30s clip would read as broken. **Caveat (hard Spotify limit, not ours
+to fix):** the embed only plays the **full track** when the viewer has a logged-in Spotify
+**Premium** session in that browser; otherwise it plays a **30-second preview**. In practice
+that means full playback on David's web browser (if logged into Spotify there) and
+**preview-only in the iOS Capacitor WebView and the Electron desktop shell** (no Spotify
+session cookie). The compliant full-playback path would be the Web Playback SDK, which itself
+requires a Premium OAuth login + active session — deferred as not worth the surface. Only the
+**song bar** got the inline player; the Notes-stream `♪` line stays a quiet marker (#124) to
+keep the stream calm/scannable. No API key needed (embeds are unauthenticated); no CSP change
+needed (the app sets none). `docs/spec.md` §2 + `docs/handoff.md` §9 updated.
+
+**#128 — Song bar IS the embed player; hover-only controls made touch-visible.**
+Two UX refinements David asked for after using #127 on his phone:
+(1) **Song bar = the player.** Instead of a song "card" with a green play button that
+*revealed* the embed underneath (a two-step, and confusing on a preview-only device), once a
+song is set the bar now simply **is** Spotify's inline embed player, with a minimal grey **X**
+on the right to clear. No more album-art/title card or play toggle; the embed shows the art,
+title, play and scrubber itself. A non-Spotify-track url (no embed possible) still falls back
+to a link-out row + the same X.
+(2) **Touch visibility.** Several controls were `opacity-0` / `hidden` and only appeared on
+**hover**, so they were invisible and untappable on a phone (David's report). Fixed by showing
+them **always on touch** and keeping hover-reveal **only on desktop** (`md:` + `md:group-hover`):
+the song remove-X (now always-visible by design), the **routine item delete** button
+(`routine-section.tsx`), and the **note-row trash** button (`notes-stream.tsx`); tap targets
+bumped toward ~36px (`h-9`/`h-8`). The routine **drag handle** stays desktop-hover-only on
+purpose — HTML5 drag-to-reorder doesn't fire on touch, so showing it on mobile would be a dead
+affordance (touch reorder is a separate, deferred feature). **Why:** the app is opened mostly
+on the phone; hidden-on-hover controls and a redundant play step made it feel broken there.
+Pure UI — no schema/RPC/contract change. `docs/spec.md` §2 + `docs/handoff.md` §9 updated.
+
+**#129 — Cold-start pack: SW shell cache + server-rendered Today skeleton + font/bundle trims.**
+David reported the app is slow to reach the first screen on his phone. Root cause: the
+iOS/desktop shells load the live site over the network on every launch, and the Today screen
+(`page.tsx`) rendered **nothing** until JS downloaded → hydrated → a `useEffect` resolved the
+local day → data round-trips returned (a long, blank, serial chain). Four pure-perf fixes (no
+schema/RPC/behavior-contract change):
+(1) **SW app-shell cache** — the service worker now serves top-level navigations
+**stale-while-revalidate**: the cached HTML shell paints instantly, then refreshes in the
+background (`public/sw.js`, `SHELL_CACHE` → `v2`). Only same-origin, non-redirected 200s are
+cached, so an expired-session redirect to `/sign-in` is never stored. This stays within the
+"no offline **data**" rule (#084) — we cache the user-agnostic client-rendered shell, never
+journals/notes.
+(2) **Server-rendered Today skeleton** — instead of blanking until the client effect sets the
+day, Today renders a skeleton (date bar + routine rows + journal lines) that ships in the SSR
+HTML and shows during the download/hydrate window (and instantly from the SW cache), replaced
+once the day resolves. No hydration mismatch (server and first client render both show it).
+(3) **Fonts** — Lato drops the unused weight `300` and adds `display:swap` + `preload`
+(`layout.tsx`) so text never blocks first paint.
+(4) **Bundle** — `next.config.ts` sets `experimental.optimizePackageImports` for `lucide-react`
++ the Supabase packages to guarantee barrel tree-shaking.
+**Why:** the app is opened mostly on the phone; perceived cold-start is what makes it feel
+heavy. These target perceived-paint first (1,2,3) and actual bytes second (4). Deferred from
+this pack (need contract/decisions entries): swapping the proxy's `getUser()` for `getSession()`
+(auth #070) and folding `daily_song` into the `today_summary` RPC (FROZEN data-model). Extends
+the #122 performance work. `docs/handoff.md` §11 updated.
+
+**#130 — Fix: the service worker never actually registered (so #129's cache was inert).**
+While verifying #129 on the live site, found the SW was **not registering in production at
+all** — `navigator.serviceWorker.getRegistrations()` was empty on prod. Root cause: the inline
+registration script (`layout.tsx`, `next/script strategy="afterInteractive"`) did
+`window.addEventListener('load', register)`, but `afterInteractive` can run **after** `window`'s
+`load` event has already fired (common on fast/prod pages), so the listener never ran and the SW
+never registered. This means the SW had been inert since it shipped — both the original
+shell-asset cache **and** #129's new navigation cache. Fix: register immediately when
+`document.readyState === 'complete'`, else fall back to the `load` listener. **Why:** the SW is
+the biggest cold-start lever (#129) and was doing nothing; this is what actually turns it on.
+Verified: with the fix the SW **auto-registers** in a fresh browser (it didn't before);
+confirmed live after deploy. Pure bug fix — no contract change. `docs/handoff.md` §11 updated.
+
+**#131 — Fold the daily song into `today_summary` so Today loads in one round-trip.**
+Today made **two** parallel reads on load: the `today_summary` RPC (#122) and a separate
+`daily_song` select for the song bar. Migration `0008` adds a `song` key to `today_summary`
+(today's `daily_song` row, `security invoker` so RLS still applies). `getTodaySummary` returns
+it and the Today journal section passes it to `<SongOfDay initialSong>`, which then skips its
+own fetch. **Decouple-safe:** the RPC always includes the `song` key once `0008` is applied; a
+client hitting the **old** RPC sees no key → `song` is `undefined` → the bar fetches itself as
+before, so a deploy that lands before the migration degrades gracefully (same pattern as
+#122/#123). The `/notes/[date]` entry passes no `initialSong`, so it still self-fetches. The
+**`getUser()`→`getSession()`** idea from the perf list was **dropped**: Supabase explicitly
+warns never to use `getSession()` in middleware (it isn't guaranteed to revalidate the token →
+risks silently logging David out, against #070), and the SW shell cache (#129/#130) already
+took the per-navigation auth round-trip off the cold-start critical path (warm cached
+navigations don't hit the proxy). **Why:** one fewer round-trip on the hottest screen, with no
+auth risk. Touches the FROZEN data-model (the RPC shape) — David signed off. Extends #122.
+`docs/data-model.md` + `docs/handoff.md` §11 updated.
+
+**#132 — Routine reorder: touch-capable (pointer events) + smooth FLIP animation.**
+Reorder (#013) used **HTML5 drag events**, which don't fire on touch — so on a phone you
+couldn't reorder at all (the #128 sibling to the hidden delete/grip problem), and on desktop
+rows **jumped** instantly to their new slots. Rewrote it on **Pointer Events**: the grip
+handles `pointerdown/move/up` (with `setPointerCapture` + `touch-none` so a drag doesn't scroll
+the page), hit-testing the pointer's Y against each row's midpoint to pick the target slot. On
+each reorder the rows **glide** via a **FLIP** transition (measure tops before the state change,
+invert with a `translateY`, then animate to 0 over ~200ms) — no animation library, pure
+CSS+DOM. The dragged row gets a subtle lift (shadow). The grip is now **visible on touch**
+(`opacity-40`, hover-only on desktop like the delete button, #128). Bonus: the checkbox got a
+quick `active:scale-90` press feedback. A stale-closure bug (pointer events fire faster than
+React commits, so `endDrag` read an out-of-date `items` and persisted the *old* order) is
+avoided with an `itemsRef` synced during the drag. **Why:** reorder was broken on the phone —
+the app's primary device — and the desktop jump felt mechanical; David asked for smoother card
+movement. Behavior-compatible with the spec's "hold-drag to reorder" (#013), now true on touch
+too. Pure UI. `docs/handoff.md` updated.
+
+**#133 — UI-polish pass: subtle motion across the app.**
+A grab-bag of low-risk micro-animations (David: "any ui polish… make it smoother"), all
+~150–200ms, calm, no new dependency (small `@keyframes` in `globals.css`):
+(1) **⌘K palette** fades the backdrop in + pop-scales the panel in (`anim-fade-in` /
+`anim-pop-in`); the date-range filter block fades in (`anim-row-in`).
+(2) **Routine add/remove** — a new row fades/slides in; deleting fades the row out (~180ms),
+then drops it and lets the rows below **glide up** (reuses the #132 FLIP).
+(3) **Consistency-chart cells** scale up slightly on hover (reinforces the tooltip).
+(4) **Checkbox** press feedback already landed in #132.
+**Accessibility:** a global `@media (prefers-reduced-motion: reduce)` neutralizes all of it
+(and the #132 reorder glide) for users who ask for less motion. **Skipped from the proposed
+list:** the song-picker cross-fade — the component reuses one root element across states so a
+CSS animation wouldn't replay without a remount key, and the gain was marginal; not worth the
+focus-management risk. Pure UI, no contract change. `docs/handoff.md` updated.
+
+**#134 — Routine reorder drag rewritten to follow the finger (fixes the janky phone feel).**
+The #132 reorder only reordered when the pointer crossed a row midpoint, then FLIP-animated —
+so on touch the held row sat still while your finger moved, then everything jumped, and each
+cross caused a React `setItems` re-render (extra jank on a phone). David: "drag reordering on
+phone is a bit of a mess." Rewrote the gesture to **direct manipulation**: on `pointermove`
+the dragged row tracks the finger 1:1 (`translateY(delta)`, no transition) and the rows
+between source and target slide one slot to **open a gap** (smooth transition) — all via
+**imperative style writes, so there are zero re-renders during the drag**. State changes
+exactly once, on drop, which **FLIP-glides** the row home into its slot (reuses the #132/#133
+FLIP). Row height is read once on grab for the slot math (uniform rows). `touch-none` on the
+grip still prevents the page scrolling mid-drag. **Why:** finger-following is what makes a
+touch reorder feel solid; the old cross-then-jump model felt broken on the phone (David's
+primary device). Same drag primitive will back the pinned-notes reorder (next). Pure UI, no
+contract change. `docs/handoff.md` §3 note still accurate.
+
+**#135 — Note + journal pinning via a separate "pinned" view (not a top block).**
+David wanted to pin notes but dislikes how Day One/Notion shove a pinned block on top of the
+timeline. Design (all his calls): a header **`all / pinned`** segment on `/notes`; `pinned` is
+a **separate** view of pinned journals **and** freeform notes in a **manual drag-reorderable**
+order; **pinned items stay in the main stream in their normal date position, unmarked** — so
+the timeline is never cluttered. **Pin/unpin lives in the entry header** (a pin toggle), which
+keeps the stream rows free of extra buttons/markers; the pinned view also has a per-row unpin.
+**Schema (migration 0009):** a `pin_order int null` on both `note` and `journal` (NULL =
+unpinned; the int is a single sequence shared across both tables so the view interleaves them).
+Pinning an empty journal day **materializes** its row (upsert sets only day + pin_order, never
+clobbering content). Data layer: `listPinned / pinNote / pinJournal / unpinNote / unpinJournal
+/ reorderPins` (`src/lib/data/pins.ts`); reads tolerate the column being absent
+(deploy-before-migration → empty list). The drag reorder is a reusable **`useDragReorder`**
+hook (`src/components/ui/use-drag-reorder.ts`) — the finger-following + FLIP primitive from
+#134, generalized for variable row heights (snapshots each row's resting center on grab); the
+routine reorder keeps its own inline copy for now (a later cleanup could fold it onto the hook).
+**Why:** pinning that respects the calm, uncluttered stream. Touches the FROZEN spec (§6) +
+data-model — David signed off. `docs/spec.md` §6 + `docs/data-model.md` updated.
+
+**#136 — Notes nav latency: cache the stream + serve entries from it + warm the editor.**
+David: opening a note and going back both felt slow. Causes: (1) the `/notes` stream had **no
+cache** — every visit re-fetched journals + notes + songs + pinned (the Today screen avoids
+this via #122); (2) opening an entry did a fresh `getNote`/`getJournal` round-trip **and then**
+lazily downloaded the TipTap chunk — a waterfall, every time. Fixes (`src/lib/data/notes-cache.ts`,
+mirroring #122): a 30s in-memory cache of the stream (`getNotesStreamCached`) → **back-nav is
+instant**; the full rows already include `content`, so each entry is **primed by id/day** and
+the entry renders its body **from cache with no round-trip** (`cachedNote`/`cachedJournal`,
+seeded via `useState` initializers since `<Entry>` is keyed per id/day); the Notes screen
+**preloads the editor chunk** (`import("@/components/editor")`) so the first open isn't waiting
+on it. Any write (`create/trash/restore/pin/unpin/reorder/save`) calls `invalidateNotesCache()`
+so the next read is fresh. **Also fixed a pre-existing bug surfaced by the cache:** the note
+entry's flush-on-unmount **always re-saved the title even when nothing changed** — a no-op
+write on every view that also busted the cache; now gated behind a `dirty` flag, so viewing an
+entry writes nothing and back-nav stays cached (an edit still saves + invalidates). Pure
+client/UI perf, no schema/contract change. Extends #122. `docs/handoff.md` §11 updated.
+
+**#137 — Richer end-of-day notification (the evening becomes a day recap).**
+The 9pm notification was a single "wind down — N left" nudge (#119). It's now a **recap**:
+title "your day", body = routine progress + whether you journaled + the day's song, e.g.
+`4/6 done · journaled ✓ · ♪ Bohemian Rhapsody` (or `✓ all 6 done · journal your day?`).
+`composeEveningBody()` is a pure function (unit-testable) fed by `widget_summary` + today's
+journal (`content_text` non-empty?) + today's `daily_song`, fetched in parallel on
+reschedule. Same local-notification model as #119 — text is fixed at schedule time and
+**rescheduled on launch/foreground**, so the recap is best-effort-current (no server; the
+parked push-server #121 would make it exact-time). Ships via the normal web deploy (the iOS
+shell loads the live app and reschedules on open). Was the agreed "end-of-day summary as a
+notification, not a new screen" (#115/#121). Pure UI. `docs/widget-and-notifications.md`
+updated.
+
+**#138 — Lock-screen widget (iOS 16+ accessory families).**
+Added the three **accessory** families to the existing WidgetKit widget
+(`mobile/widget/NotesWidget.swift`): `accessoryCircular` (a done/total gauge),
+`accessoryRectangular` ("X/N done" + focus), `accessoryInline` ("N left"). They reuse the
+**same** payload + live `widget_summary` fetch + states as the home-screen widget — no new
+data, App Group, or RPC. Rendered monochrome/system-tinted (lock-screen requirement), so no
+custom colors; `widgetAccentable()` marks the tinted bits. Families are gated `if #available
+(iOS 16, *)` so the widget still compiles for the app's lower deployment target (home-screen
+only on <16). **Caveat:** the Swift is source-of-truth in `mobile/widget/` (the `ios/` Xcode
+project is git-ignored, #113), so it isn't compiled in CI — **David builds it in Xcode**; the
+accessory views were authored but not Xcode-verified here. The widget-extension deployment
+target must be **≥ iOS 16**. Was a parked-but-wanted item (#121). `mobile/widget/README.md` +
+`docs/widget-and-notifications.md` updated.
