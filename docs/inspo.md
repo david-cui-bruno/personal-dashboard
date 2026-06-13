@@ -28,11 +28,12 @@ single-user, RLS-locked.
   masonry — #146 — rather than CSS `columns`, so tiles drag-reorder smoothly.)*
 - **Media:** **images & screenshots first**; **screen recordings (video) are a fast-follow**
   (Phase 2). **Paste** realistically only carries images — videos are **drag-in / upload**.
-- **Sticky placement = "A · on the opened image".** Stickies are placed and edited on the
-  **big opened image** (a lightbox), where there's room to read/type. On the **board**, an
-  item's stickies show as small **peeks** on the tile (preview, not editable). **Dragging a
-  color from the holder onto a board tile opens that item's lightbox with a fresh sticky ready
-  to type** (so the holder still "works" from the board).
+- **Sticky placement = directly on the board tile (reworked, #147).** *(Originally stickies lived
+  only on the big opened image and the board showed non-interactive peeks. David's feedback: place
+  them on the tile without zooming.)* Now **dragging a color from the holder onto a board tile drops
+  the note right there**, editable in place (click to type, drag to move, ✕ to delete). The bigger
+  "opened" view still exists (tap a tile) as extra room — and as the **mobile** way to add stickies
+  (the holder rail is web-only) — and shows the same notes. Peeks are gone.
 - **Sticky colors (all 5):** yellow · blue · orange · pink · green. Color is per-sticky.
 - **The holder / dispenser** (the signature interaction):
   - A **fixed** dock of the 5 colors (stays put while you scroll — `position: fixed`/sticky).
@@ -198,8 +199,10 @@ Mirror the existing data-layer style (typed, throws on error, tolerant reads). I
 > **holder** + on-image stickies (drag-to-drop / tap-to-type-and-grow / move / delete) (#142);
 > **P2** = video drag/upload (≤50 MB), `<video>` playback, ▶ badge, stickies on video (#143);
 > **posters** = client-generated first-frame thumbnails on video tiles (#144); **reorder** =
-> smooth drag-reorderable masonry via a grip handle (#145, reworked into a JS-positioned masonry
-> with a `transition: transform` glide in #146). Nothing outstanding.
+> smooth JS-positioned masonry (#145→#146). **Reworked per David's feedback (#147):** stickies now
+> sit **directly on the board tile** (no zoom; peeks gone), reorder by **pressing-and-holding a
+> tile** (no grip handle; long-press on touch), and the holder's "drag" label is removed. Nothing
+> outstanding.
 
 - **Phase 1 (shipped, #141 + #142 + #145):** the `inspo` tab + nav + the two boards (segment) +
   **image** paste/drag/upload + masonry + tile peeks + open-lightbox + the **holder** (place /

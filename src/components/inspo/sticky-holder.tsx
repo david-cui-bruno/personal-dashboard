@@ -51,9 +51,6 @@ export function StickyHolder({
           vertical ? "flex-col" : "flex-row"
         } items-center gap-2.5 rounded-2xl border border-line bg-bg/70 p-2.5 shadow-[0_12px_32px_rgba(0,0,0,0.16)] backdrop-blur ${className}`}
       >
-        {vertical && (
-          <span className="text-[8.5px] font-black uppercase tracking-wider text-ink-3">drag →</span>
-        )}
         {STICKY_COLORS.map((color) => (
           <button
             key={color}
