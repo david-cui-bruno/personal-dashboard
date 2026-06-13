@@ -7,15 +7,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Trash2 } from "lucide-react";
+import { ChevronLeft, Pin, Trash2 } from "lucide-react";
 import type { JSONContent } from "@tiptap/react";
 import { createClient } from "@/lib/supabase/client";
 import {
   getJournal,
   getNote,
+  pinJournal,
+  pinNote,
   saveJournal,
   saveNote,
   trashNote,
+  unpinJournal,
+  unpinNote,
   uploadImage,
 } from "@/lib/data";
 import dynamic from "next/dynamic";
@@ -51,6 +55,7 @@ export function Entry(props: EntryProps) {
   const [missing, setMissing] = useState(false);
   const [content, setContent] = useState<JSONContent | null>(null);
   const [title, setTitle] = useState("");
+  const [pinned, setPinned] = useState(false); // pin to the Notes "pinned" view (#135)
 
   // Latest editor value, the note's latest title, and the journal row id once
   // materialized — all read only inside callbacks, never during render.
@@ -68,6 +73,7 @@ export function Entry(props: EntryProps) {
         const j = await getJournal(sb, day);
         if (cancelled) return;
         journalId.current = j?.id ?? null;
+        setPinned(j?.pin_order != null);
         setContent((j?.content as JSONContent) ?? null);
       } else {
         const n = await getNote(sb, id);
@@ -78,6 +84,7 @@ export function Entry(props: EntryProps) {
         }
         titleRef.current = n.title;
         setTitle(n.title);
+        setPinned(n.pin_order != null);
         setContent((n.content as JSONContent) ?? null);
       }
       setReady(true);
@@ -151,6 +158,20 @@ export function Entry(props: EntryProps) {
     router.push("/notes");
   }
 
+  async function togglePin() {
+    const next = !pinned;
+    setPinned(next);
+    try {
+      if (kind === "journal") {
+        await (next ? pinJournal(sb, day) : unpinJournal(sb, day));
+      } else {
+        await (next ? pinNote(sb, id) : unpinNote(sb, id));
+      }
+    } catch {
+      setPinned(!next); // revert on failure
+    }
+  }
+
   return (
     <div className="mx-auto max-w-[700px] px-6 pt-8 pb-40 md:px-10">
       <div className="mb-8 flex items-center justify-between">
@@ -160,15 +181,27 @@ export function Entry(props: EntryProps) {
         >
           <ChevronLeft size={18} /> notes
         </Link>
-        {kind === "note" && (
+        <div className="flex items-center gap-1">
           <button
-            onClick={handleDelete}
-            aria-label="move note to trash"
-            className="grid h-9 w-9 place-items-center rounded-lg text-ink-3 hover:bg-field hover:text-ink"
+            onClick={togglePin}
+            aria-label={pinned ? "unpin" : "pin"}
+            aria-pressed={pinned}
+            className={`grid h-9 w-9 place-items-center rounded-lg hover:bg-field ${
+              pinned ? "text-accent" : "text-ink-3 hover:text-ink"
+            }`}
           >
-            <Trash2 size={17} />
+            <Pin size={17} fill={pinned ? "currentColor" : "none"} />
           </button>
-        )}
+          {kind === "note" && (
+            <button
+              onClick={handleDelete}
+              aria-label="move note to trash"
+              className="grid h-9 w-9 place-items-center rounded-lg text-ink-3 hover:bg-field hover:text-ink"
+            >
+              <Trash2 size={17} />
+            </button>
+          )}
+        </div>
       </div>
 
       {kind === "journal" ? (

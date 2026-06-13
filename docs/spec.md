@@ -127,6 +127,14 @@ Today/Notes only (#064).
   journal at the top, linking to `/notes/[YYYY-MM-DD]` even if the day is empty or older
   than first use — this is "browse by date" without a calendar (#116).
 
+### pinned (#135)
+- A header **`all / pinned`** segment. `all` is the stream above; `pinned` is a separate
+  view listing **pinned journals + freeform notes** in a **manual, drag-reorderable** order.
+- **Pinning never changes the main stream** — pinned items stay in their normal date
+  position there, **unmarked** (David's call: no pinned block cluttering the timeline).
+- **Pin/unpin happens in the entry** (a pin toggle in the journal/note header); the pinned
+  view also has a per-row unpin. Pinning an empty journal day materializes its row.
+
 ### editor (#033)
 - TipTap WYSIWYG, **no formatting toolbar on any platform** (#101) — formatting via
   keyboard shortcuts (⌘B/⌘I, …) and **markdown-style input rules** that also work on

@@ -21,7 +21,7 @@ desktop (macOS), and iOS.**
   migrations `0001–0007` are all pushed (Local == Remote).
 - **Read first:** `docs/product.md` (why) → `docs/spec.md` (what, FROZEN) →
   `docs/data-model.md` (schema, FROZEN) → this file (how to run/ship). Full "why" log:
-  `docs/decisions.md` (#001–#134).
+  `docs/decisions.md` (#001–#135).
 - **One thing still pending on David:** connect Spotify once (web/iOS) to enable "song of
   the day → from your listening" (§9). Everything else is done.
 
@@ -64,7 +64,8 @@ Lato · PWA. Plus two thin **hosted-URL native shells** that load the same web a
 - **Notes (`/notes`, `/notes/[id|YYYY-MM-DD]`)** — reverse-chron stream of every day's
   journal + freeform notes back to the earliest journal/note/**song** (#111/#124); per-entry
   editor with inline **photos** (#050); a song day shows a `♪ title — artist` line. In-list
-  search also **jumps to a date** (type "june 3", #116).
+  search also **jumps to a date** (type "june 3", #116). An `all / pinned` segment shows a
+  **drag-reorderable pinned view** (pin from the entry header; stream stays unmarked, #135).
 - **Search (⌘K)** — full-text over journals/notes + jump-to-date / new note (#040).
 - **Settings (`/settings`)** — appearance (accent/theme/font, #063) · **data → export**
   (JSON, + a `.zip` with photo files when present, #109/#114) · **notifications**
@@ -81,7 +82,7 @@ AGENTS.md / CLAUDE.md      the 5 anti-drift rules + doc index (read first)
 docs/
   product / spec / data-model   FROZEN: goal / behavior / schema
   architecture / design         living: stack+deploy / tokens+screens
-  decisions.md                  append-only "why" log (#001–#134)
+  decisions.md                  append-only "why" log (#001–#135)
   roadmap.md / phase-1.md       status + parallel-slice briefs
   widget-and-notifications.md   the iOS widget + notifications design (#119)
   ship-desktop-and-ios.md       signing/notarize/release + iOS Xcode runbook
@@ -89,7 +90,7 @@ docs/
   handoff.md                    this file
 mockups/index.html         interactive visual reference
 supabase/migrations/       0001_init · 0002_storage · 0003_rls · 0004_widget_summary
-                           · 0005_today_summary · 0006_daily_song · 0007_spotify_auth
+                           · 0005_today_summary · 0006_daily_song · 0007_spotify_auth · 0008_today_summary_song · 0009_pinning
 desktop/                   Electron shell (#110) — self-contained, npm not pnpm.
                            main.js (hosted-URL window) · updater.js (auto-update, #112)
                            · build/{icon.png, entitlements.mac.plist} · README.md
