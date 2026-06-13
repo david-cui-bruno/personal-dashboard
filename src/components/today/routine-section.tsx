@@ -61,14 +61,18 @@ export function RoutineSection({ day }: { day: string }) {
   const renameInput = useRef<HTMLInputElement>(null);
   const addInput = useRef<HTMLInputElement>(null);
 
-  // drag-reorder bookkeeping (pointer-based so it works on touch too, #132)
-  const dragIndex = useRef<number | null>(null);
+  // drag-reorder bookkeeping (pointer-based; finger-following, #132/#134)
   const [draggingId, setDraggingId] = useState<string | null>(null);
-  // id → row element (for hit-testing the pointer + FLIP measurement).
+  // id → row element (for live transforms + FLIP measurement).
   const rowEls = useRef<Map<string, HTMLElement>>(new Map());
   // id → row top before a reorder, so the rows can glide to their new slots (FLIP).
   const prevTops = useRef<Map<string, number>>(new Map());
   const shouldFlip = useRef(false);
+  // live drag state (refs only — the drag mutates styles imperatively, no re-render)
+  const dragFrom = useRef<number | null>(null); // index grabbed
+  const dragTarget = useRef<number | null>(null); // index it would drop at
+  const dragStartY = useRef(0);
+  const dragPitch = useRef(44); // row height (uniform rows)
   // Entrance/exit fades for add & delete (#133).
   const [enteringId, setEnteringId] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
@@ -244,49 +248,75 @@ export function RoutineSection({ day }: { day: string }) {
     });
   });
 
-  // Which slot the pointer is currently over (first row whose midpoint is below it).
-  function pointerTargetIndex(clientY: number): number {
-    const list = itemsRef.current ?? [];
-    for (let i = 0; i < list.length; i++) {
-      const el = rowEls.current.get(list[i].id);
-      if (!el) continue;
-      const r = el.getBoundingClientRect();
-      if (clientY < r.top + r.height / 2) return i;
-    }
-    return list.length - 1;
-  }
-
+  // The drag follows the finger and shifts the other rows to open a gap — all via
+  // direct style writes, so there are NO re-renders during the gesture (smooth on
+  // touch, the #132 problem). State only changes once, on drop. (#134)
   function startDrag(e: React.PointerEvent, index: number) {
+    const list = itemsRef.current ?? [];
+    const el = rowEls.current.get(list[index]?.id);
+    if (!el) return;
     e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
-    dragIndex.current = index;
-    setDraggingId((itemsRef.current ?? [])[index]?.id ?? null);
+    dragFrom.current = index;
+    dragTarget.current = index;
+    dragStartY.current = e.clientY;
+    dragPitch.current = el.offsetHeight || 44;
+    setDraggingId(list[index].id); // lift styling (shadow/z) via render
   }
   function moveDrag(e: React.PointerEvent) {
-    if (dragIndex.current === null) return;
-    const target = pointerTargetIndex(e.clientY);
-    const from = dragIndex.current;
+    const from = dragFrom.current;
+    if (from === null) return;
+    const list = itemsRef.current ?? [];
+    const pitch = dragPitch.current;
+    const delta = e.clientY - dragStartY.current;
+    const target = Math.max(0, Math.min(list.length - 1, from + Math.round(delta / pitch)));
+    dragTarget.current = target;
+    list.forEach((it, i) => {
+      const el = rowEls.current.get(it.id);
+      if (!el) return;
+      if (i === from) {
+        el.style.transition = "none"; // 1:1 with the finger
+        el.style.transform = `translateY(${delta}px)`;
+      } else {
+        // rows between the source and the target slide one slot to open the gap
+        const shift =
+          from < target && i > from && i <= target
+            ? -pitch
+            : from > target && i >= target && i < from
+              ? pitch
+              : 0;
+        el.style.transition = "transform 180ms cubic-bezier(0.2, 0, 0, 1)";
+        el.style.transform = shift ? `translateY(${shift}px)` : "";
+      }
+    });
+  }
+  function endDrag(e: React.PointerEvent) {
+    const from = dragFrom.current;
+    if (from === null) return;
+    const target = dragTarget.current ?? from;
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {}
+    dragFrom.current = null;
+    dragTarget.current = null;
+    setDraggingId(null);
     const cur = itemsRef.current;
-    if (target === from || !cur) return;
+    if (!cur) {
+      return;
+    }
+    // FLIP the drop: capture the current (transformed) positions, clear the inline
+    // transforms, commit the new order — the layout effect glides everything home.
     captureTops();
+    rowEls.current.forEach((el) => {
+      el.style.transition = "";
+      el.style.transform = "";
+    });
+    if (target === from) return; // no-op drag: just snap back (transforms cleared)
     shouldFlip.current = true;
     const next = [...cur];
     const [moved] = next.splice(from, 1);
     next.splice(target, 0, moved);
-    itemsRef.current = next; // keep the ref ahead of the async re-render
-    setItems(next);
-    dragIndex.current = target;
-  }
-  function endDrag(e: React.PointerEvent) {
-    if (dragIndex.current === null) return;
-    try {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    } catch {}
-    dragIndex.current = null;
-    setDraggingId(null);
-    const cur = itemsRef.current;
-    if (!cur) return;
-    const renumbered = cur.map((it, i) => ({ ...it, sort_order: i }));
+    const renumbered = next.map((it, i) => ({ ...it, sort_order: i }));
     itemsRef.current = renumbered;
     setItems(renumbered);
     invalidateTodaySummary();
