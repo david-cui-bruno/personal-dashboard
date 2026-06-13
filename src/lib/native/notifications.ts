@@ -3,7 +3,7 @@
 // time, we **reschedule on launch/foreground** so the evening "N left" stays current
 // (best-effort — #119). Morning is a steady journal nudge; evening reflects today's state.
 import { LocalNotifications } from "@capacitor/local-notifications";
-import { getWidgetSummary, type DB } from "@/lib/data";
+import { getWidgetSummary, getJournal, getSong, type DB } from "@/lib/data";
 import { today } from "@/lib/date";
 import { getNotifPrefs } from "@/lib/notif-prefs";
 
@@ -15,16 +15,42 @@ function parseHM(hhmm: string): { hour: number; minute: number } {
   return { hour: Number(h), minute: Number(m) };
 }
 
+// Richer end-of-day recap (#137): routine progress + whether you journaled + the
+// day's song, in one line. Pure so it's unit-testable; the evening notification
+// carries fixed text set at schedule time, refreshed on launch/foreground (#119).
+export type EodSummary = {
+  done: number;
+  total: number;
+  journaled: boolean;
+  songTitle: string | null;
+};
+
+export function composeEveningBody(s: EodSummary): string {
+  const bits: string[] = [];
+  if (s.total > 0) {
+    bits.push(s.done >= s.total ? `✓ all ${s.total} done` : `${s.done}/${s.total} done`);
+  }
+  bits.push(s.journaled ? "journaled ✓" : "journal your day?");
+  if (s.songTitle) bits.push(`♪ ${s.songTitle}`);
+  return bits.join(" · ");
+}
+
 async function eveningBody(sb: DB): Promise<string> {
   try {
-    const s = await getWidgetSummary(sb, today());
-    if (s.total === 0) return "wind down — journal your day";
-    if (s.done >= s.total) return "all done today. journal?";
-    const left = s.total - s.done;
-    const focus = s.focusLabel ? ` (${s.focusLabel})` : "";
-    return `wind down — journal, and you've still got ${left} left${focus}`;
+    const day = today();
+    const [summary, journal, song] = await Promise.all([
+      getWidgetSummary(sb, day),
+      getJournal(sb, day).catch(() => null),
+      getSong(sb, day).catch(() => null),
+    ]);
+    return composeEveningBody({
+      done: summary.done,
+      total: summary.total,
+      journaled: Boolean(journal?.content_text?.trim()),
+      songTitle: song?.title ?? null,
+    });
   } catch {
-    return "wind down — journal & finish your routine";
+    return "wind down — journal your day";
   }
 }
 
@@ -56,7 +82,7 @@ export async function rescheduleNotifications(sb: DB): Promise<void> {
       },
       {
         id: EVENING_ID,
-        title: "notes",
+        title: "your day",
         body: await eveningBody(sb),
         schedule: { on: { hour: e.hour, minute: e.minute }, allowWhileIdle: true },
       },

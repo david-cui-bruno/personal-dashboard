@@ -145,7 +145,14 @@ no API. Used by the widget's all-done state (and available to the app if we ever
 Phases 2–3 are real **native** work and will be packaged as an assistant/Xcode runbook
 (like `docs/ship-desktop-and-ios.md`) when we reach them. Phase 1 lands in the repo now.
 
+## done since v1
+
+- **Lock-screen widget (#138)** — `accessoryCircular`/`Rectangular`/`Inline` families added to
+  `mobile/widget/NotesWidget.swift` (iOS 16+), reusing the same payload/RPC/states.
+- **Richer end-of-day notification (#137)** — the 9pm notif is now a recap (routine progress +
+  journaled? + the day's song) via `composeEveningBody()`, title "your day".
+
 ## deferred
 
-Interactive check-off from the widget · medium/large widgets · Android widget · lock-screen
-widgets · a push server for exact-time notification counts.
+Interactive check-off from the widget · medium/large widgets · Android widget · a push server
+for exact-time notification counts.

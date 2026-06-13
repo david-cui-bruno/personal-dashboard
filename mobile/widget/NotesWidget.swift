@@ -3,8 +3,11 @@
 // shares a payload into the App Group; this widget fetches `widget_summary` live when the
 // token is valid, and falls back to the cached values otherwise.
 //
-// Small family only (v1): a progress ring + "X/N left today" + today's focus, with
+// Home screen (systemSmall): a progress ring + "X/N left today" + today's focus, with
 // all-done (✓ + quote), empty, and needs-open states.
+// Lock screen (iOS 16+, #138): accessoryCircular (a done/total gauge), accessoryRectangular
+// ("X/N done" + focus), and accessoryInline ("N left"). Same data + states; rendered
+// monochrome/system-tinted, so no custom colors — `widgetAccentable()` marks the tinted bits.
 
 import WidgetKit
 import SwiftUI
@@ -140,11 +143,12 @@ private struct Ring: View {
   }
 }
 
-struct NotesWidgetEntryView: View {
-  var entry: NotesEntry
+// Home-screen small widget (the original v1 design).
+struct HomeView: View {
+  let state: WidgetState
 
   var body: some View {
-    switch entry.state {
+    switch state {
     case .needsOpen:
       VStack(spacing: 6) {
         Text("notes").font(.system(size: 15, weight: .black)).foregroundColor(accent)
@@ -194,25 +198,118 @@ struct NotesWidgetEntryView: View {
   }
 }
 
+// MARK: - Lock-screen (accessory) widgets, iOS 16+ (#138)
+// Rendered monochrome and system-tinted; no custom colors. `widgetAccentable()`
+// marks the parts that take the user's lock-screen tint.
+
+@available(iOS 16.0, *)
+struct AccessoryInlineView: View {
+  let state: WidgetState
+  var body: some View {
+    switch state {
+    case .needsOpen, .empty:
+      Label("open notes", systemImage: "checklist")
+    case let .progress(done, total, _):
+      Label("\(total - done) of \(total) left", systemImage: "checklist")
+    case .allDone:
+      Label("all done", systemImage: "checkmark.circle.fill")
+    }
+  }
+}
+
+@available(iOS 16.0, *)
+struct AccessoryCircularView: View {
+  let state: WidgetState
+  var body: some View {
+    switch state {
+    case let .progress(done, total, _):
+      Gauge(value: Double(done), in: 0...Double(max(total, 1))) {
+        Text("done")
+      } currentValueLabel: {
+        Text("\(done)")
+      }
+      .gaugeStyle(.accessoryCircularCapacity)
+    case .allDone:
+      ZStack {
+        AccessoryWidgetBackground()
+        Image(systemName: "checkmark").font(.system(size: 20, weight: .bold)).widgetAccentable()
+      }
+    case .empty, .needsOpen:
+      ZStack {
+        AccessoryWidgetBackground()
+        Image(systemName: "checklist")
+      }
+    }
+  }
+}
+
+@available(iOS 16.0, *)
+struct AccessoryRectangularView: View {
+  let state: WidgetState
+  var body: some View {
+    VStack(alignment: .leading, spacing: 2) {
+      switch state {
+      case .needsOpen:
+        Text("notes").font(.headline)
+        Text("open to set up").font(.caption)
+      case .empty:
+        Text("today").font(.headline)
+        Text("add your routine").font(.caption)
+      case let .progress(done, total, focus):
+        Text("\(done)/\(total) done").font(.headline).widgetAccentable()
+        Text(focus.map { "focus: \($0)" } ?? "keep going").font(.caption).lineLimit(1)
+      case let .allDone(quote, _):
+        Label("all done", systemImage: "checkmark.circle.fill").font(.headline).widgetAccentable()
+        Text(quote).font(.caption2).lineLimit(2)
+      }
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+  }
+}
+
+// MARK: - Family dispatch
+
+struct NotesWidgetEntryView: View {
+  @Environment(\.widgetFamily) private var family
+  var entry: NotesEntry
+
+  var body: some View {
+    if #available(iOS 16.0, *), family == .accessoryInline {
+      AccessoryInlineView(state: entry.state).widgetURL(URL(string: "notes://today"))
+    } else if #available(iOS 16.0, *), family == .accessoryCircular {
+      AccessoryCircularView(state: entry.state).widgetURL(URL(string: "notes://today"))
+    } else if #available(iOS 16.0, *), family == .accessoryRectangular {
+      AccessoryRectangularView(state: entry.state).widgetURL(URL(string: "notes://today"))
+    } else if #available(iOS 17.0, *) {
+      HomeView(state: entry.state)
+        .containerBackground(.white, for: .widget)
+        .widgetURL(URL(string: "notes://today"))
+    } else {
+      HomeView(state: entry.state)
+        .padding()
+        .background(Color.white)
+        .widgetURL(URL(string: "notes://today"))
+    }
+  }
+}
+
+private func supportedWidgetFamilies() -> [WidgetFamily] {
+  if #available(iOS 16.0, *) {
+    return [.systemSmall, .accessoryCircular, .accessoryRectangular, .accessoryInline]
+  }
+  return [.systemSmall]
+}
+
 @main
 struct NotesWidget: Widget {
   let kind = "NotesWidget"
 
   var body: some WidgetConfiguration {
     StaticConfiguration(kind: kind, provider: Provider()) { entry in
-      if #available(iOS 17.0, *) {
-        NotesWidgetEntryView(entry: entry)
-          .containerBackground(.white, for: .widget)
-          .widgetURL(URL(string: "notes://today"))
-      } else {
-        NotesWidgetEntryView(entry: entry)
-          .padding()
-          .background(Color.white)
-          .widgetURL(URL(string: "notes://today"))
-      }
+      NotesWidgetEntryView(entry: entry)
     }
     .configurationDisplayName("notes")
     .description("today's routine + focus")
-    .supportedFamilies([.systemSmall])
+    .supportedFamilies(supportedWidgetFamilies())
   }
 }

@@ -21,7 +21,7 @@ desktop (macOS), and iOS.**
   migrations `0001–0007` are all pushed (Local == Remote).
 - **Read first:** `docs/product.md` (why) → `docs/spec.md` (what, FROZEN) →
   `docs/data-model.md` (schema, FROZEN) → this file (how to run/ship). Full "why" log:
-  `docs/decisions.md` (#001–#136).
+  `docs/decisions.md` (#001–#138).
 - **One thing still pending on David:** connect Spotify once (web/iOS) to enable "song of
   the day → from your listening" (§9). Everything else is done.
 
@@ -82,7 +82,7 @@ AGENTS.md / CLAUDE.md      the 5 anti-drift rules + doc index (read first)
 docs/
   product / spec / data-model   FROZEN: goal / behavior / schema
   architecture / design         living: stack+deploy / tokens+screens
-  decisions.md                  append-only "why" log (#001–#136)
+  decisions.md                  append-only "why" log (#001–#138)
   roadmap.md / phase-1.md       status + parallel-slice briefs
   widget-and-notifications.md   the iOS widget + notifications design (#119)
   ship-desktop-and-ios.md       signing/notarize/release + iOS Xcode runbook
@@ -187,13 +187,15 @@ project is generated locally and **git-ignored**:
 `cd mobile && npm install && npm run add:ios && npm run sync && npm run open:ios` (needs
 Xcode + an Apple account). Runbook: `docs/ship-desktop-and-ios.md`.
 
-- **Home-screen widget** — native WidgetKit; shows a progress ring, "X/N left today", the
-  **weakest-habit** focus (lowest 30-day completion), and an all-done quote. It fetches
-  **live** via the `widget_summary` RPC using the session shared from the app through an
-  **App Group** (`src/lib/native/widget-bridge.ts`).
+- **Widget** — native WidgetKit (`mobile/widget/NotesWidget.swift`); progress ring, "X/N left
+  today", **weakest-habit** focus, all-done quote. Fetches **live** via the `widget_summary`
+  RPC using the App-Group session (`src/lib/native/widget-bridge.ts`). Now also on the
+  **lock screen** (iOS 16+ accessory families, #138) — same data; **rebuild in Xcode** to pick
+  it up (Swift isn't in CI; ext deployment target ≥ iOS 16).
 - **Notifications** — two/day, local (no server), 8am + 9pm, times configurable in Settings →
-  notifications (native-only section). Rescheduled on launch/auth/foreground so the evening
-  "N left" stays current (`src/lib/native/notifications.ts`). Design:
+  notifications (native-only section). Rescheduled on launch/auth/foreground. The **evening is
+  a day recap** (#137): routine progress + journaled? + the day's song (`composeEveningBody`,
+  title "your day") in `src/lib/native/notifications.ts`. Design:
   `docs/widget-and-notifications.md`; wiring: `docs/notifications-phase3-runbook.md`.
 
 ## 9. Song of the day + Spotify (#123–#128)
