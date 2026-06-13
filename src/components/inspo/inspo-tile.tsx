@@ -6,7 +6,7 @@
 // badge. Stickies on the item show as small, non-interactive "peeks" (decoration —
 // they're placed/edited in the lightbox). `data-inspo-item` makes the tile both a drop
 // target for a color dragged from the board holder and a reorder target (see
-// inspo-board + use-tile-reorder). The grip handle (top-left) starts a reorder drag.
+// inspo-board + use-masonry-reorder). The grip handle (top-left) starts a reorder drag.
 import { GripVertical, Play } from "lucide-react";
 import { inspoUrl, type DB, type InspoItemWithStickies, type StickyColor } from "@/lib/data";
 import { STICKY_STYLE } from "./sticky-colors";
@@ -18,14 +18,12 @@ export function InspoTile({
   item,
   onOpen,
   dragging,
-  isDropTarget,
   handleProps,
 }: {
   sb: DB;
   item: InspoItemWithStickies;
   onOpen: () => void;
   dragging?: boolean;
-  isDropTarget?: boolean;
   handleProps?: { onPointerDown: (e: React.PointerEvent) => void };
 }) {
   const peeks = (item.stickies ?? []).slice(0, MAX_PEEKS);
@@ -34,17 +32,12 @@ export function InspoTile({
     item.kind === "video" && item.poster_path ? inspoUrl(sb, item.poster_path) : null;
 
   return (
-    <div
-      data-inspo-item={item.id}
-      className={`group relative mb-3.5 break-inside-avoid transition-opacity ${
-        dragging ? "opacity-40" : ""
-      }`}
-    >
+    <div data-inspo-item={item.id} className="group relative w-full">
       <button
         type="button"
         onClick={onOpen}
-        className={`relative block w-full overflow-hidden rounded-xl bg-field text-left shadow-sm transition-shadow ${
-          isDropTarget ? "ring-2 ring-accent ring-offset-2 ring-offset-bg" : ""
+        className={`relative block w-full overflow-hidden rounded-xl bg-field text-left transition-shadow ${
+          dragging ? "shadow-[0_20px_45px_rgba(0,0,0,0.3)]" : "shadow-sm"
         }`}
       >
         {item.kind === "video" ? (
@@ -109,7 +102,7 @@ export function InspoTile({
           type="button"
           aria-label="drag to reorder"
           {...handleProps}
-          className="absolute left-2 top-2 grid h-7 w-7 cursor-grab touch-none place-items-center rounded-md bg-black/45 text-white opacity-70 transition-opacity active:cursor-grabbing md:opacity-0 md:group-hover:opacity-100"
+          className="absolute left-2 top-2 z-10 grid h-7 w-7 cursor-grab touch-none place-items-center rounded-md bg-black/45 text-white opacity-60 transition-opacity hover:opacity-100 active:cursor-grabbing"
         >
           <GripVertical size={15} />
         </button>

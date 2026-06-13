@@ -861,3 +861,23 @@ masonry — lift + ghost + target-ring + reflow reads clearly. This **reverses t
 defer reorder. Verified (seed two ordered tiles → drag the 2nd's handle onto the 1st → `sort_order`
 swaps in the DB; no console errors), self-restoring. `docs/spec.md` §11, `docs/data-model.md`,
 `docs/handoff.md`, `docs/roadmap.md`, `docs/inspo.md` updated.
+
+**#146 — inspo reorder, take two: a smooth JS-positioned masonry (supersedes #145's mechanism).**
+David found #145's reorder hard to discover and not smooth, so the board's layout moved from CSS
+`columns` to a **JS-positioned masonry** and the gesture became a live glide. `use-masonry-reorder.ts`
+(replaces `use-tile-reorder.ts`): the board measures its width (a ResizeObserver behind a callback
+ref, since the grid only mounts after items load), packs each tile into the **shortest column** using
+its stored aspect ratio, and positions every tile **absolutely** via `transform: translate(...)` with
+a `transition`. Reorder is then trivial and smooth — while you drag a tile by its grip handle, the
+dragged tile tracks the pointer **1:1** (driven imperatively, re-pinned in a `useLayoutEffect` so a
+re-render never snaps it), and as it crosses another tile the working order updates so **every other
+tile eases to its new slot**; on release it glides home and the order persists (same `sort_order` +
+`reorderInspoItems`, optimistic, as #145). The grip handle is now **always visible** (was hover-only —
+the discoverability complaint). **Why:** a column-balanced CSS-`columns` grid can't animate reorder
+cleanly (#145 settled for drop-on-target + instant reflow); explicit JS positions make
+`transition: transform` do the smooth work for free, in 2-D, on mouse + touch. **Trade-off:** the board
+now needs item dimensions to lay out (we already capture them on upload; dimensionless legacy items
+fall back to a square ratio). This **changes the mechanism of #145**, not the data model. Verified
+(JS masonry lays out in 3 balanced columns; drag the last tile to the front → others glide live →
+`sort_order` persists; no console errors) with board + mid-drag screenshots, self-restoring.
+`docs/design.md`, `docs/handoff.md`, `docs/inspo.md` updated.

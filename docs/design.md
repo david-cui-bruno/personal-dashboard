@@ -50,9 +50,11 @@ accent-tinted levels over `--heat-0`.
 Anchored to `mockups/index.html` → "inspo" / "item open". The board is the one
 deliberately "busy" surface; the rest of the app stays calm.
 
-- **Masonry** via CSS `columns` — 3 on web / 2 on mobile, `column-gap` ~14px, tiles
-  `break-inside: avoid`, rounded `14px`, newest-first. Each tile reserves its image's
-  `aspect-ratio` (from stored width/height) so the column doesn't jump on load.
+- **Masonry** — 3 columns on web / 2 on mobile, ~14px gap, tiles rounded `14px`, newest-first.
+  **JS-positioned** (#146): each tile is packed into the shortest column from its stored aspect
+  ratio and placed absolutely, so reorder is a smooth `transition: transform` glide (drag a tile by
+  its always-visible grip handle; the others ease out of the way). Dimensions come from the stored
+  width/height, so columns don't jump as images load.
 - **Sticky paper palette** — five fixed hues (paper + ink), **identical in light & dark**
   (paper, not chrome), kept as constants in `src/components/inspo/sticky-colors.ts`:
 

@@ -21,7 +21,7 @@ desktop (macOS), and iOS.**
   migrations `0001–0007` are all pushed (Local == Remote).
 - **Read first:** `docs/product.md` (why) → `docs/spec.md` (what, FROZEN) →
   `docs/data-model.md` (schema, FROZEN) → this file (how to run/ship). Full "why" log:
-  `docs/decisions.md` (#001–#145).
+  `docs/decisions.md` (#001–#146).
 - **One thing still pending on David:** connect Spotify once (web/iOS) to enable "song of
   the day → from your listening" (§9). Everything else is done.
 
@@ -66,8 +66,9 @@ Lato · PWA. Plus two thin **hosted-URL native shells** that load the same web a
   editor with inline **photos** (#050); a song day shows a `♪ title — artist` line. In-list
   search also **jumps to a date** (type "june 3", #116). An `all / pinned` segment shows a
   **drag-reorderable pinned view** (pin from the entry header; stream stays unmarked, #135).
-- **Inspo (`/inspo`, #140–#145)** — mood/inspiration board tab: **moodboard / people**
-  boards, **drag-reorderable masonry** (grip handle, #145), add **images & video** by paste
+- **Inspo (`/inspo`, #140–#146)** — mood/inspiration board tab: **moodboard / people**
+  boards, **smooth drag-reorderable masonry** (grip handle, JS-positioned, #146), add **images &
+  video** by paste
   (images)/drag/upload. Open a tile → place colored **stickies** on the image/video from a fixed
   **holder** (drag to drop, tap to type-and-grow, drag to move, ✕ to delete); tiles show sticky
   **peeks**, and video tiles a generated **poster** + ▶ badge (#144). Fully built — Phase 1 + 2 +
@@ -88,7 +89,7 @@ AGENTS.md / CLAUDE.md      the 5 anti-drift rules + doc index (read first)
 docs/
   product / spec / data-model   FROZEN: goal / behavior / schema
   architecture / design         living: stack+deploy / tokens+screens
-  decisions.md                  append-only "why" log (#001–#145)
+  decisions.md                  append-only "why" log (#001–#146)
   roadmap.md / phase-1.md       status + parallel-slice briefs
   widget-and-notifications.md   the iOS widget + notifications design (#119)
   ship-desktop-and-ios.md       signing/notarize/release + iOS Xcode runbook
@@ -127,7 +128,7 @@ src/
   components/
     app-frame · consistency-chart · editor (TipTap) · theme-script · native-bridge
     song-of-day.tsx        the song bar (search + "from your spotify")
-    inspo/                 board · tile · lightbox · sticky · sticky-holder · sticky-colors · use-tile-reorder (#140–#145)
+    inspo/                 board · tile · lightbox · sticky · sticky-holder · sticky-colors · use-masonry-reorder (#140–#146)
     ui/ today/ notes/ settings/ search/   per-slice UIs
 public/                    manifest.webmanifest, icons (folded-page mark #117), sw.js
 ```

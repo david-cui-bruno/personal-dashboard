@@ -24,7 +24,8 @@ single-user, RLS-locked.
 - **Tab name:** `inspo`. Route `/inspo` under the `(app)` shell.
 - **Two boards via a segment** (reuse the notes `all/pinned` segment pattern): **moodboard** +
   **people**. One item model; `board` distinguishes them. Each board lays out independently.
-- **Layout:** responsive **masonry** grid (CSS `columns`), 3 cols web / 2 cols mobile.
+- **Layout:** responsive **masonry** grid, 3 cols web / 2 cols mobile. *(Built as a JS-positioned
+  masonry — #146 — rather than CSS `columns`, so tiles drag-reorder smoothly.)*
 - **Media:** **images & screenshots first**; **screen recordings (video) are a fast-follow**
   (Phase 2). **Paste** realistically only carries images — videos are **drag-in / upload**.
 - **Sticky placement = "A · on the opened image".** Stickies are placed and edited on the
@@ -141,8 +142,8 @@ Mirror the existing data-layer style (typed, throws on error, tolerant reads). I
 - **Route:** `src/app/(app)/inspo/page.tsx` → `<InspoBoard />`.
 - **`src/components/inspo/inspo-board.tsx`** — the board: header (`inspo` + add button) ·
   `moodboard / people` segment · masonry grid of tiles · the fixed **holder** · paste/drag/drop
-  + upload handling. Reuse `useDragReorder` (`src/components/ui/use-drag-reorder.ts`, #134/#135)
-  for tile reordering.
+  + upload handling. Tile reordering uses `use-masonry-reorder.ts` (a JS-positioned masonry with a
+  smooth `transition: transform` glide, #146 — the 1-D `useDragReorder` doesn't fit a 2-D masonry).
 - **`src/components/inspo/inspo-tile.tsx`** — one masonry tile (image, optional ▶ video badge,
   sticky **peeks**). Click → open lightbox. Drop a holder color here → open lightbox w/ new
   sticky.
@@ -197,7 +198,8 @@ Mirror the existing data-layer style (typed, throws on error, tolerant reads). I
 > **holder** + on-image stickies (drag-to-drop / tap-to-type-and-grow / move / delete) (#142);
 > **P2** = video drag/upload (≤50 MB), `<video>` playback, ▶ badge, stickies on video (#143);
 > **posters** = client-generated first-frame thumbnails on video tiles (#144); **reorder** =
-> drag-reorderable masonry via a grip handle (#145). Nothing outstanding.
+> smooth drag-reorderable masonry via a grip handle (#145, reworked into a JS-positioned masonry
+> with a `transition: transform` glide in #146). Nothing outstanding.
 
 - **Phase 1 (shipped, #141 + #142 + #145):** the `inspo` tab + nav + the two boards (segment) +
   **image** paste/drag/upload + masonry + tile peeks + open-lightbox + the **holder** (place /
@@ -209,8 +211,9 @@ Mirror the existing data-layer style (typed, throws on error, tolerant reads). I
 
 ## 10. edge cases & gotchas
 
-- **Masonry reflow:** CSS `columns` reflows on resize — stickies are anchored to the *opened*
-  image (lightbox), not the tile, so reflow doesn't disturb them. Tile peeks are decorative.
+- **Masonry reflow:** the JS masonry (#146) re-packs on container resize — stickies are anchored
+  to the *opened* image (lightbox), not the tile, so reflow doesn't disturb them. Tile peeks are
+  decorative.
 - **Image dimensions:** capture w/h on upload so the grid reserves space (no layout jump). Very
   tall/wide images: cap the rendered size in the lightbox; `x/y` fractions still hold.
 - **Large files / cost:** images ≤ ~10 MB; video (P2) is the cost driver — confirm caps vs the

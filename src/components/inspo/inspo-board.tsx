@@ -17,7 +17,6 @@ import {
   addInspoItem,
   deleteInspoItem,
   reorderInspoItems,
-  inspoUrl,
   type InspoBoard as Board,
   type InspoItemWithStickies,
   type InspoSticky,
@@ -26,7 +25,7 @@ import {
 import { InspoTile } from "./inspo-tile";
 import { InspoLightbox } from "./inspo-lightbox";
 import { StickyHolder } from "./sticky-holder";
-import { useTileReorder } from "./use-tile-reorder";
+import { useMasonryReorder } from "./use-masonry-reorder";
 
 const BOARDS = ["moodboard", "people"] as const;
 
@@ -39,7 +38,21 @@ export function InspoBoard() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [pendingColor, setPendingColor] = useState<StickyColor | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [gridWidth, setGridWidth] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
+  const gridRef = useRef<HTMLDivElement | null>(null);
+  const gridRo = useRef<ResizeObserver | null>(null);
+
+  // Callback ref — measure the grid once it actually mounts (it only renders after
+  // items load, so an on-mount effect would miss it).
+  const setGridRef = useCallback((el: HTMLDivElement | null) => {
+    gridRo.current?.disconnect();
+    gridRef.current = el;
+    if (el) {
+      gridRo.current = new ResizeObserver(([entry]) => setGridWidth(entry.contentRect.width));
+      gridRo.current.observe(el);
+    }
+  }, []);
 
   const open = items.find((i) => i.id === openId) ?? null;
 
@@ -123,8 +136,14 @@ export function InspoBoard() {
     void reorderInspoItems(sb, orderedIds).catch(() => listInspo(sb, board).then(setItems));
   }
 
-  const reorder = useTileReorder({ items, keyOf: (i) => i.id, onReorder });
-  const ghostItem = reorder.ghost ? items.find((i) => i.id === reorder.draggingId) : null;
+  const reorder = useMasonryReorder({
+    items,
+    keyOf: (i) => i.id,
+    ratioOf: (i) => (i.width && i.height ? i.height / i.width : 1),
+    width: gridWidth,
+    containerRef: gridRef,
+    onReorder,
+  });
 
   // Drop a color onto a board tile → open that tile with a fresh sticky of that color.
   function onBoardHolderPick(color: StickyColor, point: { x: number; y: number } | null) {
@@ -209,38 +228,38 @@ export function InspoBoard() {
           {board === "people" ? "people" : "inspiration"}
         </button>
       ) : (
-        <div className="columns-2 [column-gap:14px] md:columns-3">
-          {items.map((item) => (
-            <InspoTile
-              key={item.id}
-              sb={sb}
-              item={item}
-              onOpen={() => setOpenId(item.id)}
-              dragging={reorder.draggingId === item.id}
-              isDropTarget={reorder.dropTargetId === item.id}
-              handleProps={reorder.handleProps(item.id)}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* reorder ghost — the dragged tile's media following the pointer */}
-      {reorder.ghost && ghostItem && (
         <div
-          className="pointer-events-none fixed z-[90] w-40 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-xl opacity-90 shadow-[0_18px_40px_rgba(0,0,0,0.35)]"
-          style={{ left: reorder.ghost.x, top: reorder.ghost.y }}
+          ref={setGridRef}
+          className="relative"
+          style={{ height: reorder.height || undefined, visibility: reorder.measured ? "visible" : "hidden" }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={inspoUrl(
-              sb,
-              ghostItem.kind === "video" && ghostItem.poster_path
-                ? ghostItem.poster_path
-                : ghostItem.storage_path,
-            )}
-            alt=""
-            className="block w-full"
-          />
+          {items.map((item) => {
+            const p = reorder.pos.get(item.id);
+            const isDrag = reorder.draggingId === item.id;
+            return (
+              <div
+                key={item.id}
+                ref={reorder.registerTile(item.id)}
+                className={`absolute left-0 top-0 ${
+                  isDrag
+                    ? "z-40 transition-none pointer-events-none"
+                    : "transition-transform duration-200 ease-out"
+                }`}
+                style={{
+                  width: p?.w,
+                  transform: isDrag ? undefined : p ? `translate(${p.x}px, ${p.y}px)` : undefined,
+                }}
+              >
+                <InspoTile
+                  sb={sb}
+                  item={item}
+                  onOpen={() => setOpenId(item.id)}
+                  dragging={isDrag}
+                  handleProps={reorder.handleProps(item.id)}
+                />
+              </div>
+            );
+          })}
         </div>
       )}
 
