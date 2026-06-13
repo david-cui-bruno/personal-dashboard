@@ -54,11 +54,13 @@ export function InspoBoard() {
 
   const addFiles = useCallback(
     async (files: File[]) => {
-      const images = files.filter((f) => f.type.startsWith("image/"));
-      if (!images.length) return;
+      const media = files.filter(
+        (f) => f.type.startsWith("image/") || f.type.startsWith("video/"),
+      );
+      if (!media.length) return;
       setBusy(true);
       try {
-        for (const file of images) {
+        for (const file of media) {
           try {
             const media = await uploadInspoMedia(sb, file);
             const item = await addInspoItem(sb, board, media);
@@ -147,7 +149,7 @@ export function InspoBoard() {
         <input
           ref={fileRef}
           type="file"
-          accept="image/*"
+          accept="image/*,video/*"
           multiple
           hidden
           onChange={(e) => {

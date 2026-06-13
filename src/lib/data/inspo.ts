@@ -2,7 +2,7 @@
 // colored stickies placed on the image. Media bytes go to the public `attachments`
 // bucket (#103) under an inspo/ prefix; these tables hold metadata + annotations.
 // Reads tolerate the tables being absent (deploy-before-migration → []). Build
-// brief: docs/inspo.md. Phase 1 = images + stickies; phase 2 = video.
+// brief: docs/inspo.md. Phase 1 = images + stickies; Phase 2 = video (#142).
 import type { DB, InspoItem, InspoSticky } from "./types";
 
 export type InspoBoard = "moodboard" | "people";
@@ -11,6 +11,7 @@ export type InspoItemWithStickies = InspoItem & { stickies: InspoSticky[] };
 
 const BUCKET = "attachments";
 const MAX_BYTES = 10 * 1024 * 1024; // ~10 MB per image
+const MAX_VIDEO_BYTES = 50 * 1024 * 1024; // ~50 MB per video (matches Supabase's 50 MiB cap)
 const MAX_DIM = 2400; // longest-edge cap; larger images are downscaled
 
 // Public URL for a stored item (the bucket is public, #103).
@@ -36,14 +37,36 @@ export async function listInspo(
   }
 }
 
-// Upload an image to Storage; returns its path + public url + intrinsic dims.
+// Upload media (image or video) to Storage; returns its path + public url +
+// intrinsic dims + kind. Images are downscaled (≤10 MB); videos go up as-is (≤50 MB)
+// and the tile shows their first frame (#142 P2 — poster thumbnails are a refinement).
 export async function uploadInspoMedia(
   sb: DB,
   file: File,
-): Promise<{ storagePath: string; url: string; width: number | null; height: number | null }> {
-  if (!file.type.startsWith("image/")) {
-    throw new Error("only images for now (video coming soon)");
+): Promise<{
+  storagePath: string;
+  url: string;
+  width: number | null;
+  height: number | null;
+  kind: "image" | "video";
+}> {
+  const isVideo = file.type.startsWith("video/");
+  if (!file.type.startsWith("image/") && !isVideo) {
+    throw new Error("unsupported file — images or videos only");
   }
+
+  if (isVideo) {
+    if (file.size > MAX_VIDEO_BYTES) throw new Error("video is too large (max ~50 mb)");
+    const { width, height } = await videoDims(file);
+    const ext = videoExtFor(file.type) ?? file.name.split(".").pop()?.toLowerCase() ?? "mp4";
+    const path = `inspo/${crypto.randomUUID()}.${ext}`;
+    const { error } = await sb.storage
+      .from(BUCKET)
+      .upload(path, file, { contentType: file.type, upsert: false });
+    if (error) throw error;
+    return { storagePath: path, url: inspoUrl(sb, path), width, height, kind: "video" };
+  }
+
   const { blob, width, height } = await downscale(file);
   if (blob.size > MAX_BYTES) throw new Error("image is too large (max ~10 mb)");
   const ext = extFor(blob.type) ?? extFor(file.type) ?? "png";
@@ -52,19 +75,19 @@ export async function uploadInspoMedia(
     .from(BUCKET)
     .upload(path, blob, { contentType: blob.type, upsert: false });
   if (error) throw error;
-  return { storagePath: path, url: inspoUrl(sb, path), width, height };
+  return { storagePath: path, url: inspoUrl(sb, path), width, height, kind: "image" };
 }
 
 export async function addInspoItem(
   sb: DB,
   board: InspoBoard,
-  media: { storagePath: string; width: number | null; height: number | null },
+  media: { storagePath: string; width: number | null; height: number | null; kind?: "image" | "video" },
 ): Promise<InspoItemWithStickies> {
   const { data, error } = await sb
     .from("inspo_item")
     .insert({
       board,
-      kind: "image",
+      kind: media.kind ?? "image",
       storage_path: media.storagePath,
       width: media.width,
       height: media.height,
@@ -121,6 +144,39 @@ function extFor(mime: string): string | null {
   const m = /^image\/(png|jpeg|jpg|webp|gif|avif)$/.exec(mime);
   if (!m) return null;
   return m[1] === "jpeg" ? "jpg" : m[1];
+}
+
+function videoExtFor(mime: string): string | null {
+  const map: Record<string, string> = {
+    "video/mp4": "mp4",
+    "video/webm": "webm",
+    "video/quicktime": "mov",
+    "video/ogg": "ogv",
+  };
+  return map[mime] ?? null;
+}
+
+// Read a video's intrinsic dimensions by loading its metadata off-DOM (so masonry
+// can reserve the aspect ratio). Best-effort: nulls if the browser can't decode it.
+async function videoDims(file: File): Promise<{ width: number | null; height: number | null }> {
+  if (typeof document === "undefined") return { width: null, height: null };
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const v = document.createElement("video");
+    v.preload = "metadata";
+    v.muted = true;
+    v.onloadedmetadata = () => {
+      const width = v.videoWidth || null;
+      const height = v.videoHeight || null;
+      URL.revokeObjectURL(url);
+      resolve({ width, height });
+    };
+    v.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve({ width: null, height: null });
+    };
+    v.src = url;
+  });
 }
 
 async function downscale(

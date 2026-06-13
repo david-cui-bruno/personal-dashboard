@@ -118,7 +118,7 @@ now-playing). Authorization Code OAuth via `/api/spotify/{login,callback,recent}
 |---|---|---|
 | `id` | uuid pk | |
 | `board` | text not null | `check in ('moodboard','people')` |
-| `kind` | text not null default `'image'` | `check in ('image','video')` — `video` is Phase 2 |
+| `kind` | text not null default `'image'` | `check in ('image','video')` — both shipped (#142) |
 | `storage_path` | text not null | path in the public `attachments` bucket under `inspo/` |
 | `width` / `height` | int null | intrinsic px — masonry reserves aspect ratio |
 | `sort_order` | int not null default 0 | reserved for manual order (reorder is a later refinement) |
@@ -135,8 +135,11 @@ now-playing). Authorization Code OAuth via `/api/spotify/{login,callback,recent}
 | `rotation` | real not null default 0 | small paper tilt |
 
 Migration 0010. RLS `authenticated` (#108). Media reuses the public `attachments` bucket
-(#103). Reads tolerate the tables being absent (deploy-before-migration → `[]`). The sticky
-placement UI shipped in Phase 1b (#142); full brief in `docs/inspo.md`.
+(#103): **images ≤10 MB** (downscaled) and **video ≤50 MB** (matches Supabase's 50 MiB storage
+cap). Video has **no poster column** — the tile shows the first frame (`#t=0.1`); a generated
+poster (+ optional `poster_path`) is a later refinement. Reads tolerate the tables being absent
+(deploy-before-migration → `[]`). Sticky placement (P1b) + video (P2) shipped in #142; full brief
+in `docs/inspo.md`.
 
 ## search (#040)
 
@@ -179,7 +182,8 @@ Post-V1 additions (read-only, additive):
   song}` — `song` is today's `daily_song` row, folded in by migration `0008` (#131).
   `security invoker` (RLS applies), `authenticated`-only like `widget_summary`.
 - inspo (#140, `src/lib/data/inspo.ts`): `listInspo(board)` (items + embedded stickies),
-  `uploadInspoMedia(file)` (→ `attachments` bucket `inspo/`, captures dims), `addInspoItem`,
+  `uploadInspoMedia(file)` (image or video → `attachments` bucket `inspo/`; captures dims + kind),
+  `addInspoItem`,
   `deleteInspoItem` (+ Storage object), `addSticky` / `updateSticky` / `deleteSticky`,
   `inspoUrl(path)`. Tolerant reads.
 

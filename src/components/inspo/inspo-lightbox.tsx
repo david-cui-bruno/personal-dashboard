@@ -42,7 +42,7 @@ export function InspoLightbox({
   const [stickies, setStickies] = useState<InspoSticky[]>(item.stickies ?? []);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [newId, setNewId] = useState<string | null>(null);
-  const imgWrapRef = useRef<HTMLDivElement>(null);
+  const mediaRef = useRef<HTMLDivElement>(null);
   // A color dropped on this tile from the board holder → drop one sticky on open.
   const pending = useRef(pendingColor);
 
@@ -64,8 +64,8 @@ export function InspoLightbox({
   }
 
   // Drain the pending color once the image box exists (ref callback fires on mount).
-  function attachImgWrap(el: HTMLDivElement | null) {
-    imgWrapRef.current = el;
+  function attachMedia(el: HTMLDivElement | null) {
+    mediaRef.current = el;
     if (el && pending.current) {
       const color = pending.current;
       pending.current = null;
@@ -88,7 +88,7 @@ export function InspoLightbox({
 
   // Holder drop in the lightbox → place on the image at the drop point, else center.
   function onHolderPick(color: StickyColor, point: { x: number; y: number } | null) {
-    const box = imgWrapRef.current?.getBoundingClientRect();
+    const box = mediaRef.current?.getBoundingClientRect();
     let { x, y } = CENTER;
     if (point && box) {
       const within = point.x >= box.left && point.x <= box.right && point.y >= box.top && point.y <= box.bottom;
@@ -109,20 +109,29 @@ export function InspoLightbox({
         className="relative flex max-h-[92vh] flex-col items-center gap-3 md:flex-row md:items-stretch md:gap-5"
         onPointerDown={(e) => e.stopPropagation()}
       >
-        {/* image box — sized to the image, so sticky fractions map onto it */}
-        <div ref={attachImgWrap} className="relative inline-block">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={inspoUrl(sb, item.storage_path)}
-            alt=""
-            draggable={false}
-            className="block max-h-[80vh] max-w-[82vw] rounded-xl md:max-w-[58vw]"
-          />
+        {/* media box — sized to the image/video, so sticky fractions map onto it */}
+        <div ref={attachMedia} className="relative inline-block">
+          {item.kind === "video" ? (
+            <video
+              src={inspoUrl(sb, item.storage_path)}
+              controls
+              playsInline
+              className="block max-h-[80vh] max-w-[82vw] rounded-xl md:max-w-[58vw]"
+            />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={inspoUrl(sb, item.storage_path)}
+              alt=""
+              draggable={false}
+              className="block max-h-[80vh] max-w-[82vw] rounded-xl md:max-w-[58vw]"
+            />
+          )}
           {stickies.map((s) => (
             <Sticky
               key={s.id}
               sticky={s}
-              boundsRef={imgWrapRef}
+              boundsRef={mediaRef}
               autoFocus={s.id === newId}
               active={activeId === s.id}
               onActivate={() => setActiveId(s.id)}

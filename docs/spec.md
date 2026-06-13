@@ -202,9 +202,12 @@ Today/Notes-only nav #064). A private visual board for collecting inspiration.
 - **Two boards** via an `all/pinned`-style segment: **moodboard** (anything you like) and
   **people** (people who inspire you). Same item model; the board is just a category.
 - **Add media** by **paste** (⌘V an image), **drag-drop** files, or the **+** upload button.
-  **Images/screenshots** in Phase 1; **screen recordings (video)** are a fast-follow (Phase 2).
+  **Images/screenshots** (≤10 MB, downscaled) and **screen recordings / video** (≤50 MB) are
+  both supported (#142); **paste is images-only** (clipboards rarely carry video).
 - **Masonry** grid (3 cols web / 2 mobile), newest first. Tap a tile to **open** it (a
-  lightbox); delete from there.
+  lightbox); delete from there. **Video** tiles show the **first frame** + a ▶ badge and
+  **play with controls** in the lightbox; stickies can be placed on a video just like an image.
+  (Generated **poster thumbnails** are a later refinement.)
 - **Sticky notes (Phase 1b, #142):** open an image and place colored stickies
   (yellow/blue/orange/pink/green) **on it** from a fixed holder. **Drag** a color from the holder
   onto the image to drop a sticky there; **tap** the sticky to edit (the text grows it

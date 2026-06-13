@@ -191,18 +191,21 @@ Mirror the existing data-layer style (typed, throws on error, tolerant reads). I
 
 ## 9. phasing
 
-> **status:** Phase 1 **shipped** — **P1a** = tab + nav + boards + image paste/drag/upload +
-> masonry + open-lightbox + delete (#141); **P1b** = tile peeks + the **holder** + on-image
-> stickies (drag-to-drop / tap-to-type-and-grow / move / delete) (#142). **Tile reorder was
-> deferred** — the board is newest-first and `sort_order` stays reserved (see #142 /
-> `docs/data-model.md`). Phase 2 (video) is the open fast-follow.
+> **status:** Phases 1 **and** 2 **shipped**. **P1a** = tab + nav + boards + image
+> paste/drag/upload + masonry + open-lightbox + delete (#141); **P1b** = tile peeks + the
+> **holder** + on-image stickies (drag-to-drop / tap-to-type-and-grow / move / delete) (#142);
+> **P2** = video drag/upload (≤50 MB), `<video>` playback, first-frame tile + ▶ badge, stickies
+> on video (#143). **Deferred refinements:** tile **reorder** (board is newest-first;
+> `sort_order` reserved — see #142 / `docs/data-model.md`) and generated video **poster
+> thumbnails** (tiles use the first frame today — see #143).
 
 - **Phase 1 (shipped, #141 + #142):** the `inspo` tab + nav + the two boards (segment) +
   **image** paste/drag/upload + masonry + tile peeks + open-lightbox + the **holder** (place /
   drag / type-to-grow / move / delete stickies) + delete item. Data model + storage + data layer
   + docs. *(Tile **reorder** deferred — see status note above.)*
-- **Phase 2 (fast-follow):** **screen recordings / video** — drag/upload (size-capped),
-  `<video>` playback in the lightbox, ▶ tile badge, poster thumbnails. Flip `kind='video'`.
+- **Phase 2 (shipped, #143):** **screen recordings / video** — drag/upload (≤50 MB),
+  `<video controls>` playback in the lightbox, first-frame **▶ tile** preview, stickies on video,
+  `kind='video'`. *(Generated **poster thumbnails** deferred — see status note above.)*
 
 ## 10. edge cases & gotchas
 

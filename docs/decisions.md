@@ -807,3 +807,26 @@ Verified end-to-end (seed item → open → holder-drag creates a sticky w/ sens
 persists → move changes x/y → delete removes the row → close + segment toggle; no console
 errors), self-restoring against the shared DB. `docs/spec.md` §11, `docs/data-model.md`,
 `docs/design.md`, `docs/handoff.md`, `docs/roadmap.md`, `docs/inspo.md` updated.
+
+**#143 — inspo Phase 2 shipped: screen recordings / video.**
+The fast-follow from #140 §9, completing the inspo board. Video flows through the same path as
+images — **drag-in / upload** (the file input now takes `image/*,video/*`); **paste stays
+images-only** (clipboards rarely carry video). `uploadInspoMedia` branches on MIME: video uploads
+**as-is** (no client transcode) with a **~50 MB cap**, and dimensions are read off-DOM via a
+hidden `<video>` so masonry reserves the aspect ratio. Tiles render the **first frame**
+(`<video …#t=0.1>`) + the ▶ badge; the lightbox plays `<video controls>`; **stickies work on a
+video** exactly as on an image (the media box generalized from `imgWrapRef` → `mediaRef`).
+**Decisions:** (a) **~50 MB** video cap — matches the local Supabase global `file_size_limit`
+("50MiB"); the `attachments` bucket itself has no per-bucket size/MIME limit, so nothing else
+gates it. *Confirm the prod plan's upload limit before relying on the full 50 MB* (free tier is
+~50 MB). (b) **No poster column / no client-side poster generation** — the first-frame `<video>`
+tile is the brief's sanctioned "plain video tile" v1; it needs **no schema change** (`kind` already
+allowed `'video'`) and avoids codec-dependent canvas extraction. A generated poster (+ optional
+nullable `poster_path` on `inspo_item`) is a clean **later refinement**. (c) Video bytes are not
+downscaled (no in-browser transcode); the cap is the only guard. **Why:** let David drop screen
+recordings onto the board with the least machinery, keeping the calm aesthetic and the existing
+deploy-before-migration safety (no new migration). Verified end-to-end (upload a tiny WebM via the
+file input → row `kind=video` + 320×240 dims captured → tile is a `<video>` + ▶ badge → lightbox
+plays it → drag a sticky onto the video → row persists; no console errors), self-restoring.
+`docs/spec.md` §11, `docs/data-model.md`, `docs/handoff.md`, `docs/roadmap.md`, `docs/inspo.md`
+updated.

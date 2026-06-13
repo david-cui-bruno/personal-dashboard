@@ -30,14 +30,26 @@ export function InspoTile({
       onClick={onOpen}
       className="relative mb-3.5 block w-full break-inside-avoid overflow-hidden rounded-xl bg-field text-left shadow-sm"
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={inspoUrl(sb, item.storage_path)}
-        alt=""
-        loading="lazy"
-        className="block w-full"
-        style={ratio ? { aspectRatio: ratio } : undefined}
-      />
+      {item.kind === "video" ? (
+        // First-frame preview (#t=0.1) — poster thumbnails are a later refinement.
+        <video
+          src={`${inspoUrl(sb, item.storage_path)}#t=0.1`}
+          muted
+          playsInline
+          preload="metadata"
+          className="block w-full"
+          style={ratio ? { aspectRatio: ratio } : undefined}
+        />
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={inspoUrl(sb, item.storage_path)}
+          alt=""
+          loading="lazy"
+          className="block w-full"
+          style={ratio ? { aspectRatio: ratio } : undefined}
+        />
+      )}
 
       {item.kind === "video" && (
         <span className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full bg-black/55 text-white">
