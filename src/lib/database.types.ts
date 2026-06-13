@@ -124,6 +124,7 @@ export type Database = {
           height: number | null
           id: string
           kind: string
+          poster_path: string | null
           sort_order: number
           storage_path: string
           width: number | null
@@ -134,6 +135,7 @@ export type Database = {
           height?: number | null
           id?: string
           kind?: string
+          poster_path?: string | null
           sort_order?: number
           storage_path: string
           width?: number | null
@@ -144,6 +146,7 @@ export type Database = {
           height?: number | null
           id?: string
           kind?: string
+          poster_path?: string | null
           sort_order?: number
           storage_path?: string
           width?: number | null

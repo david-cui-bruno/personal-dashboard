@@ -114,6 +114,7 @@ export function InspoLightbox({
           {item.kind === "video" ? (
             <video
               src={inspoUrl(sb, item.storage_path)}
+              poster={item.poster_path ? inspoUrl(sb, item.poster_path) : undefined}
               controls
               playsInline
               className="block max-h-[80vh] max-w-[82vw] rounded-xl md:max-w-[58vw]"

@@ -65,6 +65,7 @@ stays inert. Reads must **tolerate the tables being absent** (deploy-before-migr
 | `board` | text not null | `check (board in ('moodboard','people'))` |
 | `kind` | text not null default `'image'` | `check (kind in ('image','video'))` — `video` is P2 |
 | `storage_path` | text not null | path in the Storage bucket (see §4); public URL derived |
+| `poster_path` | text null | video first-frame thumbnail (#144, migration `0011`); null for images |
 | `width` | int | intrinsic px width — lets masonry reserve aspect ratio before load |
 | `height` | int | intrinsic px height |
 | `sort_order` | int not null default 0 | manual order within the board (drag-reorder) |
@@ -191,21 +192,20 @@ Mirror the existing data-layer style (typed, throws on error, tolerant reads). I
 
 ## 9. phasing
 
-> **status:** Phases 1 **and** 2 **shipped**. **P1a** = tab + nav + boards + image
-> paste/drag/upload + masonry + open-lightbox + delete (#141); **P1b** = tile peeks + the
+> **status:** fully built — Phases 1 + 2 + both refinements. **P1a** = tab + nav + boards +
+> image paste/drag/upload + masonry + open-lightbox + delete (#141); **P1b** = tile peeks + the
 > **holder** + on-image stickies (drag-to-drop / tap-to-type-and-grow / move / delete) (#142);
-> **P2** = video drag/upload (≤50 MB), `<video>` playback, first-frame tile + ▶ badge, stickies
-> on video (#143). **Deferred refinements:** tile **reorder** (board is newest-first;
-> `sort_order` reserved — see #142 / `docs/data-model.md`) and generated video **poster
-> thumbnails** (tiles use the first frame today — see #143).
+> **P2** = video drag/upload (≤50 MB), `<video>` playback, ▶ badge, stickies on video (#143);
+> **posters** = client-generated first-frame thumbnails on video tiles (#144); **reorder** =
+> drag-reorderable masonry via a grip handle (#145). Nothing outstanding.
 
-- **Phase 1 (shipped, #141 + #142):** the `inspo` tab + nav + the two boards (segment) +
+- **Phase 1 (shipped, #141 + #142 + #145):** the `inspo` tab + nav + the two boards (segment) +
   **image** paste/drag/upload + masonry + tile peeks + open-lightbox + the **holder** (place /
-  drag / type-to-grow / move / delete stickies) + delete item. Data model + storage + data layer
-  + docs. *(Tile **reorder** deferred — see status note above.)*
-- **Phase 2 (shipped, #143):** **screen recordings / video** — drag/upload (≤50 MB),
-  `<video controls>` playback in the lightbox, first-frame **▶ tile** preview, stickies on video,
-  `kind='video'`. *(Generated **poster thumbnails** deferred — see status note above.)*
+  drag / type-to-grow / move / delete stickies) + delete item + **drag-reorder** (#145). Data
+  model + storage + data layer + docs.
+- **Phase 2 (shipped, #143 + #144):** **screen recordings / video** — drag/upload (≤50 MB),
+  `<video controls>` playback in the lightbox, generated first-frame **poster** tile + ▶ badge,
+  stickies on video, `kind='video'`.
 
 ## 10. edge cases & gotchas
 

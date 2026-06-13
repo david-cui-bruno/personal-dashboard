@@ -1,13 +1,13 @@
 "use client";
 
-// Inspo board (#140) — moodboard | people boards of images in a masonry grid. Add via
-// the + button, paste (⌘V an image), or drag-drop files. Open a tile for the lightbox,
-// where colored stickies get placed on the image (Phase 1b).
+// Inspo board (#140) — moodboard | people boards of images & video in a masonry grid.
+// Add via the + button, paste (⌘V an image), or drag-drop files. Open a tile for the
+// lightbox, where colored stickies get placed on the media (Phase 1b).
 //
 // The holder is docked on the right (web only — mobile adds stickies from inside the
 // lightbox). Dragging a color onto a tile opens that tile's lightbox with a fresh
-// sticky of that color, so the dispenser "works" from the board too. Build brief:
-// docs/inspo.md.
+// sticky of that color, so the dispenser "works" from the board too. Tiles drag-reorder
+// by their grip handle (#144). Build brief: docs/inspo.md.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ImagePlus, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -16,6 +16,8 @@ import {
   uploadInspoMedia,
   addInspoItem,
   deleteInspoItem,
+  reorderInspoItems,
+  inspoUrl,
   type InspoBoard as Board,
   type InspoItemWithStickies,
   type InspoSticky,
@@ -24,6 +26,7 @@ import {
 import { InspoTile } from "./inspo-tile";
 import { InspoLightbox } from "./inspo-lightbox";
 import { StickyHolder } from "./sticky-holder";
+import { useTileReorder } from "./use-tile-reorder";
 
 const BOARDS = ["moodboard", "people"] as const;
 
@@ -105,11 +108,23 @@ export function InspoBoard() {
     setItems((prev) => prev.filter((i) => i.id !== item.id));
     closeLightbox();
     try {
-      await deleteInspoItem(sb, item.id, item.storage_path);
+      await deleteInspoItem(sb, item.id, item.storage_path, item.poster_path);
     } catch {
       listInspo(sb, board).then(setItems);
     }
   }
+
+  // Persist a manual tile order — optimistic, revert from the server on failure.
+  function onReorder(orderedIds: string[]) {
+    setItems((prev) => {
+      const byId = new Map(prev.map((i) => [i.id, i]));
+      return orderedIds.map((id) => byId.get(id)).filter((i): i is InspoItemWithStickies => Boolean(i));
+    });
+    void reorderInspoItems(sb, orderedIds).catch(() => listInspo(sb, board).then(setItems));
+  }
+
+  const reorder = useTileReorder({ items, keyOf: (i) => i.id, onReorder });
+  const ghostItem = reorder.ghost ? items.find((i) => i.id === reorder.draggingId) : null;
 
   // Drop a color onto a board tile → open that tile with a fresh sticky of that color.
   function onBoardHolderPick(color: StickyColor, point: { x: number; y: number } | null) {
@@ -196,8 +211,36 @@ export function InspoBoard() {
       ) : (
         <div className="columns-2 [column-gap:14px] md:columns-3">
           {items.map((item) => (
-            <InspoTile key={item.id} sb={sb} item={item} onOpen={() => setOpenId(item.id)} />
+            <InspoTile
+              key={item.id}
+              sb={sb}
+              item={item}
+              onOpen={() => setOpenId(item.id)}
+              dragging={reorder.draggingId === item.id}
+              isDropTarget={reorder.dropTargetId === item.id}
+              handleProps={reorder.handleProps(item.id)}
+            />
           ))}
+        </div>
+      )}
+
+      {/* reorder ghost — the dragged tile's media following the pointer */}
+      {reorder.ghost && ghostItem && (
+        <div
+          className="pointer-events-none fixed z-[90] w-40 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-xl opacity-90 shadow-[0_18px_40px_rgba(0,0,0,0.35)]"
+          style={{ left: reorder.ghost.x, top: reorder.ghost.y }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={inspoUrl(
+              sb,
+              ghostItem.kind === "video" && ghostItem.poster_path
+                ? ghostItem.poster_path
+                : ghostItem.storage_path,
+            )}
+            alt=""
+            className="block w-full"
+          />
         </div>
       )}
 

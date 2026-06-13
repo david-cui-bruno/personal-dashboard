@@ -120,9 +120,10 @@ now-playing). Authorization Code OAuth via `/api/spotify/{login,callback,recent}
 | `board` | text not null | `check in ('moodboard','people')` |
 | `kind` | text not null default `'image'` | `check in ('image','video')` — both shipped (#142) |
 | `storage_path` | text not null | path in the public `attachments` bucket under `inspo/` |
+| `poster_path` | text null | video first-frame thumbnail in `attachments` (#144); null for images |
 | `width` / `height` | int null | intrinsic px — masonry reserves aspect ratio |
-| `sort_order` | int not null default 0 | reserved for manual order (reorder is a later refinement) |
-| `created_at` | timestamptz default now() | board is newest-first |
+| `sort_order` | int not null default 0 | manual order, asc (#145); default 0 ties-break by `created_at` desc → newest-first |
+| `created_at` | timestamptz default now() | tie-break for un-reordered items |
 
 ### `inspo_sticky` — a colored sticky placed on an item's image (#140)
 | column | type | notes |
@@ -134,12 +135,13 @@ now-playing). Authorization Code OAuth via `/api/spotify/{login,callback,recent}
 | `x` / `y` | real not null | **fraction 0..1** of the image box — scales across screens |
 | `rotation` | real not null default 0 | small paper tilt |
 
-Migration 0010. RLS `authenticated` (#108). Media reuses the public `attachments` bucket
-(#103): **images ≤10 MB** (downscaled) and **video ≤50 MB** (matches Supabase's 50 MiB storage
-cap). Video has **no poster column** — the tile shows the first frame (`#t=0.1`); a generated
-poster (+ optional `poster_path`) is a later refinement. Reads tolerate the tables being absent
-(deploy-before-migration → `[]`). Sticky placement (P1b) + video (P2) shipped in #142; full brief
-in `docs/inspo.md`.
+Migrations 0010 + 0011 (`poster_path`). RLS `authenticated` (#108). Media reuses the public
+`attachments` bucket (#103): **images ≤10 MB** (downscaled) and **video ≤50 MB** (matches
+Supabase's 50 MiB storage cap). On video upload a **first-frame poster** (`inspo/<id>.poster.jpg`)
+is generated client-side and stored in `poster_path` (#144); the tile shows it, falling back to a
+live first frame if generation failed. Reads tolerate the tables being absent
+(deploy-before-migration → `[]`). Stickies (P1b) + video (P2) shipped in #142; posters (#144) +
+drag-reorder (#145, via `sort_order`) followed. Full brief in `docs/inspo.md`.
 
 ## search (#040)
 
@@ -182,9 +184,9 @@ Post-V1 additions (read-only, additive):
   song}` — `song` is today's `daily_song` row, folded in by migration `0008` (#131).
   `security invoker` (RLS applies), `authenticated`-only like `widget_summary`.
 - inspo (#140, `src/lib/data/inspo.ts`): `listInspo(board)` (items + embedded stickies),
-  `uploadInspoMedia(file)` (image or video → `attachments` bucket `inspo/`; captures dims + kind),
-  `addInspoItem`,
-  `deleteInspoItem` (+ Storage object), `addSticky` / `updateSticky` / `deleteSticky`,
-  `inspoUrl(path)`. Tolerant reads.
+  `uploadInspoMedia(file)` (image or video → `attachments` bucket `inspo/`; captures dims + kind,
+  + a first-frame poster for video), `addInspoItem`, `deleteInspoItem` (+ media & poster objects),
+  `reorderInspoItems(orderedIds)` (renumber `sort_order`), `addSticky` / `updateSticky` /
+  `deleteSticky`, `inspoUrl(path)`. Tolerant reads.
 
 Exact signatures finalize with `spec.md` at freeze.

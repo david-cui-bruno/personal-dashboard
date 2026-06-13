@@ -830,3 +830,34 @@ file input → row `kind=video` + 320×240 dims captured → tile is a `<video>`
 plays it → drag a sticky onto the video → row persists; no console errors), self-restoring.
 `docs/spec.md` §11, `docs/data-model.md`, `docs/handoff.md`, `docs/roadmap.md`, `docs/inspo.md`
 updated.
+
+**#144 — inspo video poster thumbnails (supersedes #143's poster-deferral).**
+David asked for the two deferred refinements, so video tiles now show a **generated first-frame
+poster** instead of a live `<video>`. On upload, `videoMeta` loads metadata off-DOM, **seeks to
+~0.1s, draws the frame to a `<canvas>`** (downscaled to the same `MAX_DIM` as images) and encodes a
+**JPEG**, uploaded to `inspo/<id>.poster.jpg`. New nullable **`poster_path`** column on `inspo_item`
+(**migration `0011`**, additive + idempotent, RLS unchanged) holds it; the tile renders the poster
+`<img>` and **falls back to the live first frame** if generation failed (codec/canvas), and the
+lightbox uses it as the `<video poster>`. Poster generation is **best-effort** (any failed step →
+null → fallback), so it never blocks an upload. `deleteInspoItem` removes the poster object too.
+**Why:** a still poster is lighter than N `<video>` elements in a masonry and renders reliably
+across browsers (the `#t=0.1` live-frame trick is the fallback). This **reverses the #143 decision**
+to defer posters / skip the column — David opted in. Verified end-to-end (upload a WebM → `poster_path`
+set + object present in Storage → tile is a poster `<img>` (no live `<video>`) + ▶ badge), self-restoring.
+
+**#145 — inspo tile drag-reorder (supersedes the #142 reorder-deferral).**
+The board's masonry is now **drag-reorderable**, closing the last #140 Phase-1 gap. The list reorder
+hook (#134/#135) is a 1-D vertical model that doesn't fit a CSS-`columns` grid, so reorder uses a
+**drop-on-target** gesture (`use-tile-reorder.ts`): grab a tile by its **grip handle** → a ghost
+follows the pointer → the tile under the pointer highlights (found via `elementFromPoint` +
+`data-inspo-item`, the same hit-test the board holder uses) → on release the dragged tile is inserted
+**before** that target and the new order persists. Order is now **`sort_order` asc** (`listInspo`
+orders by it, tie-broken by `created_at` desc); `reorderInspoItems(orderedIds)` renumbers 0..n
+(mirrors `reorderPins`/`routine.reorderItems`); the update is **optimistic**, reverting from the
+server on failure. Un-reordered boards keep **newest-first** (all `sort_order` 0 → `created_at`
+tie-break), and new items still prepend. Pointer events → mouse + touch. **Why:** complete the board
+per the brief while accepting that true live-gap animation isn't worth it on a column-balanced
+masonry — lift + ghost + target-ring + reflow reads clearly. This **reverses the #142 decision** to
+defer reorder. Verified (seed two ordered tiles → drag the 2nd's handle onto the 1st → `sort_order`
+swaps in the DB; no console errors), self-restoring. `docs/spec.md` §11, `docs/data-model.md`,
+`docs/handoff.md`, `docs/roadmap.md`, `docs/inspo.md` updated.
