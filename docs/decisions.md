@@ -638,3 +638,18 @@ avoided with an `itemsRef` synced during the drag. **Why:** reorder was broken o
 the app's primary device — and the desktop jump felt mechanical; David asked for smoother card
 movement. Behavior-compatible with the spec's "hold-drag to reorder" (#013), now true on touch
 too. Pure UI. `docs/handoff.md` updated.
+
+**#133 — UI-polish pass: subtle motion across the app.**
+A grab-bag of low-risk micro-animations (David: "any ui polish… make it smoother"), all
+~150–200ms, calm, no new dependency (small `@keyframes` in `globals.css`):
+(1) **⌘K palette** fades the backdrop in + pop-scales the panel in (`anim-fade-in` /
+`anim-pop-in`); the date-range filter block fades in (`anim-row-in`).
+(2) **Routine add/remove** — a new row fades/slides in; deleting fades the row out (~180ms),
+then drops it and lets the rows below **glide up** (reuses the #132 FLIP).
+(3) **Consistency-chart cells** scale up slightly on hover (reinforces the tooltip).
+(4) **Checkbox** press feedback already landed in #132.
+**Accessibility:** a global `@media (prefers-reduced-motion: reduce)` neutralizes all of it
+(and the #132 reorder glide) for users who ask for less motion. **Skipped from the proposed
+list:** the song-picker cross-fade — the component reuses one root element across states so a
+CSS animation wouldn't replay without a remount key, and the gain was marginal; not worth the
+focus-management risk. Pure UI, no contract change. `docs/handoff.md` updated.

@@ -107,7 +107,11 @@ export function ConsistencyChart({
                 <span
                   key={ci}
                   title={tip(c)}
-                  className={`aspect-square rounded-[3px] ${c ? CELL[level(c.pct)] : "opacity-0"}`}
+                  className={`aspect-square rounded-[3px] ${
+                    c
+                      ? CELL[level(c.pct)] + " transition-transform duration-150 hover:scale-150"
+                      : "opacity-0"
+                  }`}
                 />
               ))}
             </div>
@@ -137,7 +141,11 @@ export function ConsistencyChart({
               <span
                 key={ci}
                 title={tip(c)}
-                className={`h-[17px] w-[17px] rounded ${c ? CELL[level(c.pct)] : "opacity-0"}`}
+                className={`h-[17px] w-[17px] rounded ${
+                  c
+                    ? CELL[level(c.pct)] + " transition-transform duration-150 hover:scale-150"
+                    : "opacity-0"
+                }`}
               />
             ))}
           </div>

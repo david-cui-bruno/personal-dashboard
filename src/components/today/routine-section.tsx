@@ -69,6 +69,9 @@ export function RoutineSection({ day }: { day: string }) {
   // id → row top before a reorder, so the rows can glide to their new slots (FLIP).
   const prevTops = useRef<Map<string, number>>(new Map());
   const shouldFlip = useRef(false);
+  // Entrance/exit fades for add & delete (#133).
+  const [enteringId, setEnteringId] = useState<string | null>(null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
   // Re-sync from the server after a write fails (event-handler context only).
   const reload = useCallback(() => {
@@ -175,6 +178,8 @@ export function RoutineSection({ day }: { day: string }) {
       created_at: new Date().toISOString(),
     } as RoutineItem;
     setItems((prev) => [...(prev ?? []), optimistic]);
+    setEnteringId(tempId); // fade the new row in (#133)
+    window.setTimeout(() => setEnteringId((id) => (id === tempId ? null : id)), 300);
     invalidateTodaySummary();
     return addItem(sb, label, sortOrder, day)
       .then((item) =>
@@ -193,15 +198,23 @@ export function RoutineSection({ day }: { day: string }) {
   }
 
   // --- delete = archive (#016) ------------------------------------------
+  // Fade the row out, then drop it and let the rows below glide up (FLIP, #133).
   function remove(item: RoutineItem) {
-    setItems((prev) => (prev ?? []).filter((i) => i.id !== item.id));
-    setCompleted((prev) => {
-      const next = new Set(prev);
-      next.delete(item.id);
-      return next;
-    });
-    invalidateTodaySummary();
-    archiveItem(sb, item.id, day).catch(() => reload());
+    if (removingId) return; // ignore re-taps mid-exit
+    setRemovingId(item.id);
+    window.setTimeout(() => {
+      captureTops();
+      shouldFlip.current = true;
+      setItems((prev) => (prev ?? []).filter((i) => i.id !== item.id));
+      setCompleted((prev) => {
+        const next = new Set(prev);
+        next.delete(item.id);
+        return next;
+      });
+      setRemovingId(null);
+      invalidateTodaySummary();
+      archiveItem(sb, item.id, day).catch(() => reload());
+    }, 180);
   }
 
   // --- hold-drag reorder (#013), pointer-based for touch + smooth (#132) ---
@@ -321,6 +334,10 @@ export function RoutineSection({ day }: { day: string }) {
             className={`group flex items-center gap-[14px] rounded-lg px-0.5 py-1.5 ${
               draggingId === item.id
                 ? "relative z-10 bg-bg shadow-[0_6px_20px_rgba(0,0,0,0.12)]"
+                : ""
+            } ${enteringId === item.id ? "anim-row-in" : ""} ${
+              removingId === item.id
+                ? "pointer-events-none opacity-0 transition-opacity duration-200 ease-out"
                 : ""
             }`}
           >
