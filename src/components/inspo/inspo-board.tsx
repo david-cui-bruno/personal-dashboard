@@ -28,6 +28,7 @@ import {
 import { InspoTile } from "./inspo-tile";
 import { InspoLightbox } from "./inspo-lightbox";
 import { StickyHolder } from "./sticky-holder";
+import { clampStickyPlacement } from "./sticky";
 import { useMasonryReorder } from "./use-masonry-reorder";
 
 const BOARDS = ["moodboard", "people"] as const;
@@ -185,12 +186,19 @@ export function InspoBoard() {
     const id = tile.dataset.inspoItem;
     if (!id || !items.some((i) => i.id === id)) return;
     const r = tile.getBoundingClientRect();
-    void addStickyTo(id, color, (point.x - r.left) / r.width, (point.y - r.top) / r.height);
+    const { x, y } = clampStickyPlacement(
+      (point.x - r.left) / r.width,
+      (point.y - r.top) / r.height,
+      r.width,
+      r.height,
+    );
+    void addStickyTo(id, color, x, y);
   }
 
   return (
     <div
-      className="mx-auto max-w-[1000px] px-6 py-10 md:px-10 md:py-14"
+      // extra right padding on web reserves room for the fixed holder rail (#147)
+      className="mx-auto max-w-[1040px] px-6 py-10 md:py-14 md:pl-10 md:pr-28"
       onDragOver={(e) => {
         e.preventDefault();
         setDragOver(true);
