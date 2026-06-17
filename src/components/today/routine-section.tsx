@@ -22,6 +22,7 @@ import {
   setCompletion,
   getTodaySummaryCached,
   invalidateTodaySummary,
+  refreshToday,
   activeItemsOn,
   completedOn,
   todayWindow,
@@ -130,16 +131,17 @@ export function RoutineSection({ day }: { day: string }) {
       else next.delete(item.id);
       return next;
     });
-    invalidateTodaySummary(); // today's % changed → refresh the chart on next read
-    setCompletion(sb, item.id, day, done).catch(() => {
-      // revert on failure
-      setCompleted((prev) => {
-        const next = new Set(prev);
-        if (done) next.delete(item.id);
-        else next.add(item.id);
-        return next;
+    setCompletion(sb, item.id, day, done)
+      .then(() => refreshToday()) // today's % changed → nudge the heatmap (after the write lands)
+      .catch(() => {
+        // revert on failure
+        setCompleted((prev) => {
+          const next = new Set(prev);
+          if (done) next.delete(item.id);
+          else next.add(item.id);
+          return next;
+        });
       });
-    });
   }
 
   // --- inline rename (#013) ---------------------------------------------
@@ -184,11 +186,11 @@ export function RoutineSection({ day }: { day: string }) {
     setItems((prev) => [...(prev ?? []), optimistic]);
     setEnteringId(tempId); // fade the new row in (#133)
     window.setTimeout(() => setEnteringId((id) => (id === tempId ? null : id)), 300);
-    invalidateTodaySummary();
     return addItem(sb, label, sortOrder, day)
-      .then((item) =>
-        setItems((prev) => (prev ?? []).map((i) => (i.id === tempId ? item : i))),
-      )
+      .then((item) => {
+        setItems((prev) => (prev ?? []).map((i) => (i.id === tempId ? item : i)));
+        refreshToday(); // a new active item changes today's %
+      })
       .catch(() => setItems((prev) => (prev ?? []).filter((i) => i.id !== tempId)));
   }
   function commitAdd() {
@@ -216,8 +218,9 @@ export function RoutineSection({ day }: { day: string }) {
         return next;
       });
       setRemovingId(null);
-      invalidateTodaySummary();
-      archiveItem(sb, item.id, day).catch(() => reload());
+      archiveItem(sb, item.id, day)
+        .then(() => refreshToday()) // fewer active items changes today's %
+        .catch(() => reload());
     }, 180);
   }
 
