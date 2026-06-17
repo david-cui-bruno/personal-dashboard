@@ -71,7 +71,8 @@ Today/Notes only (#064).
 ### daily reset (#011, #012)
 - No background job. The checklist for date D is "the active items for D + their
   completions for D." When local midnight passes, the app shows the new date, which has
-  no completions yet → appears reset. All prior days remain intact.
+  no completions yet → appears reset. All prior days remain intact. An **open app rolls
+  over automatically** at local midnight (and on refocus) — no reload needed (#148).
 
 ### snapshot rules (#016, #017) — the history-integrity contract
 - An item is **active on day D** iff `created_on ≤ D` and (`archived_on` is null or
@@ -99,6 +100,8 @@ Today/Notes only (#064).
 - **No streak counter, no legend** (#023).
 - Web: in the sidebar. Mobile: a section on Today.
 - Range: a **fixed ~3-month** window, no scroll-back (#102).
+- **Live**: checking/adding/removing routine items updates today's cell immediately, and the
+  window rolls forward at local midnight — no reload (#148).
 
 ## 5. journal (#030, #031, #033)
 

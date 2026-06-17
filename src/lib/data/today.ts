@@ -102,7 +102,26 @@ export function getTodaySummaryCached(
   return promise;
 }
 
-// Call after any routine/journal write so the next read (and the chart) refreshes.
+// Call after any routine/journal write so the next read refreshes. (Cache-clear only —
+// does not nudge already-mounted consumers; use refreshToday for consistency changes.)
 export function invalidateTodaySummary(): void {
   entry = null;
+}
+
+// Consumers that must react to a *consistency* change while mounted — chiefly the
+// heatmap, which otherwise keeps the data it fetched on mount and never updates the
+// "today" cell when you check items (#020).
+const subscribers = new Set<() => void>();
+export function subscribeToday(fn: () => void): () => void {
+  subscribers.add(fn);
+  return () => {
+    subscribers.delete(fn);
+  };
+}
+
+// Clear the cache AND nudge subscribers to re-read. Call *after* a completion / routine
+// write lands (not before — a refetch before the write would read the stale row).
+export function refreshToday(): void {
+  entry = null;
+  subscribers.forEach((fn) => fn());
 }

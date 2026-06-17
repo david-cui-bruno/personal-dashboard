@@ -7,10 +7,12 @@
 // - horizontal: weeks left→right, days stacked, months on top — for mobile.
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { daysBefore } from "@/lib/date";
+import { useToday } from "@/lib/use-today";
 import {
   getTodaySummaryCached,
   computeConsistency,
-  todayWindow,
+  subscribeToday,
   type DayConsistency,
 } from "@/lib/data";
 
@@ -77,14 +79,32 @@ export function ConsistencyChart({
   orientation?: "vertical" | "horizontal";
 }) {
   const [days, setDays] = useState<DayConsistency[] | null>(null);
+  const day = useToday(); // re-keys the window at local midnight (#102)
 
   useEffect(() => {
+    if (!day) return;
     const sb = createClient();
-    const { from, to } = todayWindow(); // ~12 weeks, shared cache key (#122)
-    getTodaySummaryCached(sb, from, to)
-      .then((s) => setDays(computeConsistency(s.items, s.completions, from, to)))
-      .catch(() => setDays([]));
-  }, []);
+    const to = day;
+    const from = daysBefore(day, 7 * 12 - 1); // ~12 weeks, shared cache key (#122)
+    let alive = true;
+    // Reload on mount, when the day rolls over, AND when a completion/routine write
+    // lands (subscribeToday) — otherwise the chart keeps its mount-time data and the
+    // "today" cell never updates as you check items.
+    const load = () =>
+      getTodaySummaryCached(sb, from, to)
+        .then((s) => {
+          if (alive) setDays(computeConsistency(s.items, s.completions, from, to));
+        })
+        .catch(() => {
+          if (alive) setDays([]);
+        });
+    void load();
+    const unsubscribe = subscribeToday(load);
+    return () => {
+      alive = false;
+      unsubscribe();
+    };
+  }, [day]);
 
   if (!days) return <div className={orientation === "horizontal" ? "h-32" : "h-44"} />;
   const weeks = buildWeeks(days);

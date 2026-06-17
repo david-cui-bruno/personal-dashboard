@@ -4,8 +4,7 @@
 // lowercase date title, the daily routine checklist, then today's journal. On
 // web the consistency chart lives in the sidebar (AppFrame); on mobile it shows
 // as a section between routine and journal (#021, #064).
-import { useEffect, useState } from "react";
-import { today } from "@/lib/date";
+import { useToday } from "@/lib/use-today";
 import { ConsistencyChart } from "@/components/consistency-chart";
 import { RoutineSection } from "@/components/today/routine-section";
 import { JournalSection } from "@/components/today/journal-section";
@@ -22,13 +21,9 @@ function formatDayTitle(day: string): string {
 }
 
 export default function Today() {
-  // Resolve the local day client-side so the boundary is device-local midnight
-  // (#011, #083) and there's no SSR/local timezone hydration mismatch.
-  const [day, setDay] = useState<string | null>(null);
-  // Read the local day once, after mount — the value is client-only, so this is
-  // the intended effect use (the false-positive the rule warns about).
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => setDay(today()), []);
+  // Reactive local day — resolved client-side (device-local midnight, #011/#083; no SSR
+  // hydration mismatch) and it rolls over at midnight so Today refreshes without a reload.
+  const day = useToday();
 
   return (
     <div className="mx-auto max-w-[700px] px-10 pt-14 pb-40">

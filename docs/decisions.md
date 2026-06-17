@@ -904,3 +904,23 @@ to reorder; (b) the reorder felt too fast / jumpy; (c) remove the word "drag"; (
   on the tile with no lightbox; typing persists; press-and-drag a tile reorders → `sort_order` persists;
   no console errors) with a board screenshot, self-restoring. `docs/spec.md` §11, `docs/design.md`,
   `docs/handoff.md`, `docs/inspo.md` updated.
+
+**#148 — the app rolls over at local midnight, and the heatmap updates live.**
+Two related fixes to the day-boundary behavior (#011/#012):
+- **Midnight auto-rollover.** `today()` was read once on mount, so an open tab stayed on the
+  old date until a manual reload. New `useToday()` hook (`src/lib/use-today.ts`) returns the
+  reactive local day — `null` until mounted (no SSR/timezone hydration mismatch), then it flips
+  via a timer to the next local 00:00 **and** on `focus`/`visibilitychange` (covers a device that
+  slept through midnight or a drifted timer). The Today screen + both consistency charts key off
+  it, so the date title, routine checklist, today's journal, song-of-day (re-keyed) and the heatmap
+  window all advance to the new day with no reload.
+- **Live heatmap.** The chart fetched once on mount and never re-read, so checking routine items
+  didn't move today's cell until reload. Added a tiny pub/sub in `today.ts`: `subscribeToday(fn)` +
+  `refreshToday()` (clears the cache **and** nudges subscribers). The chart subscribes; routine
+  completion / add / archive call `refreshToday()` **after the write resolves** (not before — a
+  refetch before the write would read the stale row). Rename/reorder/journal keep the plain
+  cache-clear `invalidateTodaySummary()` (they don't change consistency, so no chart churn).
+- **Why:** a daily app you leave open should never show yesterday, and accountability feedback
+  should be immediate. Verified with Playwright: checking an item moves today's cell live (0%→9%,
+  back on uncheck), no reload; and a **faked clock** crossing midnight rolls the title from
+  "saturday, june 13" to "sunday, june 14" with no reload. `docs/spec.md` §3/§4 updated.
