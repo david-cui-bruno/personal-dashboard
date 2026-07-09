@@ -17,11 +17,12 @@
   projects + home-screen widget + rich notifications remain to build. See "mobile shell"
   below. Connection is required to *edit* (#084/#149; reading works offline), which
   keeps the hosted-URL approach clean.
-- **Offline reading (#149)**: `src/lib/data/local-snapshot.ts` persists the last good
-  `today_summary` + notes-stream payloads to `localStorage`; screens seed their first
-  paint from it (instant opens) and it carries the app read-only when there's no
-  connection (`useOnline` pill, reconnect refetches). The SW caches only the shell —
-  navigations keyed by pathname — never Supabase responses; snapshots clear on sign-out.
+- **Offline reading (#149/#150)**: `src/lib/data/local-snapshot.ts` persists the last
+  good `today_summary` + notes-stream + inspo-board payloads to `localStorage`; screens
+  seed their first paint from it (instant opens) and it carries the app read-only when
+  there's no connection (`useOnline` pill, reconnect refetches). The SW caches the shell
+  (navigations keyed by pathname) plus **storage images** (bounded cache-first media
+  cache, #150) — never REST/auth responses or video files; snapshots clear on sign-out.
 
 ## why not a Vite SPA
 

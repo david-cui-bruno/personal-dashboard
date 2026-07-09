@@ -3,6 +3,7 @@
 // bucket (#103) under an inspo/ prefix; these tables hold metadata + annotations.
 // Reads tolerate the tables being absent (deploy-before-migration → []). Build
 // brief: docs/inspo.md. Phase 1 = images + stickies; Phase 2 = video (#142).
+import { readSnapshot, writeSnapshot } from "./local-snapshot";
 import type { DB, InspoItem, InspoSticky } from "./types";
 
 export type InspoBoard = "moodboard" | "people";
@@ -33,11 +34,21 @@ export async function listInspo(
       .eq("board", board)
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: false });
-    if (error) return [];
-    return (data ?? []) as InspoItemWithStickies[];
+    if (error) return readInspoSnapshot(board) ?? [];
+    const items = (data ?? []) as InspoItemWithStickies[];
+    // Persist the last good board as the offline / instant-paint snapshot (#150) —
+    // only on success, so a failed read never overwrites a good copy.
+    writeSnapshot(`inspo-${board}`, items);
+    return items;
   } catch {
-    return [];
+    // Offline (or table absent, where no snapshot exists either): last good copy.
+    return readInspoSnapshot(board) ?? [];
   }
+}
+
+// The persisted last good board (#150), also used to seed the first paint.
+export function readInspoSnapshot(board: InspoBoard): InspoItemWithStickies[] | null {
+  return readSnapshot<InspoItemWithStickies[]>(`inspo-${board}`);
 }
 
 // Persist a manual order within a board — renumber sort_order 0..n (lower = first).
