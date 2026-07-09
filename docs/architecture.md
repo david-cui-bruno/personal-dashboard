@@ -15,7 +15,13 @@
 - **Capacitor** (#082, #113): a thin native iOS/Android shell pointing at the live
   Vercel URL. Lives in `mobile/`. **Scaffolded** (hosted-URL config + deps); native
   projects + home-screen widget + rich notifications remain to build. See "mobile shell"
-  below. Connection is required (#084), which makes the hosted-URL approach clean.
+  below. Connection is required to *edit* (#084/#149; reading works offline), which
+  keeps the hosted-URL approach clean.
+- **Offline reading (#149)**: `src/lib/data/local-snapshot.ts` persists the last good
+  `today_summary` + notes-stream payloads to `localStorage`; screens seed their first
+  paint from it (instant opens) and it carries the app read-only when there's no
+  connection (`useOnline` pill, reconnect refetches). The SW caches only the shell —
+  navigations keyed by pathname — never Supabase responses; snapshots clear on sign-out.
 
 ## why not a Vite SPA
 

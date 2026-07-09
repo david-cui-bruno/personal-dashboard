@@ -8,12 +8,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { JSONContent } from "@tiptap/react";
 import type { Json } from "@/lib/database.types";
 import { createClient } from "@/lib/supabase/client";
+import { useOnline } from "@/lib/use-online";
 import {
   getJournal,
   saveJournal,
   uploadImage,
   getTodaySummaryCached,
   invalidateTodaySummary,
+  readTodaySnapshot,
   todayWindow,
 } from "@/lib/data";
 import dynamic from "next/dynamic";
@@ -38,7 +40,14 @@ export function JournalSection({ day }: { day: string }) {
   const [loaded, setLoaded] = useState<{
     day: string;
     content: JSONContent | null;
+    // Offline reading (#149): the persisted saved copy, shown read-only until the
+    // fetch confirms it (typing into a copy that can't save would lose the words).
+    stale?: boolean;
+    // Bumped when fresher content replaces a mounted stale seed, to remount the
+    // editor (TipTap reads its content once, at creation) — part of the key.
+    seq?: number;
   } | null>(null);
+  const online = useOnline();
   // Today's song from the same payload (#131), passed to <SongOfDay> so it doesn't
   // make its own round-trip. undefined = the RPC didn't include it → the bar fetches.
   const [songSeed, setSongSeed] = useState<DailySong | null | undefined>(undefined);
@@ -49,26 +58,62 @@ export function JournalSection({ day }: { day: string }) {
   // owner_id (#050). Reset per day; read only inside the upload callback.
   const journalId = useRef<string | null>(null);
 
+  // The day the fetch last confirmed — a connectivity blip (the `online` dep)
+  // must not reseed the editor out from under an edit, but a midnight rollover
+  // (new `day`) must.
+  const settledDay = useRef<string | null>(null);
   useEffect(() => {
+    if (settledDay.current === day) return;
     let active = true;
     journalId.current = null;
+    // Instant paint + offline reading (#149): seed today's journal from the
+    // persisted snapshot, read-only until the fetch confirms it. Only a snapshot
+    // *of this day* seeds content — yesterday's journal must not leak into today.
+    const snap = readTodaySnapshot();
+    const seed =
+      snap && snap.to === day
+        ? ((snap.summary.journal?.content as JSONContent | null) ?? null)
+        : null;
+    if (snap && snap.to === day) {
+      journalId.current = snap.summary.journal?.id ?? null;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- synchronous seed from localStorage
+      setSongSeed(snap.summary.song);
+      setLoaded({ day, content: seed, stale: true });
+    }
     // Today's journal comes from the shared Today payload (#122) — one round-trip
     // for routine + journal + chart, de-duped + cached.
     const { from, to } = todayWindow();
     getTodaySummaryCached(sb, from, to)
       .then((s) => {
         if (!active) return;
+        settledDay.current = day;
         journalId.current = s.journal?.id ?? null;
+        const fresh = (s.journal?.content as JSONContent | null) ?? null;
         setSongSeed(s.song);
-        setLoaded({ day, content: (s.journal?.content as JSONContent | null) ?? null });
+        // If the editor is mounted on a stale seed whose content the server
+        // contradicts, bump `seq` so it remounts with the fresh copy; otherwise
+        // keep the mount and just unlock it (Editor applies `editable` flips).
+        setLoaded((prev) => {
+          const remount =
+            prev?.day === day &&
+            prev.stale &&
+            JSON.stringify(fresh) !== JSON.stringify(prev.content ?? null);
+          return { day, content: fresh, seq: (prev?.seq ?? 0) + (remount ? 1 : 0) };
+        });
       })
       .catch(() => {
-        if (active) setLoaded({ day, content: null });
+        // Offline: keep the read-only seed; with no seed, settle on a read-only
+        // empty day so the screen isn't stuck loading. Reconnect retries.
+        if (active) {
+          setLoaded((prev) =>
+            prev?.day === day ? prev : { day, content: null, stale: true, seq: prev?.seq ?? 0 },
+          );
+        }
       });
     return () => {
       active = false;
     };
-  }, [sb, day]);
+  }, [sb, day, online]);
 
   // Flush any debounced edit on unmount / day change so nothing is lost.
   useEffect(() => {
@@ -127,8 +172,9 @@ export function JournalSection({ day }: { day: string }) {
       <div className="mt-1.5">
         {ready && (
           <Editor
-            key={day}
+            key={`${day}:${loaded.seq ?? 0}`}
             content={loaded.content}
+            editable={!loaded.stale}
             placeholder="do your journal today"
             onChange={handleChange}
             onUploadImage={handleUpload}

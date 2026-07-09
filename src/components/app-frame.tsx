@@ -7,8 +7,10 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { CalendarCheck, NotebookPen, LayoutGrid, Settings, LogOut } from "lucide-react";
+import { CalendarCheck, NotebookPen, LayoutGrid, Settings, LogOut, CloudOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { clearSnapshots } from "@/lib/data";
+import { useOnline } from "@/lib/use-online";
 import { ConsistencyChart } from "@/components/consistency-chart";
 
 // today / notes / inspo — the inspo tab amends the old today+notes-only nav (#064 → #140).
@@ -21,11 +23,13 @@ const NAV = [
 export function AppFrame({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const online = useOnline();
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   async function signOut() {
+    clearSnapshots(); // offline copies must not outlive the session (#149)
     await createClient().auth.signOut();
     router.replace("/sign-in");
     router.refresh();
@@ -73,6 +77,13 @@ export function AppFrame({ children }: { children: ReactNode }) {
       {/* content — the only scrolling region */}
       <div className="flex min-w-0 flex-1 flex-col">
         <main className="flex-1 overflow-y-auto pb-24 md:pb-0">{children}</main>
+
+        {/* offline (#149): reading works from the saved copies; edits need a connection */}
+        {!online && (
+          <div className="pointer-events-none fixed inset-x-0 bottom-24 z-20 mx-auto flex w-fit items-center gap-2 rounded-full border border-line bg-bg-2 px-4 py-2 text-[13px] font-bold lowercase text-ink-2 shadow-md md:bottom-6">
+            <CloudOff size={14} /> offline — showing saved copies
+          </div>
+        )}
 
         {/* bottom nav — mobile */}
         <nav className="fixed inset-x-0 bottom-0 z-10 flex border-t border-line bg-bg pb-7 pt-2 md:hidden">

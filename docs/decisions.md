@@ -924,3 +924,35 @@ Two related fixes to the day-boundary behavior (#011/#012):
   should be immediate. Verified with Playwright: checking an item moves today's cell live (0%→9%,
   back on uncheck), no reload; and a **faked clock** crossing midnight rolls the title from
   "saturday, june 13" to "sunday, june 14" with no reload. `docs/spec.md` §3/§4 updated.
+
+**#149 — offline reading + instant paint (local snapshots), and real loading skeletons.**
+David: with no wifi the app showed nothing, loads sometimes felt slow, and the wait was a
+blank screen. Three fixes, one mechanism:
+- **Local snapshots.** The data layer persists its last good payloads (the `today_summary`
+  window and the notes stream) to `localStorage` (`src/lib/data/local-snapshot.ts`,
+  best-effort, versioned, cleared on sign-out). Every screen seeds its first paint from the
+  snapshot and revalidates in the background — so opens are instant, and with **no
+  connection the app stays readable**: Today (routine + heatmap + journal), the notes
+  stream, and entries all render from the saved copy. Content shown from a snapshot is
+  **read-only** until a fetch confirms it (typing into a copy that can't save would lose
+  words); a quiet pill says "offline — showing saved copies", and reconnecting (an `online`
+  listener) refetches and unlocks. This **amends #084 and supersedes the "offline mode:
+  declined" note in #115/#121 for *reading*** — editing still requires a connection (no
+  sync/merge in V1). A journal day absent from a known-good snapshot renders as an empty
+  day, not an error (journals are stored only once written).
+- **Offline entry-open.** The App Router fetches route payloads from the server even on
+  client-side nav, so offline taps died at the router. Offline, the stream opens the same
+  `<Entry>` **inline** via a shallow `pushState` to `/notes?open=<id>` (zero network; back
+  is a history op). Online keeps the real `/notes/[id]` route. The SW now keys its
+  navigation cache by **pathname only** (the shell is query-independent) so such URLs also
+  hard-reload offline.
+- **Skeletons.** The notes stream and entry views got pulse skeletons matching Today's
+  (replacing bare "loading…" text); `/notes` wraps its `useSearchParams` Suspense boundary
+  with a header+skeleton fallback so even the static HTML is never a blank column.
+- **Out of scope:** media offline (journal photos / inspo boards — storage URLs aren't
+  cached) and offline *editing*. **Why:** the app's promise is "a pleasure to open every
+  single day" — an open that needs wifi to show your own words breaks that. Verified with
+  Playwright (prod build + real SW): browse online → wifi off → hard reload `/notes` →
+  stream + entry content readable (read-only, pill shown) → Today shows date/routine/
+  heatmap → reconnect unlocks editing; first-run HTML carries skeletons; no page errors.
+  `docs/spec.md` §10, `docs/architecture.md`, `docs/handoff.md` updated.

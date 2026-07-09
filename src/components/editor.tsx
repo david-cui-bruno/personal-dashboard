@@ -3,6 +3,7 @@
 // Shared rich-text editor (#033, #101): TipTap, no toolbar — formatting via
 // keyboard shortcuts + markdown-style input rules (which also work on mobile).
 // Used by both the Today journal and Notes. Feature set per #101.
+import { useEffect } from "react";
 import { useEditor, EditorContent, type JSONContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import TaskList from "@tiptap/extension-task-list";
@@ -51,6 +52,12 @@ export function Editor({
       onChange?.({ json: editor.getJSON(), text: editor.getText() });
     },
   });
+
+  // useEditor reads its options once at creation — apply later `editable` flips
+  // (an offline saved copy unlocking once the fetch confirms it, #149).
+  useEffect(() => {
+    if (editor && editor.isEditable !== editable) editor.setEditable(editable);
+  }, [editor, editable]);
 
   async function handleFiles(files: FileList | null) {
     if (!editor || !onUploadImage || !files) return;

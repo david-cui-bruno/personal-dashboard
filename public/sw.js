@@ -59,10 +59,15 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       (async () => {
         const cache = await caches.open(SHELL_CACHE);
-        const cached = await cache.match(request);
+        // Key the document cache by pathname only (#149): the shell is identical
+        // for any query (all data is client-fetched), so `/notes?open=x` reloads
+        // offline from the cached `/notes` document.
+        const navKey = new URL(request.url);
+        navKey.search = "";
+        const cached = await cache.match(navKey.href);
         const fromNetwork = fetch(request)
           .then((res) => {
-            if (res && res.ok && !res.redirected) cache.put(request, res.clone());
+            if (res && res.ok && !res.redirected) cache.put(navKey.href, res.clone());
             return res;
           })
           .catch(() => null);

@@ -8,6 +8,7 @@ import { listJournals } from "./journal";
 import { listNotes } from "./notes";
 import { listSongs } from "./song";
 import { listPinned, type PinnedEntry } from "./pins";
+import { readSnapshot, writeSnapshot } from "./local-snapshot";
 import type { DB, Journal, Note, DailySong } from "./types";
 
 export type NotesStreamData = {
@@ -35,7 +36,11 @@ async function load(sb: DB): Promise<NotesStreamData> {
   journalByDay.clear();
   for (const n of notes) noteById.set(n.id, n);
   for (const j of journals) journalByDay.set(j.day, j);
-  return { journals, notes, songs, pinned };
+  const data = { journals, notes, songs, pinned };
+  // Persist the freshest stream as the offline / instant-paint snapshot (#149).
+  snapParsed = data;
+  writeSnapshot(SNAP_KEY, data);
+  return data;
 }
 
 export function getNotesStreamCached(sb: DB): Promise<NotesStreamData> {
@@ -63,4 +68,21 @@ export function cachedNote(id: string): Note | undefined {
 }
 export function cachedJournal(day: string): Journal | undefined {
   return journalByDay.get(day);
+}
+
+// --- persistent snapshot (#149): the last good stream, for instant paint +
+// offline reading. Unlike the maps above it survives a reload, so entries can
+// open (read-only) with no connection; consumers must still revalidate.
+const SNAP_KEY = "notes-stream";
+let snapParsed: NotesStreamData | null | undefined; // undefined = not read yet
+
+export function readNotesSnapshot(): NotesStreamData | null {
+  if (snapParsed === undefined) snapParsed = readSnapshot<NotesStreamData>(SNAP_KEY);
+  return snapParsed;
+}
+export function snapshotNote(id: string): Note | undefined {
+  return readNotesSnapshot()?.notes.find((n) => n.id === id);
+}
+export function snapshotJournal(day: string): Journal | undefined {
+  return readNotesSnapshot()?.journals.find((j) => j.day === day);
 }
