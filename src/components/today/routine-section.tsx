@@ -14,6 +14,7 @@ import {
 } from "react";
 import { Check, GripVertical, Plus, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useOnline } from "@/lib/use-online";
 import {
   addItem,
   renameItem,
@@ -22,6 +23,7 @@ import {
   setCompletion,
   getTodaySummaryCached,
   invalidateTodaySummary,
+  readTodaySnapshot,
   refreshToday,
   activeItemsOn,
   completedOn,
@@ -90,8 +92,18 @@ export function RoutineSection({ day }: { day: string }) {
       .catch(() => {});
   }, [sb, day]);
 
+  const online = useOnline(); // refetch the moment a connection returns (#149)
   useEffect(() => {
     let active = true;
+    // Instant paint + offline reading (#149): seed the *first* paint from the
+    // persisted snapshot while the fetch runs (re-runs — day change, reconnect —
+    // keep the live list and just refetch). A snapshot from an older day still
+    // seeds correctly — the template carries over, the new day starts unchecked.
+    const snap = itemsRef.current === null ? readTodaySnapshot() : null;
+    if (snap) {
+      setItems(activeItemsOn(snap.summary.items, day));
+      setCompleted(completedOn(snap.summary.completions, day));
+    }
     // Routine + completions come from the shared Today payload (#122) — one
     // round-trip for the whole screen, de-duped + cached across components.
     const { from, to } = todayWindow();
@@ -103,13 +115,14 @@ export function RoutineSection({ day }: { day: string }) {
       })
       .catch(() => {
         if (!active) return;
-        setItems([]);
-        setCompleted(new Set());
+        // Offline: keep the seeded snapshot; only settle an empty list if there
+        // was nothing to show at all (first-ever run).
+        setItems((prev) => prev ?? []);
       });
     return () => {
       active = false;
     };
-  }, [sb, day]);
+  }, [sb, day, online]);
 
   useEffect(() => {
     if (editingId) {

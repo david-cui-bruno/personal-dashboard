@@ -4,6 +4,7 @@
 // cache de-dupes the concurrent mounts (routine + journal + sidebar chart all share
 // one request) and makes navigating back to a screen instant. Writes invalidate it.
 import { today, daysBefore } from "@/lib/date";
+import { readSnapshot, writeSnapshot } from "./local-snapshot";
 import type { DB, RoutineItem, Journal, DailySong } from "./types";
 
 export type TodayCompletion = { routine_item_id: string; day: string };
@@ -99,7 +100,27 @@ export function getTodaySummaryCached(
   promise.catch(() => {
     if (entry === mine) entry = null;
   });
+  // Persist the freshest payload as the offline / instant-paint snapshot (#149).
+  promise
+    .then((summary) => {
+      snapParsed = { from, to, summary };
+      writeSnapshot(SNAP_KEY, snapParsed);
+    })
+    .catch(() => {});
   return promise;
+}
+
+// --- persistent snapshot (#149): the last good payload, for instant paint +
+// offline reading. `to` tells consumers which day the journal/song belong to —
+// a snapshot written yesterday still seeds the routine template and the chart,
+// but not another day's journal.
+const SNAP_KEY = "today-summary";
+export type TodaySnapshot = { from: string; to: string; summary: TodaySummary };
+let snapParsed: TodaySnapshot | null | undefined; // undefined = not read yet
+
+export function readTodaySnapshot(): TodaySnapshot | null {
+  if (snapParsed === undefined) snapParsed = readSnapshot<TodaySnapshot>(SNAP_KEY);
+  return snapParsed;
 }
 
 // Call after any routine/journal write so the next read refreshes. (Cache-clear only —

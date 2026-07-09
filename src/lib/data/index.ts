@@ -14,5 +14,6 @@ export * from "./search";
 export * from "./attachments";
 export * from "./export";
 export * from "./today";
+export * from "./local-snapshot";
 export * from "./song";
 export * from "./widget";

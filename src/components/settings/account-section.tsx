@@ -5,6 +5,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { clearSnapshots } from "@/lib/data";
 
 function Row({
   label,
@@ -124,6 +125,7 @@ export function AccountSection({ username }: { username: string }) {
   const router = useRouter();
 
   async function signOut() {
+    clearSnapshots(); // offline copies must not outlive the session (#149)
     await createClient().auth.signOut();
     router.replace("/sign-in");
     router.refresh();

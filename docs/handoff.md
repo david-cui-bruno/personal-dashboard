@@ -330,8 +330,9 @@ The post-V1 roadmap is **essentially complete**. Remaining is opt-in:
   push server for exact-time notification counts · richer end-of-day summary.
 - **Agreed cleanup:** move the Supabase project off the Framewise Health work org (#086).
 - **Declined (#115/#121):** mood · "on this day" · weekly/non-daily items · fixed
-  home-timezone · offline mode · custom domain · interactive widget check-off · medium/large
-  widgets · Android.
+  home-timezone · custom domain · interactive widget check-off · medium/large
+  widgets · Android. ("Offline mode" was declined here too, but #149 later shipped offline
+  **reading** — snapshots of the last synced data, read-only; offline *editing* stays out.)
 
 ## 15. Verifying a change
 

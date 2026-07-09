@@ -192,10 +192,16 @@ Today/Notes only (#064).
 - **first-run / empty states**: empty routine → `add your first item` prompt; empty
   journal → `do your journal today`; empty notes → a gentle empty state.
 - **timezone**: device-local (#083). A fixed home-timezone setting is deferred.
-- **offline**: connection required (#084); show a clear "no connection" state, no offline
-  editing in V1.
+- **offline** (#084 as amended by #149): **reading works offline** — every screen renders
+  from the last synced local copy (Today, heatmap, notes stream, entries), shown
+  **read-only** with a quiet "offline — showing saved copies" pill; entries open inline
+  from the stream. **Editing requires a connection** (no offline sync/merge in V1);
+  reconnecting refetches and unlocks automatically. Media (photos/video) is not cached.
+- **loading**: no blank screens and no bare "loading…" text — screens show pulse
+  **skeletons** until data arrives, and paint instantly from the local copy when one
+  exists (#149).
 - **PWA**: installable (manifest, icon, name `notes`, theme-color, service worker for
-  install/caching of the shell — not for offline data).
+  install/caching of the shell — app data lives in the local-snapshot layer, #149).
 
 ## 11. inspo (`/inspo`, #140) — mood / inspiration board
 

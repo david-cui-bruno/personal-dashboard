@@ -8,10 +8,12 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { daysBefore } from "@/lib/date";
+import { useOnline } from "@/lib/use-online";
 import { useToday } from "@/lib/use-today";
 import {
   getTodaySummaryCached,
   computeConsistency,
+  readTodaySnapshot,
   subscribeToday,
   type DayConsistency,
 } from "@/lib/data";
@@ -80,6 +82,7 @@ export function ConsistencyChart({
 }) {
   const [days, setDays] = useState<DayConsistency[] | null>(null);
   const day = useToday(); // re-keys the window at local midnight (#102)
+  const online = useOnline(); // refetch the moment a connection returns (#149)
 
   useEffect(() => {
     if (!day) return;
@@ -87,6 +90,14 @@ export function ConsistencyChart({
     const to = day;
     const from = daysBefore(day, 7 * 12 - 1); // ~12 weeks, shared cache key (#122)
     let alive = true;
+    // Instant paint + offline reading (#149): seed from the persisted snapshot —
+    // computed over *today's* window, so an older snapshot still lines up (its
+    // missing newest days just render blank until the fetch fills them).
+    const snap = readTodaySnapshot();
+    if (snap) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- synchronous seed from localStorage
+      setDays(computeConsistency(snap.summary.items, snap.summary.completions, from, to));
+    }
     // Reload on mount, when the day rolls over, AND when a completion/routine write
     // lands (subscribeToday) — otherwise the chart keeps its mount-time data and the
     // "today" cell never updates as you check items.
@@ -96,7 +107,8 @@ export function ConsistencyChart({
           if (alive) setDays(computeConsistency(s.items, s.completions, from, to));
         })
         .catch(() => {
-          if (alive) setDays([]);
+          // Offline: keep the seeded snapshot; settle empty only if nothing showed.
+          if (alive) setDays((prev) => prev ?? []);
         });
     void load();
     const unsubscribe = subscribeToday(load);
@@ -104,7 +116,7 @@ export function ConsistencyChart({
       alive = false;
       unsubscribe();
     };
-  }, [day]);
+  }, [day, online]);
 
   if (!days) return <div className={orientation === "horizontal" ? "h-32" : "h-44"} />;
   const weeks = buildWeeks(days);

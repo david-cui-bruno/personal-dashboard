@@ -10,11 +10,15 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft, Pin, Trash2 } from "lucide-react";
 import type { JSONContent } from "@tiptap/react";
 import { createClient } from "@/lib/supabase/client";
+import { useOnline } from "@/lib/use-online";
 import {
   cachedJournal,
   cachedNote,
   getJournal,
   getNote,
+  readNotesSnapshot,
+  snapshotJournal,
+  snapshotNote,
   invalidateNotesCache,
   pinJournal,
   pinNote,
@@ -36,7 +40,11 @@ const Editor = dynamic(() => import("@/components/editor").then((m) => m.Editor)
   ssr: false,
 });
 
-type EntryProps = { kind: "journal"; day: string } | { kind: "note"; id: string };
+type EntryProps = ({ kind: "journal"; day: string } | { kind: "note"; id: string }) & {
+  // Inline/offline mode (#149): the stream opens entries without a route change
+  // when there's no connection — back must be a history op, not a navigation.
+  onBack?: () => void;
+};
 
 const SAVE_DEBOUNCE_MS = 700;
 const EMPTY_DOC: JSONContent = { type: "doc", content: [{ type: "paragraph" }] };
@@ -72,6 +80,13 @@ export function Entry(props: EntryProps) {
   );
   const [title, setTitle] = useState(initialNote?.title ?? "");
   const [pinned, setPinned] = useState(initial?.pin_order != null);
+  // Offline reading (#149): true while showing the persisted saved copy — the
+  // editor is read-only until the fetch confirms (or replaces) it. `rev` remounts
+  // the editor when fresher content arrives (TipTap reads content once).
+  const [stale, setStale] = useState(false);
+  const [rev, setRev] = useState(0);
+  const [unreachable, setUnreachable] = useState(false); // offline + no saved copy
+  const online = useOnline();
 
   // Latest editor value, the note's latest title, and the journal row id once
   // materialized — all read only inside callbacks, never during render.
@@ -82,35 +97,73 @@ export function Entry(props: EntryProps) {
   const dirty = useRef(false); // a real edit happened → flush should save (#136)
 
   // Cache miss only: fetch the entry, then mount the editor (TipTap reads its
-  // initial content once, at creation).
+  // initial content once, at creation). Set once a fetch has confirmed the entry —
+  // after that a connectivity blip (the `online` dep) must not reseed the editor
+  // out from under an edit.
+  const settled = useRef(!!initial);
   useEffect(() => {
-    if (initial) return;
+    if (settled.current) return;
     let cancelled = false;
-    (async () => {
-      if (kind === "journal") {
-        const j = await getJournal(sb, day);
-        if (cancelled) return;
-        journalId.current = j?.id ?? null;
-        setPinned(j?.pin_order != null);
-        setContent((j?.content as JSONContent) ?? null);
-      } else {
-        const n = await getNote(sb, id);
-        if (cancelled) return;
-        if (!n) {
-          setMissing(true);
-          return;
-        }
-        titleRef.current = n.title;
-        setTitle(n.title);
-        setPinned(n.pin_order != null);
-        setContent((n.content as JSONContent) ?? null);
-      }
+    // Paint the persisted saved copy instantly, read-only (#149) — it may be from
+    // an old session, so unlike the fresh in-memory cache it always revalidates.
+    // A journal day *absent* from a known-good stream snapshot is simply an empty
+    // day (journals are stored only once written) — readable, not unreachable.
+    const snap = kind === "journal" ? snapshotJournal(day) : snapshotNote(id);
+    const emptyDay = !snap && kind === "journal" && readNotesSnapshot() !== null;
+    if (emptyDay) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- synchronous seed from localStorage
+      setStale(true);
       setReady(true);
+    }
+    if (snap) {
+      journalId.current = kind === "journal" ? snap.id : journalId.current;
+      titleRef.current = kind === "note" ? (snap as Note).title : titleRef.current;
+      if (kind === "note") setTitle((snap as Note).title);
+      setPinned(snap.pin_order != null);
+      setContent((snap.content as JSONContent) ?? null);
+      setStale(true);
+      setReady(true);
+    }
+    (async () => {
+      try {
+        let fresh: JSONContent | null;
+        if (kind === "journal") {
+          const j = await getJournal(sb, day);
+          if (cancelled) return;
+          journalId.current = j?.id ?? null;
+          setPinned(j?.pin_order != null);
+          fresh = (j?.content as JSONContent) ?? null;
+        } else {
+          const n = await getNote(sb, id);
+          if (cancelled) return;
+          if (!n) {
+            setMissing(true);
+            return;
+          }
+          titleRef.current = n.title;
+          setTitle(n.title);
+          setPinned(n.pin_order != null);
+          fresh = (n.content as JSONContent) ?? null;
+        }
+        settled.current = true;
+        // Swap the editor only if the server copy actually differs from the seed.
+        if ((snap || emptyDay) && JSON.stringify(fresh) !== JSON.stringify(snap?.content ?? null)) {
+          setRev((r) => r + 1);
+        }
+        setContent(fresh);
+        setStale(false);
+        setUnreachable(false);
+        setReady(true);
+      } catch {
+        // Offline: the saved copy (if any) stays up, read-only; otherwise say so
+        // instead of loading forever. The `online` dep retries on reconnect.
+        if (!cancelled && !snap && !emptyDay) setUnreachable(true);
+      }
     })();
     return () => {
       cancelled = true;
     };
-  }, [initial, kind, day, id, sb]);
+  }, [kind, day, id, sb, online]);
 
   const flush = useCallback(async () => {
     if (saveTimer.current) {
@@ -207,12 +260,21 @@ export function Entry(props: EntryProps) {
   return (
     <div className="mx-auto max-w-[700px] px-6 pt-8 pb-40 md:px-10">
       <div className="mb-8 flex items-center justify-between">
-        <Link
-          href="/notes"
-          className="flex items-center gap-1 text-[14px] font-bold lowercase text-ink-2 hover:text-ink"
-        >
-          <ChevronLeft size={18} /> notes
-        </Link>
+        {props.onBack ? (
+          <button
+            onClick={props.onBack}
+            className="flex items-center gap-1 text-[14px] font-bold lowercase text-ink-2 hover:text-ink"
+          >
+            <ChevronLeft size={18} /> notes
+          </button>
+        ) : (
+          <Link
+            href="/notes"
+            className="flex items-center gap-1 text-[14px] font-bold lowercase text-ink-2 hover:text-ink"
+          >
+            <ChevronLeft size={18} /> notes
+          </Link>
+        )}
         <div className="flex items-center gap-1">
           <button
             onClick={togglePin}
@@ -246,6 +308,7 @@ export function Entry(props: EntryProps) {
           value={title}
           onChange={(e) => onTitleChange(e.target.value)}
           placeholder="untitled"
+          readOnly={stale}
           className="mb-5 w-full bg-transparent text-[30px] font-black tracking-tight outline-none placeholder:text-ink-3"
         />
       )}
@@ -256,16 +319,34 @@ export function Entry(props: EntryProps) {
         <p className="text-[15px] font-bold lowercase text-ink-3">
           this note doesn&apos;t exist.
         </p>
+      ) : unreachable ? (
+        <p className="text-[15px] font-bold lowercase text-ink-3">
+          you&apos;re offline — this entry isn&apos;t saved on this device yet.
+        </p>
       ) : ready ? (
         <Editor
+          key={rev}
           content={content}
+          editable={!stale}
           placeholder={kind === "journal" ? "write about your day" : "start writing…"}
           onChange={onChange}
           onUploadImage={handleUpload}
         />
       ) : (
-        <p className="text-[15px] font-bold lowercase text-ink-3">loading…</p>
+        <EntrySkeleton />
       )}
+    </div>
+  );
+}
+
+// First-ever load only (a snapshot paints instantly from then on, #149).
+function EntrySkeleton() {
+  return (
+    <div aria-hidden className="animate-pulse space-y-2.5 pt-1">
+      <div className="h-4 w-full rounded bg-field" />
+      <div className="h-4 w-11/12 rounded bg-field" />
+      <div className="h-4 w-4/5 rounded bg-field" />
+      <div className="h-4 w-2/3 rounded bg-field" />
     </div>
   );
 }

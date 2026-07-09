@@ -8,13 +8,15 @@
 // clean and unmarked.
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { GripVertical, Pin, Plus, Trash2, Undo2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useOnline } from "@/lib/use-online";
 import {
   createNote,
   getNotesStreamCached,
   invalidateNotesCache,
+  readNotesSnapshot,
   reorderPins,
   restoreNote,
   trashNote,
@@ -29,6 +31,19 @@ import { eachDay, toDayString, today } from "@/lib/date";
 import { parseDate } from "@/components/search/parse-date";
 import { DayTile } from "@/components/ui/day-tile";
 import { useDragReorder } from "@/components/ui/use-drag-reorder";
+import { Entry } from "@/components/notes/entry";
+
+// Offline entry-open (#149): a route change needs the server (the App Router
+// fetches the new route's payload even on client-side nav), so with no
+// connection a tapped entry opens *inline* instead — a shallow pushState to
+// `/notes?open=<id>`, zero network, plain history back. Online keeps the real
+// `/notes/[id]` route.
+const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+function openOfflineInline(e: React.MouseEvent, id: string) {
+  if (navigator.onLine) return; // normal navigation
+  e.preventDefault();
+  window.history.pushState(null, "", `/notes?open=${id}`);
+}
 
 type StreamEntry =
   | { kind: "journal"; day: string; journal: Journal | null }
@@ -72,12 +87,15 @@ function buildStream(
 
 export function NotesStream() {
   const router = useRouter();
+  const openId = useSearchParams().get("open"); // inline/offline entry (#149)
   const [sb] = useState(createClient);
   const [entries, setEntries] = useState<StreamEntry[]>([]);
   const [songsByDay, setSongsByDay] = useState<Map<string, DailySong>>(new Map());
   const [pinned, setPinned] = useState<PinnedEntry[]>([]);
   const [view, setView] = useState<"all" | "pinned">("all");
   const [loading, setLoading] = useState(true);
+  const [unreachable, setUnreachable] = useState(false); // last fetch failed (offline)
+  const online = useOnline();
   const [query, setQuery] = useState("");
   const [creating, setCreating] = useState(false);
   const [trashed, setTrashed] = useState<{ id: string; title: string } | null>(null);
@@ -102,15 +120,29 @@ export function NotesStream() {
 
   useEffect(() => {
     let cancelled = false;
-    getNotesStreamCached(sb).then((d) => {
-      if (!cancelled) apply(d);
-    });
+    // Instant paint + offline reading (#149): show the last synced copy while the
+    // real fetch runs; when the fetch fails (no connection) the copy stays up. The
+    // `online` dep re-runs this the moment the connection returns.
+    const snap = readNotesSnapshot();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- synchronous seed from localStorage
+    if (snap) apply(snap);
+    getNotesStreamCached(sb)
+      .then((d) => {
+        if (cancelled) return;
+        apply(d);
+        setUnreachable(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setUnreachable(true);
+        setLoading(false); // no snapshot → show the offline empty state, not a skeleton
+      });
     void import("@/components/editor"); // warm the TipTap chunk before a note is opened
     return () => {
       cancelled = true;
       if (undoTimer.current) clearTimeout(undoTimer.current);
     };
-  }, [apply, sb]);
+  }, [apply, sb, online]);
 
   async function handleCreate() {
     if (creating) return;
@@ -179,6 +211,17 @@ export function NotesStream() {
           : `${e.note.title} ${e.note.content_text}`.toLowerCase().includes(q),
       )
     : entries;
+  // Inline/offline entry (#149): render the same <Entry> in place of the list —
+  // the stream stays mounted underneath, so back is instant and networkless.
+  if (openId) {
+    const back = () => window.history.pushState(null, "", "/notes");
+    return DAY_RE.test(openId) ? (
+      <Entry key={openId} kind="journal" day={openId} onBack={back} />
+    ) : (
+      <Entry key={openId} kind="note" id={openId} onBack={back} />
+    );
+  }
+
   const datedDay = query.trim() ? parseDate(query.trim()) : null;
   const shown: StreamEntry[] = datedDay
     ? [
@@ -231,7 +274,7 @@ export function NotesStream() {
       )}
 
       {loading ? (
-        <p className="mt-8 text-[15px] font-bold lowercase text-ink-3">loading…</p>
+        <StreamSkeleton />
       ) : view === "pinned" ? (
         <PinnedList
           pinned={pinned}
@@ -241,7 +284,11 @@ export function NotesStream() {
         />
       ) : shown.length === 0 ? (
         <p className="mt-8 text-[15px] font-bold lowercase text-ink-3">
-          {q ? "nothing matches that." : "nothing here yet."}
+          {q
+            ? "nothing matches that."
+            : unreachable
+              ? "you're offline — notes will appear once you're connected."
+              : "nothing here yet."}
         </p>
       ) : (
         <ul className="-mx-2">
@@ -250,6 +297,7 @@ export function NotesStream() {
               <li key={`j-${e.day}`}>
                 <Link
                   href={`/notes/${e.day}`}
+                  onClick={(ev) => openOfflineInline(ev, e.day)}
                   className="flex items-start gap-3.5 rounded-xl px-2 py-3.5 hover:bg-field"
                 >
                   <JournalInner day={e.day} journal={e.journal} song={songsByDay.get(e.day)} />
@@ -270,6 +318,30 @@ export function NotesStream() {
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+// First-ever load only (a snapshot paints instantly from then on, #149): pulse
+// rows shaped like the stream, so the screen is never blank while fetching.
+// Exported for the page's Suspense fallback — useSearchParams (the ?open entry)
+// punts the stream itself out of the static HTML, so the fallback must carry
+// the header + skeleton or a cold load would paint blank.
+export function StreamSkeleton() {
+  return (
+    <div aria-hidden className="mt-1 animate-pulse">
+      {[0, 1, 2, 3, 4, 5].map((i) => (
+        <div key={i} className="flex items-start gap-3.5 px-2 py-3.5">
+          <div className="h-[54px] w-[54px] shrink-0 rounded-xl bg-field" />
+          <div className="min-w-0 flex-1 pt-1">
+            <div className="h-4 w-24 rounded bg-field" />
+            <div
+              className="mt-2 h-3.5 rounded bg-field"
+              style={{ width: `${88 - i * 9}%` }}
+            />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -329,6 +401,7 @@ function NoteRow({ note, onTrash }: { note: Note; onTrash: (n: Note) => void }) 
     <li className="group relative">
       <Link
         href={`/notes/${note.id}`}
+        onClick={(ev) => openOfflineInline(ev, note.id)}
         className="flex items-start gap-3.5 rounded-xl px-2 py-3.5 pr-12 hover:bg-field"
       >
         <NoteInner note={note} />
@@ -374,7 +447,8 @@ function PinnedList({
   return (
     <ul className="-mx-2">
       {pinned.map((e, i) => {
-        const href = e.kind === "note" ? `/notes/${e.note.id}` : `/notes/${e.journal.day}`;
+        const target = e.kind === "note" ? e.note.id : e.journal.day;
+        const href = `/notes/${target}`;
         return (
           <li
             key={e.key}
@@ -393,6 +467,7 @@ function PinnedList({
             </span>
             <Link
               href={href}
+              onClick={(ev) => openOfflineInline(ev, target)}
               className="flex min-w-0 flex-1 items-start gap-3.5 rounded-xl py-3.5 pr-10 hover:bg-field"
             >
               {e.kind === "journal" ? (
