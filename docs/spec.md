@@ -196,7 +196,9 @@ Today/Notes only (#064).
   from the last synced local copy (Today, heatmap, notes stream, entries), shown
   **read-only** with a quiet "offline — showing saved copies" pill; entries open inline
   from the stream. **Editing requires a connection** (no offline sync/merge in V1);
-  reconnecting refetches and unlocks automatically. Media (photos/video) is not cached.
+  reconnecting refetches and unlocks automatically. **Photos render offline** too —
+  storage images (journal photos, inspo tiles, posters) are cached by the service
+  worker (#150); video *files* are not (a video tile shows its poster but won't play).
 - **loading**: no blank screens and no bare "loading…" text — screens show pulse
   **skeletons** until data arrives, and paint instantly from the local copy when one
   exists (#149).

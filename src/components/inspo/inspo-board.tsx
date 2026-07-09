@@ -14,6 +14,7 @@ import { ImagePlus, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
   listInspo,
+  readInspoSnapshot,
   uploadInspoMedia,
   addInspoItem,
   deleteInspoItem,
@@ -64,6 +65,14 @@ export function InspoBoard() {
 
   useEffect(() => {
     let active = true;
+    // Instant paint (#150): seed from the persisted snapshot while the fetch runs
+    // (offline, listInspo itself falls back to the same snapshot).
+    const snap = readInspoSnapshot(board);
+    if (snap) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- synchronous seed from localStorage
+      setItems(snap);
+      setLoading(false);
+    }
     listInspo(sb, board).then((d) => {
       if (!active) return;
       setItems(d);

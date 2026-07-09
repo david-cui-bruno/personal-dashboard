@@ -956,3 +956,20 @@ blank screen. Three fixes, one mechanism:
   stream + entry content readable (read-only, pill shown) → Today shows date/routine/
   heatmap → reconnect unlocks editing; first-run HTML carries skeletons; no page errors.
   `docs/spec.md` §10, `docs/architecture.md`, `docs/handoff.md` updated.
+
+**#150 — offline photos: the service worker caches storage images; inspo gets snapshots.**
+Completes #149 for media. The SW now cache-firsts Supabase **storage images** (journal
+photos, inspo tiles, video posters — matched by `/storage/v1/object/` path + image
+destination) in a bounded `notes-media-v1` cache (~400 entries, oldest dropped): storage
+paths are written once and never rewritten, so cache-first is safe, makes repeat loads
+instant, and renders photos offline. Requests are re-issued as CORS so cached entries
+aren't opaque (Chrome pads opaque responses to megabytes of quota). Video *files* stay
+uncached (≤50 MB each) — offline, a video tile shows its poster but won't play. The inspo
+boards also join the #149 snapshot layer (`listInspo` persists each board's last good list
+and falls back to it on failure — never overwriting a good copy with an error's `[]`), so
+the whole board renders offline, images included. REST/auth traffic is still never touched
+by the SW. **Why:** #149 made the words readable offline; a journal is half photos.
+Verified with Playwright (prod build): upload a journal photo + an inspo image online →
+wifi off → hard reload → inspo tile and journal photo both render (`naturalWidth > 0`),
+pill shown, no errors; self-restoring (storage objects deleted via the API, rows via psql,
+diffed against a pre-test snapshot). `docs/spec.md` §10, `docs/architecture.md` updated.

@@ -10,6 +10,14 @@
 
 const SHELL_CACHE = "notes-shell-v2";
 
+// Media cache (#150): storage images (journal photos, inspo tiles, video
+// posters) are content-addressed (a path is written once, never rewritten), so
+// cache-first is safe and makes them load instantly + render offline. Video
+// *files* are deliberately not cached (up to ~50 MB each — quota). Bounded by
+// entry count, oldest dropped first.
+const MEDIA_CACHE = "notes-media-v1";
+const MEDIA_MAX_ENTRIES = 400;
+
 // Stable, self-owned static assets safe to precache. Build assets under
 // /_next/static/* are content-hashed (URLs change every build) so they're cached
 // at runtime below rather than precached here.
@@ -34,7 +42,9 @@ self.addEventListener("activate", (event) => {
       .keys()
       .then((keys) =>
         Promise.all(
-          keys.filter((k) => k !== SHELL_CACHE).map((k) => caches.delete(k)),
+          keys
+            .filter((k) => k !== SHELL_CACHE && k !== MEDIA_CACHE)
+            .map((k) => caches.delete(k)),
         ),
       ),
   );
@@ -46,7 +56,37 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
 
   const url = new URL(request.url);
-  if (url.origin !== self.location.origin) return; // never touch Supabase / cross-origin
+
+  // Storage *images* (#150) — cache-first (immutable paths). Matched by path +
+  // destination so journal photos, inspo tiles and posters qualify anywhere
+  // Supabase lives (cloud or local), while REST/auth/video are never touched.
+  if (
+    request.destination === "image" &&
+    url.pathname.includes("/storage/v1/object/")
+  ) {
+    event.respondWith(
+      (async () => {
+        const cache = await caches.open(MEDIA_CACHE);
+        const cached = await cache.match(request.url);
+        if (cached) return cached;
+        try {
+          // Re-issue as CORS (storage sends ACAO:*) so the stored response isn't
+          // opaque — Chrome pads opaque cache entries to megabytes of quota.
+          const res = await fetch(request.url, { mode: "cors" });
+          if (res && res.ok) {
+            await cache.put(request.url, res.clone());
+            trimCache(cache).catch(() => {});
+          }
+          return res;
+        } catch {
+          return fetch(request); // last resort: the browser's own path
+        }
+      })(),
+    );
+    return;
+  }
+
+  if (url.origin !== self.location.origin) return; // never touch Supabase data / cross-origin
 
   // Top-level page navigations (a cold start / hard reload in the WebView) →
   // stale-while-revalidate the app *shell* (#129). Serve the cached HTML instantly so
@@ -103,6 +143,15 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Everything else (navigations, data, API) falls through to the network.
-  // No offline data by design (#084).
+  // Everything else (data, API) falls through to the network — app data lives
+  // in the local-snapshot layer, not the SW (#084/#149).
 });
+
+// Drop the oldest media entries once over the cap (Cache keys keep insertion order).
+async function trimCache(cache) {
+  const keys = await cache.keys();
+  if (keys.length <= MEDIA_MAX_ENTRIES) return;
+  for (const k of keys.slice(0, keys.length - MEDIA_MAX_ENTRIES)) {
+    await cache.delete(k);
+  }
+}
