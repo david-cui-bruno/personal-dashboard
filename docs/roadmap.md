@@ -47,9 +47,10 @@ See `docs/architecture.md` for deploy details.
 - Native **mobile** shell via **Capacitor** (#113): **shipped on iOS** — the home-screen
   **widget** + daily **notifications** (#119, `docs/widget-and-notifications.md`) are
   running on David's device (Phases 1–3 all done). *(Desktop is covered by Electron, #110.)*
-- **Active candidates** (David's interest, #121): a **lock-screen widget**, **TestFlight/
-  App Store** distribution, a **push server** for exact-time notification counts (vs today's
-  best-effort), and a **richer end-of-day summary**.
+- **Active candidates** (David's interest, #121): ~~a lock-screen widget~~ (**done**, #138 —
+  accessory families; David compiles in Xcode), ~~a richer end-of-day summary~~ (**done**,
+  #137 — the 9pm notification is now a day recap), **TestFlight/App Store** distribution,
+  and a **push server** for exact-time notification counts (vs today's best-effort).
 - ~~**Performance**~~ — **done**: Today loads via one `today_summary` RPC (#122, song folded
   in #131, migrations 0005/0008), client caches make nav instant (#122/#136), TipTap is
   lazy-loaded (#122), and #149/#150 added offline snapshots + skeletons on top.
