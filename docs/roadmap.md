@@ -50,8 +50,9 @@ See `docs/architecture.md` for deploy details.
 - **Active candidates** (David's interest, #121): a **lock-screen widget**, **TestFlight/
   App Store** distribution, a **push server** for exact-time notification counts (vs today's
   best-effort), and a **richer end-of-day summary**.
-- **Performance:** collapse the per-screen data fetches into a single `today_summary` RPC +
-  add a client cache (instant nav) + lazy-load TipTap (latency work, agreed).
+- ~~**Performance**~~ — **done**: Today loads via one `today_summary` RPC (#122, song folded
+  in #131, migrations 0005/0008), client caches make nav instant (#122/#136), TipTap is
+  lazy-loaded (#122), and #149/#150 added offline snapshots + skeletons on top.
 - ~~Song of the day~~ — **built** (#123): per-day logged song (paste a Spotify/Apple Music
   link → cover art + title atop the journal + on the stream). Ships with the migration push.
 - ~~Code signing + notarization for the desktop `.dmg`~~ — **done** (#118): signed Developer
